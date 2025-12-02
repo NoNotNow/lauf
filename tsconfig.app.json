@@ -1,0 +1,16 @@
+{
+  "extends": "./tsconfig.json",
+  "compileOnSave": false,
+  "compilerOptions": {
+    "outDir": "./dist/out-tsc",
+    "types": []
+  },
+  "files": ["src/main.ts"],
+  "angularCompilerOptions": {
+    "disableTypeScriptVersionCheck": true,
+    "enableI18nLegacyMessageIdFormat": false,
+    "strictInjectionParameters": true,
+    "strictInputAccessModifiers": true,
+    "strictTemplates": true
+  }
+}

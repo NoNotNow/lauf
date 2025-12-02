@@ -1,0 +1,14 @@
+<header class="navbar">
+  <div class="container nav-inner">
+    <div class="brand">Lauff</div>
+    <nav class="links">
+      <a routerLink="/game" routerLinkActive="active" [routerLinkActiveOptions]="{ exact: true }">Game</a>
+      <a routerLink="/builder" routerLinkActive="active">Builder</a>
+    </nav>
+  </div>
+</header>
+
+<main class="container main">
+  <router-outlet />
+  
+</main>
