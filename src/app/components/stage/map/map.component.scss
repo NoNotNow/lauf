@@ -1,0 +1,8 @@
+.container {
+  display: flex;
+  border: 1px solid red;
+  width: 100%;
+  /* Ensure the container is always a square based on its width */
+  aspect-ratio: 1 / 1;
+  padding: 0;
+}
