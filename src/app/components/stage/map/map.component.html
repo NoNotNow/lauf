@@ -1,3 +1,8 @@
 <div class="container">
-  <app-grid [size]="size" [color]="gridColor" [lineWidth]="gridLineWidth"></app-grid>
+  <div class="layer">
+    <app-grid [size]="size" [color]="gridColor" [lineWidth]="gridLineWidth"></app-grid>
+  </div>
+  <div class="layer obstacles">
+    <app-obstacles [size]="size"></app-obstacles>
+  </div>
 </div>
