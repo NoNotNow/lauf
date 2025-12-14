@@ -1,4 +1,5 @@
 import { AfterViewInit, Component, ElementRef, OnDestroy, ViewChild, Input, OnChanges, SimpleChanges } from '@angular/core';
+import { Point } from '../../../models/point';
 
 @Component({
   selector: 'app-grid',
@@ -11,8 +12,9 @@ export class GridComponent implements AfterViewInit, OnDestroy, OnChanges {
   @ViewChild('canvas', { static: true })
   canvasRef!: ElementRef<HTMLCanvasElement>;
 
-  // Number of cells to display across each axis (gridSize x gridSize)
-  @Input() gridSize = 10;
+  // Number of cells to display across each axis
+  // Use Point: x = columns, y = rows
+  @Input() size: Point = new Point(10, 10);
 
   // Grid line color and width (width in CSS pixels; DPR-adjusted for crispness)
   @Input() color: string = '#cccccc';
@@ -35,7 +37,7 @@ export class GridComponent implements AfterViewInit, OnDestroy, OnChanges {
   }
 
   ngOnChanges(changes: SimpleChanges): void {
-    if (changes['gridSize'] || changes['color'] || changes['lineWidth']) {
+    if (changes['size'] || changes['color'] || changes['lineWidth']) {
       // Redraw with the new grid size if the canvas is already available
       if (this.canvasRef?.nativeElement) {
         this.draw();
@@ -100,7 +102,9 @@ export class GridComponent implements AfterViewInit, OnDestroy, OnChanges {
     ctx.stroke();
 
     // Determine number of cells (must be >= 1 to have a valid grid)
-    const N = Math.max(1, Math.floor(this.gridSize));
+    // N: columns (vertical lines split), M: rows (horizontal lines split)
+    const N = Math.max(1, Math.floor(this.size?.x ?? 1));
+    const M = Math.max(1, Math.floor(this.size?.y ?? 1));
 
     // If only 1 cell, there are no inner lines; just borders. For N > 1, draw N-1 inner lines.
     if (N > 1) {
@@ -114,8 +118,8 @@ export class GridComponent implements AfterViewInit, OnDestroy, OnChanges {
         ctx.lineTo(x, h);
         ctx.stroke();
       }
-      for (let i = 1; i < N; i++) {
-        const y = offset + Math.round((i * (h - 1)) / N);
+      for (let i = 1; i < M; i++) {
+        const y = offset + Math.round((i * (h - 1)) / M);
         ctx.beginPath();
         ctx.moveTo(0, y);
         ctx.lineTo(w, y);

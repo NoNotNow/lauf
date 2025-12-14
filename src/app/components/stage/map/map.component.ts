@@ -1,5 +1,6 @@
 import { Component } from '@angular/core';
 import { GridComponent } from '../../stage/grid/grid.component';
+import { Point } from '../../../models/point';
 
 @Component({
   selector: 'app-map',
@@ -11,5 +12,6 @@ import { GridComponent } from '../../stage/grid/grid.component';
 export class MapComponent {
   // Configure grid appearance
   gridColor = '#cccccc';
-  gridLineWidth = 1; // in CSS pixels
+  gridLineWidth = 5; // in CSS pixels
+  size: Point = new Point(10, 10);
 }
