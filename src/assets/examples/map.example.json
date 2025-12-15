@@ -13,12 +13,53 @@
     {
       "Position": { "X": 1, "Y": 1 },
       "Size": { "X": 1, "Y": 1 },
-      "Design": { "Color": "#333333" }
+      "Design": { "Color": "#ff33ff" }
     },
     {
       "Position": { "X": 3, "Y": 5 },
       "Size": { "X": 2, "Y": 1 },
       "Design": { "Color": "#555555" }
+    },
+    {
+      "Position": { "X": 0, "Y": 2 },
+      "Size": { "X": 2, "Y": 2 },
+      "Design": {
+        "Color": "#ffeecc",
+        "Border": "solid",
+        "BorderColor": "#cc6600",
+        "BorderWidth": 2,
+        "BorderRadius": 0.5
+      }
+    },
+    {
+      "Position": { "X": 5, "Y": 2 },
+      "Size": { "X": 3, "Y": 1 },
+      "Design": {
+        "Color": "#cce5ff",
+        "Border": "dashed",
+        "BorderColor": "#0056b3",
+        "BorderWidth": 2,
+        "BorderRadius": 0.3
+      }
+    },
+    {
+      "Position": { "X": 7, "Y": 7 },
+      "Size": { "X": 1, "Y": 2 },
+      "Design": {
+        "Color": "#66cc99",
+        "Border": "none"
+      }
+    },
+    {
+      "Position": { "X": 0, "Y": 7 },
+      "Size": { "X": 2, "Y": 3 },
+      "Design": {
+        "Color": "#ffd6e7",
+        "Border": "solid",
+        "BorderColor": "#b30059",
+        "BorderWidth": 3,
+        "BorderRadius": 0.6
+      }
     }
   ],
   "Targets": [
