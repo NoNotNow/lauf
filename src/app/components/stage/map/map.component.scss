@@ -15,3 +15,12 @@
 .layer.obstacles {
   z-index: 2; /* above grid */
 }
+
+.layer.targets {
+  z-index: 3; /* above obstacles */
+}
+
+.layer.avatars {
+  z-index: 4; /* above targets */
+}
+

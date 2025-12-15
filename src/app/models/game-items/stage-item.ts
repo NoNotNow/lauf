@@ -1,10 +1,17 @@
 import {Point} from "../point";
 import {Design} from "../design";
+import { GridGeometry } from "../canvas-geometry";
 
 export class StageItem {
     public Position : Point;
     public Size : Point;
     public Design: Design;
+
+    // Let items draw themselves given a canvas context and grid geometry.
+    // Default implementation is a no-op.
+    // Subclasses (e.g., Obstacle, Target, Avatar) should override.
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    public draw(ctx: CanvasRenderingContext2D, geom: GridGeometry): void {}
 
     // Fills current instance from a plain JSON/object without replacing it
     public FromJson(data: any): this {

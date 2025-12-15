@@ -1,0 +1,12 @@
+<div class="items-container">
+  <div
+    *ngFor="let display of items_display"
+    class="item"
+    [style.left]="display.left"
+    [style.top]="display.top"
+    [style.width]="display.width"
+    [style.height]="display.height"
+    [style.background-color]="color"
+  ></div>
+</div>
+

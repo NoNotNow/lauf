@@ -12,7 +12,7 @@ import { CanvasLayerComponent } from '../../common/canvas-layer/canvas-layer.com
 export class GridComponent implements OnChanges {
   // Number of cells to display across each axis
   // Use Point: x = columns, y = rows
-  @Input() size: Point = new Point(10, 10);
+  @Input() gridSize: Point = new Point(10, 10);
 
   // Grid line color and width (width in CSS pixels; DPR-adjusted for crispness)
   @Input() color: string = '#cccccc';
@@ -28,8 +28,8 @@ export class GridComponent implements OnChanges {
   }
 
   updateRedrawKey(): void {
-    const N = Math.max(1, Math.floor(this.size?.x ?? 1));
-    const M = Math.max(1, Math.floor(this.size?.y ?? 1));
+    const N = Math.max(1, Math.floor(this.gridSize?.x ?? 1));
+    const M = Math.max(1, Math.floor(this.gridSize?.y ?? 1));
     this.redrawKey = `${N}x${M}-${this.color}-${this.lineWidth}`;
   }
 
@@ -57,8 +57,8 @@ export class GridComponent implements OnChanges {
     ctx.lineTo(w, h - offset);
     ctx.stroke();
 
-    const N = Math.max(1, Math.floor(this.size?.x ?? 1));
-    const M = Math.max(1, Math.floor(this.size?.y ?? 1));
+    const N = Math.max(1, Math.floor(this.gridSize?.x ?? 1));
+    const M = Math.max(1, Math.floor(this.gridSize?.y ?? 1));
 
     if (N > 1) {
       for (let i = 1; i < N; i++) {

@@ -1,4 +1,6 @@
 import { AfterViewInit, Component, ElementRef, Input, OnDestroy, OnChanges, SimpleChanges, ViewChild } from '@angular/core';
+import { Point } from '../../../models/point';
+import { GridGeometry } from '../../../models/canvas-geometry';
 
 @Component({
   selector: 'app-canvas-layer',
@@ -11,10 +13,13 @@ export class CanvasLayerComponent implements AfterViewInit, OnDestroy, OnChanges
   canvasRef!: ElementRef<HTMLCanvasElement>;
 
   // Draw callback provided by parent components
-  @Input() draw?: (ctx: CanvasRenderingContext2D, canvas: HTMLCanvasElement) => void;
+  @Input() draw?: (ctx: CanvasRenderingContext2D, canvas: HTMLCanvasElement, geom?: GridGeometry) => void;
 
   // Any change to this input triggers a redraw
   @Input() redrawKey: unknown;
+
+  // Optional grid size for geometry computation (x: cols, y: rows)
+  @Input() gridSize?: Point;
 
   private resizeObserver?: ResizeObserver;
 
@@ -68,6 +73,28 @@ export class CanvasLayerComponent implements AfterViewInit, OnDestroy, OnChanges
 
     // Clear before delegating
     ctx.clearRect(0, 0, canvas.width, canvas.height);
-    this.draw?.(ctx, canvas);
+
+    // Build geometry helper if gridSize is provided
+    const cols = Math.max(1, Math.floor(this.gridSize?.x ?? 1));
+    const rows = Math.max(1, Math.floor(this.gridSize?.y ?? 1));
+    const cellW = canvas.width / cols;
+    const cellH = canvas.height / rows;
+
+    const geom: GridGeometry = {
+      cols,
+      rows,
+      cellW,
+      cellH,
+      rectForCells: (col: number, row: number, wCells: number = 1, hCells: number = 1, padRatio: number = 0) => {
+        const pad = Math.max(0, Math.min(cellW, cellH) * Math.max(0, Math.min(0.5, padRatio)));
+        const x = col * cellW + pad;
+        const y = row * cellH + pad;
+        const w = Math.max(0, wCells * cellW - 2 * pad);
+        const h = Math.max(0, hCells * cellH - 2 * pad);
+        return { x, y, w, h };
+      }
+    };
+
+    this.draw?.(ctx, canvas, geom);
   }
 }
