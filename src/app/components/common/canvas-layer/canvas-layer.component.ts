@@ -22,6 +22,7 @@ export class CanvasLayerComponent implements AfterViewInit, OnDestroy, OnChanges
   @Input() gridSize?: Point;
 
   private resizeObserver?: ResizeObserver;
+  private onExternalRedraw = () => this.drawNow();
 
   constructor(private host: ElementRef<HTMLElement>) {}
 
@@ -29,10 +30,13 @@ export class CanvasLayerComponent implements AfterViewInit, OnDestroy, OnChanges
     this.resizeObserver = new ResizeObserver(() => this.resizeCanvas());
     this.resizeObserver.observe(this.host.nativeElement);
     this.resizeCanvas();
+    // Listen for global redraw events (e.g., image assets loaded)
+    window.addEventListener('app-canvas-redraw', this.onExternalRedraw);
   }
 
   ngOnDestroy(): void {
     this.resizeObserver?.disconnect();
+    window.removeEventListener('app-canvas-redraw', this.onExternalRedraw);
   }
 
   ngOnChanges(changes: SimpleChanges): void {

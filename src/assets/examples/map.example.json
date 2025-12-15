@@ -17,18 +17,26 @@
     },
     {
       "Position": { "X": 3, "Y": 5 },
-      "Size": { "X": 2, "Y": 1 },
-      "Design": { "Color": "#555555" }
+      "Size": { "X": 2, "Y": 2 },
+      "Design": {
+        "Color": "#ffff55",
+        "BorderRadius": 2,
+        "BorderWidth": 0.1,
+        "border": "dashed",
+        "BorderColor": "#ff9900",
+        "Image": "assets/shapes.svg"
+      }
     },
     {
       "Position": { "X": 0, "Y": 2 },
       "Size": { "X": 2, "Y": 2 },
       "Design": {
-        "Color": "#ffeecc",
+        "Color": "transparent",
         "Border": "solid",
         "BorderColor": "#cc6600",
-        "BorderWidth": 0.12,
-        "BorderRadius": 0.5
+        "BorderWidth": 0.012,
+        "BorderRadius": 1,
+        "Image": "assets/ufo.svg"
       }
     },
     {
@@ -39,12 +47,13 @@
         "Border": "dashed",
         "BorderColor": "#0056b3",
         "BorderWidth": 0.12,
-        "BorderRadius": 0.3
+        "BorderRadius": 0.3,
+        "Image": "assets/shapes.svg"
       }
     },
     {
-      "Position": { "X": 7, "Y": 7 },
-      "Size": { "X": 1, "Y": 2 },
+      "Position": { "X": 7, "Y": 4 },
+      "Size": { "X": 1, "Y": 3 },
       "Design": {
         "Color": "#66cc99",
         "Border": "none"

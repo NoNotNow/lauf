@@ -1,0 +1,24 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="45 35 420 415">
+    <g fill="none" stroke-linecap="round" stroke-linejoin="round">
+
+        <!-- random triangles -->
+        <polygon points="80,60 140,40 120,110" fill="#ff2d95"/>
+        <polygon points="420,90 360,140 460,160" fill="#00e5ff"/>
+        <polygon points="200,420 260,360 300,440" fill="#ffe600"/>
+        <polygon points="60,300 120,260 140,340" fill="#7cff00"/>
+
+        <!-- spaghetti shapes -->
+        <path d="M50 200 C120 180, 80 120, 160 100 S260 140, 300 90"
+              stroke="#ff6a00" stroke-width="8"/>
+        <path d="M420 260 C360 240, 380 180, 300 200 S220 300, 160 260"
+              stroke="#9b5cff" stroke-width="6"/>
+        <path d="M200 50 C240 120, 180 160, 220 220 S300 320, 260 380"
+              stroke="#00ff9c" stroke-width="7"/>
+
+        <!-- floating dots -->
+        <circle cx="90" cy="420" r="10" fill="#ff004c"/>
+        <circle cx="430" cy="360" r="12" fill="#00b3ff"/>
+        <circle cx="260" cy="260" r="8" fill="#fff200"/>
+
+    </g>
+</svg>

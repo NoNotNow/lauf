@@ -7,6 +7,41 @@ export class StageItem {
     public Size : Point;
     public Design: Design;
 
+    // Simple in-memory image cache for canvas drawing
+    private static _imageCache: Map<string, HTMLImageElement> = new Map();
+    private static _requested: Set<string> = new Set();
+
+    private static getImage(url: string): HTMLImageElement | undefined {
+        if (!url) return undefined;
+        let img = this._imageCache.get(url);
+        if (img) return img;
+        img = new Image();
+        // Ensure same-origin relative asset path works
+        img.src = url;
+        // When the image loads, store and request redraw of canvas layers
+        if (!this._requested.has(url)) {
+            this._requested.add(url);
+            img.onload = () => {
+                this._imageCache.set(url, img!);
+                // Notify any canvas layers to redraw
+                try {
+                    window.dispatchEvent(new CustomEvent('app-canvas-redraw'));
+                } catch {
+                    // ignore
+                }
+            };
+            img.onerror = () => {
+                // Failed load: still trigger a redraw to avoid permanent waiting states
+                try {
+                    window.dispatchEvent(new CustomEvent('app-canvas-redraw'));
+                } catch {
+                    // ignore
+                }
+            };
+        }
+        return img;
+    }
+
     // Let items draw themselves given a canvas context and grid geometry.
     // Default implementation is a no-op.
     // Subclasses (e.g., Obstacle, Target, Avatar) could override.
@@ -52,12 +87,36 @@ export class StageItem {
         // Convert to pixels using the smaller cell dimension (cells are square by design; this is safe).
         const radiusCells = Math.max(0, Number(this.Design?.BorderRadius ?? 0));
         const radius = radiusCells * Math.min(geom.cellW, geom.cellH);
+        const imageUrl = this.Design?.Image ?? '';
 
         // Draw filled rounded rect
         ctx.save();
         pathRoundedRect(ctx, x, y, w, h, radius);
         ctx.fillStyle = fill;
         ctx.fill();
+
+        // Optional image overlay, clipped to rounded rect. Image covers the rect preserving aspect ratio.
+        if (imageUrl) {
+            const img = StageItem.getImage(imageUrl);
+            if (img && (img.complete && img.naturalWidth > 0)) {
+                // Clip to rounded rect
+                pathRoundedRect(ctx, x, y, w, h, radius);
+                ctx.save();
+                ctx.clip();
+                // Compute cover scaling
+                const iw = img.naturalWidth;
+                const ih = img.naturalHeight;
+                const scale = Math.max(w / iw, h / ih);
+                const dw = iw * scale;
+                const dh = ih * scale;
+                const dx = x + (w - dw) / 2;
+                const dy = y + (h - dh) / 2;
+                ctx.drawImage(img, dx, dy, dw, dh);
+                ctx.restore();
+            } else {
+                // Image not yet loaded; onload will trigger a canvas redraw
+            }
+        }
 
         // Optional border (respect style)
         if (bw > 0 && borderStyle !== 'none') {

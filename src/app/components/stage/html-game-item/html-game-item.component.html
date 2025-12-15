@@ -6,7 +6,11 @@
     [style.top]="display.top"
     [style.width]="display.width"
     [style.height]="display.height"
-    [style.background-color]="color"
+    [style.background-color]="display.item?.Design?.Color || color"
+    [style.background-image]="display.item?.Design?.Image ? 'url(' + display.item.Design.Image + ')' : null"
+    [style.background-size]="'cover'"
+    [style.background-position]="'center'"
+    [style.background-repeat]="'no-repeat'"
   ></div>
 </div>
 
