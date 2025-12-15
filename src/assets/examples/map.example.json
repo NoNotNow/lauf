@@ -1,0 +1,36 @@
+{
+  "Name": "Sample Level 1",
+  "Size": { "X": 10, "Y": 10 },
+  "Design": {
+    "Color": "#f8f9fa",
+    "Border": "solid",
+    "BorderColor": "#cccccc",
+    "BorderWidth": 1,
+    "BorderRadius": 0,
+    "Image": ""
+  },
+  "Obstacles": [
+    {
+      "Position": { "X": 1, "Y": 1 },
+      "Size": { "X": 1, "Y": 1 },
+      "Design": { "Color": "#333333" }
+    },
+    {
+      "Position": { "X": 3, "Y": 5 },
+      "Size": { "X": 2, "Y": 1 },
+      "Design": { "Color": "#555555" }
+    }
+  ],
+  "Targets": [
+    {
+      "Position": { "X": 8, "Y": 8 },
+      "Size": { "X": 1, "Y": 1 },
+      "Design": { "Color": "#00aa00" }
+    }
+  ],
+  "Avatar": {
+    "Position": { "X": 0, "Y": 0 },
+    "Size": { "X": 1, "Y": 1 },
+    "Design": { "Color": "#007bff" }
+  }
+}
