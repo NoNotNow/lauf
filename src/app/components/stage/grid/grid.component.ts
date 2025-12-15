@@ -14,9 +14,9 @@ export class GridComponent implements OnChanges {
   // Use Point: x = columns, y = rows
   @Input() gridSize: Point = new Point(10, 10);
 
-  // Grid line color and width (width in CSS pixels; DPR-adjusted for crispness)
+  // Grid line color and width (width in cell units; 1.0 == one cell thickness)
   @Input() color: string = '#cccccc';
-  @Input() lineWidth: number = 1;
+  @Input() lineWidth: number = 0.02;
 
   // Changing this value forces CanvasLayer to redraw
   redrawKey = '';
@@ -35,15 +35,19 @@ export class GridComponent implements OnChanges {
 
   // Draw callback used by CanvasLayerComponent
   drawGrid = (ctx: CanvasRenderingContext2D, canvas: HTMLCanvasElement) => {
-    const dpr = window.devicePixelRatio || 1;
-    const lw = Math.max(1, Math.round(this.lineWidth * dpr));
+    const w = canvas.width;
+    const h = canvas.height;
+    const N = Math.max(1, Math.floor(this.gridSize?.x ?? 1));
+    const M = Math.max(1, Math.floor(this.gridSize?.y ?? 1));
+
+    const cellW = w / N;
+    const cellH = h / M;
+    const unit = Math.min(cellW, cellH);
+    const lw = Math.max(1, Math.round((this.lineWidth ?? 0) * unit));
     const offset = (lw % 2 === 1) ? 0.5 : 0.0;
 
     ctx.strokeStyle = this.color;
     ctx.lineWidth = lw;
-
-    const w = canvas.width;
-    const h = canvas.height;
 
     // Borders
     ctx.beginPath();
@@ -56,9 +60,6 @@ export class GridComponent implements OnChanges {
     ctx.moveTo(0, h - offset);
     ctx.lineTo(w, h - offset);
     ctx.stroke();
-
-    const N = Math.max(1, Math.floor(this.gridSize?.x ?? 1));
-    const M = Math.max(1, Math.floor(this.gridSize?.y ?? 1));
 
     if (N > 1) {
       for (let i = 1; i < N; i++) {

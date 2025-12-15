@@ -5,7 +5,7 @@
     "Color": "#f8f9fa",
     "Border": "solid",
     "BorderColor": "#cccccc",
-    "BorderWidth": 1,
+    "BorderWidth": 0.08,
     "BorderRadius": 0,
     "Image": ""
   },
@@ -27,7 +27,7 @@
         "Color": "#ffeecc",
         "Border": "solid",
         "BorderColor": "#cc6600",
-        "BorderWidth": 2,
+        "BorderWidth": 0.12,
         "BorderRadius": 0.5
       }
     },
@@ -38,7 +38,7 @@
         "Color": "#cce5ff",
         "Border": "dashed",
         "BorderColor": "#0056b3",
-        "BorderWidth": 2,
+        "BorderWidth": 0.12,
         "BorderRadius": 0.3
       }
     },
@@ -57,7 +57,7 @@
         "Color": "#ffd6e7",
         "Border": "solid",
         "BorderColor": "#b30059",
-        "BorderWidth": 3,
+        "BorderWidth": 0.18,
         "BorderRadius": 0.6
       }
     }

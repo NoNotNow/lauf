@@ -43,7 +43,9 @@ export class StageItem {
 
         // Resolve design properties
         const fill = this.Design?.Color ?? 'rgba(200,0,0,0.6)';
-        const bw = Math.max(0, Math.floor(this.Design?.BorderWidth ?? 0));
+        // Interpret BorderWidth in cell units: 1.0 == one cell size thickness
+        const bwCells = Math.max(0, Number(this.Design?.BorderWidth ?? 0));
+        const bw = bwCells * Math.min(geom.cellW, geom.cellH);
         const borderStyle = (this.Design?.Border ?? '').toLowerCase(); // none | solid | dashed
         const borderColor = this.Design?.BorderColor ?? '#000000';
         // Interpret BorderRadius in cell units: 1.0 == one cell size.

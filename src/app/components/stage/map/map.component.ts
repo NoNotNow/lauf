@@ -17,7 +17,7 @@ import {StartupService, MapLoader} from '../../../services/startup.service';
 export class MapComponent implements AfterViewInit, MapLoader {
     // Configure grid appearance
     gridColor = '#cccccc';
-    gridLineWidth = 5; // in CSS pixels
+    gridLineWidth = 0.01; // in cell units (1.0 == one cell)
     gridSize: Point = new Point(10, 10);
 
     @ViewChild(ObstaclesComponent)
