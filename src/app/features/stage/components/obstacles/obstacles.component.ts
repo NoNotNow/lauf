@@ -1,7 +1,7 @@
 import { Component, Input, OnChanges, SimpleChanges } from '@angular/core';
-import { Point } from '../../../models/point';
-import { CanvasLayerComponent } from '../../common/canvas-layer/canvas-layer.component';
-import { Obstacle } from '../../../models/game-items/stage-items';
+import { Point } from '../../../../core/models/point';
+import { CanvasLayerComponent } from '../../../../shared/components/common/canvas-layer/canvas-layer.component';
+import { Obstacle } from '../../../../core/models/game-items/stage-items';
 
 @Component({
   selector: 'app-obstacles',

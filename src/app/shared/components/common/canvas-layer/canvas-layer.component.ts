@@ -1,6 +1,6 @@
 import { AfterViewInit, Component, ElementRef, Input, OnDestroy, OnChanges, SimpleChanges, ViewChild } from '@angular/core';
-import { Point } from '../../../models/point';
-import { GridGeometry } from '../../../models/canvas-geometry';
+import { Point } from '../../../../core/models/point';
+import { GridGeometry } from '../../../../core/models/canvas-geometry';
 
 @Component({
   selector: 'app-canvas-layer',

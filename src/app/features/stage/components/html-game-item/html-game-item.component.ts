@@ -1,7 +1,7 @@
 import { Component, Input, OnChanges, SimpleChanges } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { Point } from '../../../models/point';
-import { StageItem } from '../../../models/game-items/stage-item';
+import { Point } from '../../../../core/models/point';
+import { StageItem } from '../../../../core/models/game-items/stage-item';
 
 interface ItemDisplay {
   id: number;

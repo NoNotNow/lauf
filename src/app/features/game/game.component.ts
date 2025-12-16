@@ -1,5 +1,5 @@
 import { Component } from '@angular/core';
-import {MapComponent} from "../../components/stage/map/map.component";
+import {MapComponent} from "../stage/components/map/map.component";
 
 @Component({
     selector: 'app-game',

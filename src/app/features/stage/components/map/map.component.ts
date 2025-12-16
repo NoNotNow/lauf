@@ -1,10 +1,10 @@
 import {AfterViewInit, Component, ViewChild} from '@angular/core';
 import {GridComponent} from '../grid/grid.component';
-import {Point} from '../../../models/point';
+import {Point} from '../../../../core/models/point';
 import {ObstaclesComponent} from '../obstacles/obstacles.component';
 import {HtmlGameItemComponent} from '../html-game-item/html-game-item.component';
-import {Map as GameMap} from '../../../models/map';
-import {StartupService, MapLoader} from '../../../services/startup.service';
+import {Map as GameMap} from '../../../../core/models/map';
+import {StartupService, MapLoader} from '../../../../core/services/startup.service';
 
 @Component({
     selector: 'app-map',
