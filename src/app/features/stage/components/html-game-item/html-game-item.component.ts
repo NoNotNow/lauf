@@ -37,10 +37,10 @@ export class HtmlGameItemComponent implements OnChanges {
     const rows = Math.max(1, Math.floor(this.gridSize?.y ?? 1));
 
     this.items_display = this.items.map((item, idx) => {
-      const startX = Math.floor(item?.Position?.x ?? 0);
-      const startY = Math.floor(item?.Position?.y ?? 0);
-      const w = Math.max(1, Math.floor(item?.Size?.x ?? 1));
-      const h = Math.max(1, Math.floor(item?.Size?.y ?? 1));
+      const startX = Math.floor(item?.Pose.Position?.x ?? 0);
+      const startY = Math.floor(item?.Pose.Position?.y ?? 0);
+      const w = Math.max(1, Math.floor(item?.Pose.Size?.x ?? 1));
+      const h = Math.max(1, Math.floor(item?.Pose.Size?.y ?? 1));
 
       // Calculate percentage-based positioning and sizing
       const left = (startX / cols) * 100;

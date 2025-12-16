@@ -1,21 +1,15 @@
-import {Point} from "../point";
-import {Design} from "../design";
-import { GridGeometry } from "../canvas-geometry";
+import { Design } from "../design";
 import { Pose } from "../pose";
-
 export class StageItem {
-
-    public Pose:Pose;
-    public Design: Design;
-
     // Simple in-memory image cache for canvas drawing
-    private static _imageCache: Map<string, HTMLImageElement> = new Map();
-    private static _requested: Set<string> = new Set();
-
-    private static getImage(url: string): HTMLImageElement | undefined {
-        if (!url) return undefined;
+    static { this._imageCache = new Map(); }
+    static { this._requested = new Set(); }
+    static getImage(url) {
+        if (!url)
+            return undefined;
         let img = this._imageCache.get(url);
-        if (img) return img;
+        if (img)
+            return img;
         img = new Image();
         // Ensure same-origin relative asset path works
         img.src = url;
@@ -23,11 +17,12 @@ export class StageItem {
         if (!this._requested.has(url)) {
             this._requested.add(url);
             img.onload = () => {
-                this._imageCache.set(url, img!);
+                this._imageCache.set(url, img);
                 // Notify any canvas layers to redraw
                 try {
                     window.dispatchEvent(new CustomEvent('app-canvas-redraw'));
-                } catch {
+                }
+                catch {
                     // ignore
                 }
             };
@@ -35,29 +30,27 @@ export class StageItem {
                 // Failed load: still trigger a redraw to avoid permanent waiting states
                 try {
                     window.dispatchEvent(new CustomEvent('app-canvas-redraw'));
-                } catch {
+                }
+                catch {
                     // ignore
                 }
             };
         }
         return img;
     }
-
     // Let items draw themselves given a canvas context and grid geometry.
     // Default implementation is a no-op.
     // Subclasses (e.g., Obstacle, Target, Avatar) could override.
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    public draw(ctx: CanvasRenderingContext2D, geom: GridGeometry): void {
+    draw(ctx, geom) {
         const posX = Math.floor(this.Pose?.Position?.x ?? 0);
         const posY = Math.floor(this.Pose?.Position?.y ?? 0);
         const wCells = Math.max(1, Math.floor(this.Pose?.Size?.x ?? 1));
         const hCells = Math.max(1, Math.floor(this.Pose?.Size?.y ?? 1));
-
         const padRatio = 0.08; // small inset for aesthetics
         const { x, y, w, h } = geom.rectForCells(posX, posY, wCells, hCells, padRatio);
-
         // Build rounded-rect path helper
-        const pathRoundedRect = (ctx2: CanvasRenderingContext2D, rx: number, ry: number, rw: number, rh: number, r: number) => {
+        const pathRoundedRect = (ctx2, rx, ry, rw, rh, r) => {
             const rr = Math.max(0, Math.min(r, Math.min(rw, rh) / 2));
             if (rr <= 0) {
                 ctx2.beginPath();
@@ -76,7 +69,6 @@ export class StageItem {
             ctx2.lineTo(rx, ry + r2);
             ctx2.quadraticCurveTo(rx, ry, rx + r2, ry);
         };
-
         // Resolve design properties
         const fill = this.Design?.Color ?? 'rgba(200,0,0,0.6)';
         // Interpret BorderWidth in cell units: 1.0 == one cell size thickness
@@ -89,13 +81,11 @@ export class StageItem {
         const radiusCells = Math.max(0, Number(this.Design?.BorderRadius ?? 0));
         const radius = radiusCells * Math.min(geom.cellW, geom.cellH);
         const imageUrl = this.Design?.Image ?? '';
-
         // Draw filled rounded rect
         ctx.save();
         pathRoundedRect(ctx, x, y, w, h, radius);
         ctx.fillStyle = fill;
         ctx.fill();
-
         // Optional image overlay, clipped to rounded rect. Image covers the rect preserving aspect ratio.
         if (imageUrl) {
             const img = StageItem.getImage(imageUrl);
@@ -114,11 +104,11 @@ export class StageItem {
                 const dy = y + (h - dh) / 2;
                 ctx.drawImage(img, dx, dy, dw, dh);
                 ctx.restore();
-            } else {
+            }
+            else {
                 // Image not yet loaded; onload will trigger a canvas redraw
             }
         }
-
         // Optional border (respect style)
         if (bw > 0 && borderStyle !== 'none') {
             ctx.lineWidth = bw;
@@ -129,7 +119,8 @@ export class StageItem {
                 const dash = Math.max(2, bw * 2);
                 const gap = Math.max(2, Math.round(bw * 1.5));
                 ctx.setLineDash([dash, gap]);
-            } else {
+            }
+            else {
                 ctx.setLineDash([]);
             }
             // redraw path for stroke
@@ -138,23 +129,23 @@ export class StageItem {
         }
         ctx.restore();
     }
-
     // Fills current instance from a plain JSON/object without replacing it
-    public FromJson(data: any): this {
-        if (!data) return this;
-        const g = (k: string, alt?: string) => data[k] ?? (alt ? data[alt] : undefined);
-
+    FromJson(data) {
+        if (!data)
+            return this;
+        const g = (k, alt) => data[k] ?? (alt ? data[alt] : undefined);
         // Prefer nested Pose if present; otherwise accept Position/Size at root for backward-compat
-        const poseData = g('Pose','pose') ?? data;
-        if (!this.Pose) this.Pose = new Pose();
+        const poseData = g('Pose', 'pose') ?? data;
+        if (!this.Pose)
+            this.Pose = new Pose();
         this.Pose.FromJson(poseData);
-
-        const design = g('Design','design');
+        const design = g('Design', 'design');
         if (design) {
-            if (!this.Design) this.Design = new Design();
+            if (!this.Design)
+                this.Design = new Design();
             this.Design.FromJson(design);
         }
-
         return this;
     }
 }
+//# sourceMappingURL=stage-item.js.map

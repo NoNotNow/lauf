@@ -11,13 +11,11 @@
   },
   "Obstacles": [
     {
-      "Position": { "X": 1, "Y": 1 },
-      "Size": { "X": 1, "Y": 1 },
+      "Pose": { "Position": { "X": 2, "Y": 2 }, "Size": { "X": 1, "Y": 1 } },
       "Design": { "Color": "#ff33ff" }
     },
     {
-      "Position": { "X": 3, "Y": 5 },
-      "Size": { "X": 2, "Y": 2 },
+      "Pose": { "Position": { "X": 3, "Y": 5 }, "Size": { "X": 2, "Y": 2 } },
       "Design": {
         "Color": "#ffff55",
         "BorderRadius": 2,
@@ -28,8 +26,7 @@
       }
     },
     {
-      "Position": { "X": 0, "Y": 2 },
-      "Size": { "X": 2, "Y": 2 },
+      "Pose": { "Position": { "X": 6, "Y": 6 }, "Size": { "X": 1, "Y": 1 } },
       "Design": {
         "Color": "transparent",
         "Border": "solid",
@@ -40,8 +37,7 @@
       }
     },
     {
-      "Position": { "X": 5, "Y": 2 },
-      "Size": { "X": 3, "Y": 1 },
+      "Pose": { "Position": { "X": 8, "Y": 0 }, "Size": { "X": 1, "Y": 1 } },
       "Design": {
         "Color": "#cce5ff",
         "Border": "dashed",
@@ -52,16 +48,14 @@
       }
     },
     {
-      "Position": { "X": 7, "Y": 4 },
-      "Size": { "X": 1, "Y": 3 },
+      "Pose": { "Position": { "X": 7, "Y": 4 }, "Size": { "X": 1, "Y": 3 } },
       "Design": {
         "Color": "#66cc99",
         "Border": "none"
       }
     },
     {
-      "Position": { "X": 0, "Y": 7 },
-      "Size": { "X": 2, "Y": 3 },
+      "Pose": { "Position": { "X": 0, "Y": 7 }, "Size": { "X": 2, "Y": 3 } },
       "Design": {
         "Color": "#ffd6e7",
         "Border": "solid",
@@ -73,14 +67,12 @@
   ],
   "Targets": [
     {
-      "Position": { "X": 8, "Y": 8 },
-      "Size": { "X": 1, "Y": 1 },
+      "Pose": { "Position": { "X": 8, "Y": 8 }, "Size": { "X": 1, "Y": 1 } },
       "Design": { "Color": "#00aa00" }
     }
   ],
   "Avatar": {
-    "Position": { "X": 0, "Y": 0 },
-    "Size": { "X": 1, "Y": 1 },
+    "Pose": { "Position": { "X": 0, "Y": 0 }, "Size": { "X": 1, "Y": 1 } },
     "Design": { "Color": "#007bff" }
   }
 }
