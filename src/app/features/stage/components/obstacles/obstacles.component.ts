@@ -2,6 +2,8 @@ import { Component, Input, OnChanges, SimpleChanges } from '@angular/core';
 import { Point } from '../../../../core/models/point';
 import { CanvasLayerComponent } from '../../../../shared/components/common/canvas-layer/canvas-layer.component';
 import { Obstacle } from '../../../../core/models/game-items/stage-items';
+import { StageItemRenderer } from '../../../../core/rendering/stage-item-renderer';
+import { GridGeometry } from '../../../../core/models/canvas-geometry';
 
 @Component({
   selector: 'app-obstacles',
@@ -16,6 +18,7 @@ export class ObstaclesComponent implements OnChanges {
   @Input() items: Obstacle[] = [];
 
   redrawKey = '';
+  private renderer = new StageItemRenderer();
 
   ngOnChanges(changes: SimpleChanges): void {
     if (changes['gridSize'] || changes['color'] || changes['items']) {
@@ -24,12 +27,11 @@ export class ObstaclesComponent implements OnChanges {
   }
 
   // Draw callback for CanvasLayerComponent: delegate to items
-  drawObstacles = (ctx: CanvasRenderingContext2D, _canvas: HTMLCanvasElement, geom?: any) => {
+  drawObstacles = (ctx: CanvasRenderingContext2D, _canvas: HTMLCanvasElement, geom?: GridGeometry) => {
     if (!geom) return;
     for (const item of this.items ?? []) {
       try {
-        // let item decide how to draw; provide geometry for placement
-        item?.draw?.(ctx, geom);
+        this.renderer.draw(item, ctx, geom);
       } catch (e) {
         // fail-safe: continue drawing other items
         // eslint-disable-next-line no-console
