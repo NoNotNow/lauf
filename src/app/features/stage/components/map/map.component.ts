@@ -10,6 +10,7 @@ import { TickService } from '../../../../core/services/tick.service';
 import { Rotator } from '../../../../core/rendering/transformers/rotator';
 import { Wobbler } from '../../../../core/rendering/transformers/wobbler';
 import { Drifter, BoundaryRect } from '../../../../core/rendering/transformers/drifter';
+import { CollisionHandler } from '../../../../core/rendering/collision-handler';
 
 @Component({
     selector: 'app-map',
@@ -44,12 +45,20 @@ export class MapComponent implements AfterViewInit, OnDestroy, MapLoader {
     private rotators: Rotator[] = [];
     private wobblers: Wobbler[] = [];
     private drifters: Drifter[] = [];
+    private collisions?: CollisionHandler;
+    enableItemCollisions = true;
 
     constructor(
-        private startup: StartupService,
-        private animator: AnimatorService,
-        private ticker: TickService
-    ) {}
+    private startup: StartupService,
+    private animator: AnimatorService,
+    private ticker: TickService
+  ) {
+    if (this.enableItemCollisions) {
+      this.collisions = new CollisionHandler(this.ticker);
+      // Ensure perfectly elastic item–item collisions by default
+      this.collisions.setRestitutionDefault(1.0);
+    }
+  }
 
     ngAfterViewInit(): void {
         // Trigger startup to load and provide the Map to this component
@@ -57,6 +66,9 @@ export class MapComponent implements AfterViewInit, OnDestroy, MapLoader {
         // Start ticking and request redraw on each frame
         this.ticker.start();
         this.tickSub = this.ticker.ticks$.subscribe(() => this.animLayer?.requestRedraw());
+        if (this.enableItemCollisions) {
+            this.collisions?.start();
+        }
     }
 
     ngOnDestroy(): void {
@@ -66,6 +78,7 @@ export class MapComponent implements AfterViewInit, OnDestroy, MapLoader {
         this.wobblers.forEach(w => w.stop());
         this.drifters.forEach(d => d.stop());
         this.animator.destroy();
+        this.collisions?.stop();
     }
 
     // Accepts a Map object and applies it to the grid, obstacles, and game items layers
@@ -87,6 +100,7 @@ export class MapComponent implements AfterViewInit, OnDestroy, MapLoader {
         this.rotators = [];
         this.wobblers = [];
         this.drifters = [];
+        this.collisions?.clear();
 
         // Give every obstacle its own rotator and wobbler with random parameters
         const obstacles = m.obstacles ?? [];
@@ -94,6 +108,10 @@ export class MapComponent implements AfterViewInit, OnDestroy, MapLoader {
             ? { minX: 0, minY: 0, maxX: this.gridSize.x, maxY: this.gridSize.y }
             : undefined;
         for (const obstacle of obstacles) {
+            // register obstacle into collision handler first (obstacles only)
+            if (this.enableItemCollisions) {
+                this.collisions?.add(obstacle);
+            }
             // Random rotation parameters
             const speed = 5 + Math.random() * 25; // 5..30 deg/s
             const dir: 1 | -1 = Math.random() < 0.5 ? -1 : 1;
@@ -110,7 +128,7 @@ export class MapComponent implements AfterViewInit, OnDestroy, MapLoader {
             // this.wobblers.push(wob);
             {
                 // Drifter: slow random drift with bouncing inside grid bounds
-                const maxSpeed = 0.02 + Math.random() * 2; // 0.02..0.15 cells/s
+                const maxSpeed = 0.02 + Math.random() * 2; // 0.02..~2.02 cells/s
                 const angle = Math.random() * Math.PI * 2;
                 const speed = Math.random() * maxSpeed; // random magnitude up to max
                 const vx = Math.cos(angle) * speed;

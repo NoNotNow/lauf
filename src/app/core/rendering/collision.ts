@@ -99,3 +99,61 @@ export function poseContainmentAgainstAABB(pose: Pose | undefined, aabb: AABB): 
   const obb = obbFromPose(pose);
   return containmentAgainstAABB(obb, aabb);
 }
+
+// ---------- OBB vs OBB (item–item) ----------
+
+function dot(a: Vec2, b: Vec2): number { return a.x * b.x + a.y * b.y; }
+function sub(a: Vec2, b: Vec2): Vec2 { return { x: a.x - b.x, y: a.y - b.y }; }
+function len(v: Vec2): number { return Math.hypot(v.x, v.y); }
+function normalize(v: Vec2): Vec2 { const l = len(v) || 1; return { x: v.x / l, y: v.y / l }; }
+
+// Build 4 edge normals (axes) for an OBB (two unique directions suffice)
+function obbAxes(obb: OBB): Vec2[] {
+  const c = obb.corners;
+  const e0 = normalize(sub(c[1], c[0])); // top edge direction
+  const e1 = normalize(sub(c[3], c[0])); // left edge direction
+  // Use their normals as separating axes
+  const n0 = { x: -e0.y, y: e0.x };
+  const n1 = { x: -e1.y, y: e1.x };
+  return [normalize(n0), normalize(n1)];
+}
+
+function projectOntoAxis(points: Vec2[], axis: Vec2): { min: number; max: number } {
+  let min = Infinity, max = -Infinity;
+  for (const p of points) {
+    const v = dot(p, axis);
+    if (v < min) min = v;
+    if (v > max) max = v;
+  }
+  return { min, max };
+}
+
+export interface ObbObbResult { overlaps: boolean; mtv: Vec2; normal: Vec2 }
+
+// SAT overlap test between two OBBs; returns MTV to push A out of B
+export function obbIntersectsObb(a: OBB, b: OBB): ObbObbResult {
+  const axes = [...obbAxes(a), ...obbAxes(b)];
+  let smallestOverlap = Infinity;
+  let mtvAxis: Vec2 | null = null;
+
+  const centersDir = sub(b.center, a.center);
+
+  for (const axis of axes) {
+    const pa = projectOntoAxis(a.corners, axis);
+    const pb = projectOntoAxis(b.corners, axis);
+    const overlap = Math.min(pa.max, pb.max) - Math.max(pa.min, pb.min);
+    if (overlap <= 0) {
+      return { overlaps: false, mtv: { x: 0, y: 0 }, normal: { x: 0, y: 0 } };
+    }
+    if (overlap < smallestOverlap) {
+      // determine axis direction to push A away from B
+      const dir = dot(centersDir, axis) < 0 ? { x: -axis.x, y: -axis.y } : axis;
+      smallestOverlap = overlap;
+      mtvAxis = dir;
+    }
+  }
+
+  const normal = normalize(mtvAxis!);
+  const mtv = { x: normal.x * smallestOverlap, y: normal.y * smallestOverlap };
+  return { overlaps: true, mtv, normal };
+}

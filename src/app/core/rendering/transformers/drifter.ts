@@ -2,6 +2,7 @@ import { Subscription } from 'rxjs';
 import { StageItem } from '../../models/game-items/stage-item';
 import { TickService } from '../../services/tick.service';
 import { poseContainmentAgainstAABB, AABB } from '../collision';
+import { StageItemPhysics } from '../physics/stage-item-physics';
 
 export interface BoundaryRect {
   minX: number;
@@ -61,6 +62,9 @@ export class Drifter {
     this._vx = Number(vx) || 0;
     this._vy = Number(vy) || 0;
     this.clampVelocityToMax();
+    if (this._item) {
+      StageItemPhysics.setVelocity(this._item, this._vx, this._vy);
+    }
   }
 
   start(): void {
@@ -106,6 +110,11 @@ export class Drifter {
     let pos = pose.Position;
     if (!pos) pos = pose.Position = { x: 0, y: 0 } as any;
 
+    // Get authoritative velocity from physics if present
+    const phys = StageItemPhysics.get(it);
+    this._vx = Number(phys.vx ?? this._vx) || this._vx;
+    this._vy = Number(phys.vy ?? this._vy) || this._vy;
+
     // Proposed new position
     let x = Number(pos.x ?? 0) + this._vx * dtSec;
     let y = Number(pos.y ?? 0) + this._vy * dtSec;
@@ -136,6 +145,8 @@ export class Drifter {
           // tiny nudge along normal to avoid re-penetration due to numeric issues
           x += nx * 1e-6;
           y += ny * 1e-6;
+          // persist reflected velocity to physics
+          StageItemPhysics.setVelocity(it, this._vx, this._vy);
         }
       } else if (!this._bounce) {
         // No overlap and not bouncing: still clamp the top-left to boundary (legacy behavior)
@@ -146,5 +157,7 @@ export class Drifter {
 
     pos.x = x;
     pos.y = y;
+    // persist velocity in case it changed elsewhere
+    StageItemPhysics.setVelocity(it, this._vx, this._vy);
   }
 }
