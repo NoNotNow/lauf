@@ -60,4 +60,23 @@ export class StageItemPhysics {
     static setAngular(item: StageItem, omega: number): PhysicsState {
         return StageItemPhysics.set(item, {omega: Number(omega) || 0});
     }
+
+    // --- Helpers (pure, derived) ---
+    // Moment of inertia for a rectangle about its center: I = (1/12) * m * (w^2 + h^2)
+    // Units: m in arbitrary mass, w/h in cells, I in mass * cells^2
+    static momentOfInertia(item: StageItem): number {
+        const s = StageItemPhysics.get(item);
+        const w = Math.max(0, Number(item?.Pose?.Size?.x ?? 0));
+        const h = Math.max(0, Number(item?.Pose?.Size?.y ?? 0));
+        const I = (s.mass * (w * w + h * h)) / 12;
+        return Math.max(1e-6, I);
+    }
+
+    static omegaDegToRadPerSec(omegaDeg: number): number {
+        return (Number(omegaDeg) || 0) * Math.PI / 180;
+    }
+
+    static omegaRadToDegPerSec(omegaRad: number): number {
+        return (Number(omegaRad) || 0) * 180 / Math.PI;
+    }
 }

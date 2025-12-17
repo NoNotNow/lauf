@@ -4,6 +4,7 @@ import { TickService } from '../services/tick.service';
 import { orientedBoundingBoxFromPose, orientedBoundingBoxIntersectsOrientedBoundingBox } from './collision';
 import { StageItemPhysics } from './physics/stage-item-physics';
 import { TINY_NUDGE } from './physics/bounce';
+import { applyItemItemCollisionImpulse } from './physics/impulses';
 
 export interface CollisionEvent {
   a: StageItem;
@@ -16,12 +17,17 @@ export class CollisionHandler {
   private sub?: Subscription;
   private items: StageItem[] = [];
   private _restitutionDefault = 1.0;
+  private _frictionDefault = 0.8;
   public readonly events$ = new Subject<CollisionEvent>();
 
   constructor(private ticker: TickService) {}
 
   setRestitutionDefault(r: number): void {
     this._restitutionDefault = Math.min(1, Math.max(0, Number(r) || 1.0));
+  }
+
+  setFrictionDefault(mu: number): void {
+    this._frictionDefault = Math.max(0, Number(mu) || 0);
   }
 
   add(item: StageItem): void {
@@ -68,32 +74,23 @@ export class CollisionHandler {
         if (!res.overlaps) continue;
 
         const normal = res.normal; // from A to B
-        // Read velocities and properties
+        // Resolve collision with angular coupling (normal + friction)
         const sa = StageItemPhysics.get(ai);
         const sb = StageItemPhysics.get(bj);
-        const va = { x: sa.vx, y: sa.vy };
-        const vb = { x: sb.vx, y: sb.vy };
-
-        // Relative normal velocity (B relative to A)
-        const vrn = (vb.x - va.x) * normal.x + (vb.y - va.y) * normal.y;
-        if (vrn < 0) {
-          // approaching: apply 1D impulse along normal
-          const e = Math.min(
-            this._restitutionDefault,
-            Math.min(sa.restitution ?? this._restitutionDefault, sb.restitution ?? this._restitutionDefault)
-          );
-          const invMassA = 1 / Math.max(1e-6, sa.mass);
-          const invMassB = 1 / Math.max(1e-6, sb.mass);
-          const j = (-(1 + e) * vrn) / (invMassA + invMassB);
-          // Apply impulse
-          sa.vx -= (j * normal.x) * invMassA;
-          sa.vy -= (j * normal.y) * invMassA;
-          sb.vx += (j * normal.x) * invMassB;
-          sb.vy += (j * normal.y) * invMassB;
-          // persist
-          StageItemPhysics.set(ai, sa);
-          StageItemPhysics.set(bj, sb);
-        }
+        const e = Math.min(
+          this._restitutionDefault,
+          Math.min(sa.restitution ?? this._restitutionDefault, sb.restitution ?? this._restitutionDefault)
+        );
+        applyItemItemCollisionImpulse(
+          ai,
+          bj,
+          ap,
+          bp,
+          aobb,
+          bobb,
+          normal,
+          { restitution: e, friction: this._frictionDefault }
+        );
 
         // Tiny positional nudge to prevent sticking
         const eps = 100 * TINY_NUDGE; // keep previous magnitude while reusing shared constant

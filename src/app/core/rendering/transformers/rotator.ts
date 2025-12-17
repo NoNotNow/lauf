@@ -4,6 +4,7 @@ import { TickService } from '../../services/tick.service';
 import { poseContainmentAgainstAxisAlignedBoundingBox, AxisAlignedBoundingBox } from '../collision';
 import { StageItemPhysics } from '../physics/stage-item-physics';
 import { toNumber, normalizeAngleDeg360 } from '../../utils/number-utils';
+import { applyAngularToLinearAtBoundary } from '../physics/coupling';
 
 // Rotates a single StageItem continuously using the TickService.
 // - speedDegPerSec: degrees per second
@@ -128,10 +129,26 @@ export class Rotator {
     // Collision on proposed rotation
     if (!this._bounce) return; // Do not rotate into collision
 
-    // Flip direction and try a smaller backtrack step to mimic bounce
-    const r2 = this.flipDirectionAndBacktrack(it, r0, delta);
-    if (r2 != null && this.tryApplyRotationWithinBoundary(pose, r2)) return;
+    // Determine collision normal at proposed rotation to transfer spin into linear velocity
+    if (this._boundary) {
+      const b: AxisAlignedBoundingBox = this._boundary as AxisAlignedBoundingBox;
+      const testPose = {
+        Position: { x: toNumber(pose.Position?.x, 0), y: toNumber(pose.Position?.y, 0) },
+        Size: { x: toNumber(pose.Size?.x, 0), y: toNumber(pose.Size?.y, 0) },
+        Rotation: normalizeAngleDeg360(r1)
+      } as any;
+      const res = poseContainmentAgainstAxisAlignedBoundingBox(testPose, b);
+      if (res.overlaps) {
+        const restitution = StageItemPhysics.get(it).restitution ?? 1.0;
+        applyAngularToLinearAtBoundary(it, pose as any, res.normal, 0.35, restitution);
+      }
+    }
 
+    // Dampen angular velocity instead of naïvely flipping; small backtrack to avoid penetration
+    const phys = StageItemPhysics.get(it);
+    StageItemPhysics.setAngular(it, phys.omega * 0.6);
+    const backtracked = r0 + (delta * -0.25);
+    if (this.tryApplyRotationWithinBoundary(pose, backtracked)) return;
     // As a fallback, keep original angle (no change this tick)
   }
 }

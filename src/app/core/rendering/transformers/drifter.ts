@@ -4,6 +4,7 @@ import { TickService } from '../../services/tick.service';
 import { poseContainmentAgainstAxisAlignedBoundingBox, AxisAlignedBoundingBox } from '../collision';
 import { StageItemPhysics } from '../physics/stage-item-physics';
 import { reflectVelocity, TINY_NUDGE } from '../physics/bounce';
+import { applyAngularToLinearAtBoundary } from '../physics/coupling';
 import { toNumber, clamp } from '../../utils/number-utils';
 
 // Moves a single StageItem with a (slow) velocity vector. Optionally bounces within a boundary.
@@ -68,8 +69,10 @@ export class Drifter {
         // tiny nudge along normal to avoid re-penetration due to numeric issues
         x += res.normal.x * TINY_NUDGE;
         y += res.normal.y * TINY_NUDGE;
+        // Transfer some spin into linear along the tangent; also damps omega
+        applyAngularToLinearAtBoundary(item, pose as any, res.normal, 0.35, restitution);
         // persist reflected velocity to physics
-        StageItemPhysics.setVelocity(item, this._vx, this._vy);
+        const s = StageItemPhysics.setVelocity(item, this._vx, this._vy);
       }
     } else if (!this._bounce) {
       // No overlap and not bouncing: still clamp the top-left to boundary (legacy behavior)
