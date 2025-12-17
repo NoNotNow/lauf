@@ -1,0 +1,45 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="50 35 412 430">
+    <g fill="none" stroke-linecap="round" stroke-linejoin="round">
+
+        <!-- many eyes -->
+        <circle cx="160" cy="180" r="46" fill="#00e5ff"/>
+        <circle cx="256" cy="150" r="54" fill="#7cff00"/>
+        <circle cx="352" cy="190" r="46" fill="#00e5ff"/>
+
+        <circle cx="170" cy="190" r="14" fill="#ff2d95"/>
+        <circle cx="256" cy="160" r="18" fill="#ff2d95"/>
+        <circle cx="362" cy="200" r="14" fill="#ff2d95"/>
+
+        <circle cx="176" cy="196" r="6" fill="#fff200"/>
+        <circle cx="262" cy="166" r="8" fill="#fff200"/>
+        <circle cx="368" cy="206" r="6" fill="#fff200"/>
+
+        <!-- jagged mouth -->
+        <polygon points="160,300 200,340 240,300 280,340 320,300 360,340"
+                 fill="#ff004c"/>
+
+        <!-- long thin teeth -->
+        <polygon points="200,340 210,390 220,340" fill="#fff200"/>
+        <polygon points="240,340 250,400 260,340" fill="#fff200"/>
+        <polygon points="280,340 290,395 300,340" fill="#fff200"/>
+
+        <!-- spaghetti arms -->
+        <path d="M120 260 C40 240, 60 360, 140 380"
+              stroke="#9b5cff" stroke-width="10"/>
+        <path d="M392 260 C480 240, 460 360, 372 380"
+              stroke="#9b5cff" stroke-width="10"/>
+
+        <!-- spikes / horns -->
+        <polygon points="220,40 240,140 200,140" fill="#ffe600"/>
+        <polygon points="292,40 312,140 272,140" fill="#ffe600"/>
+
+        <!-- symmetric orange triangles -->
+        <polygon points="60,420 140,400 100,460" fill="#ff6a00"/>
+        <polygon points="452,420 372,400 412,460" fill="#ff6a00"/>
+
+        <!-- floating menace bits -->
+        <circle cx="90" cy="90" r="14" fill="#00ff9c"/>
+        <circle cx="430" cy="110" r="12" fill="#00b3ff"/>
+
+    </g>
+</svg>

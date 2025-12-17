@@ -22,6 +22,28 @@
       }
     },
     {
+      "Pose": { "Position": { "X": 1, "Y": 8 }, "Size": { "X": 2, "Y": 2 } },
+      "Design": {
+        "Color": "transparent",
+        "Border": "none",
+        "BorderColor": "#000000",
+        "BorderWidth": 0,
+        "BorderRadius": 0,
+        "Image": "assets/monster.svg"
+      }
+    },
+    {
+      "Pose": { "Position": { "X": 4, "Y": 1 }, "Size": { "X": 2, "Y": 2 } },
+      "Design": {
+        "Color": "transparent",
+        "Border": "none",
+        "BorderColor": "#000000",
+        "BorderWidth": 0,
+        "BorderRadius": 0,
+        "Image": "assets/monster.svg"
+      }
+    },
+    {
       "Pose": { "Position": { "X": 3, "Y": 5 }, "Size": { "X": 2, "Y": 2 } },
       "Design": {
         "Color": "#ffff55",
