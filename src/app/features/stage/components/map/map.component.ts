@@ -114,29 +114,29 @@ export class MapComponent implements AfterViewInit, OnDestroy, MapLoader {
         const obstacles = m.obstacles ?? [];
         const boundary: AxisAlignedBoundingBox | undefined = this.getGridBoundary();
         for (const obstacle of obstacles) {
-            // register obstacle into collision handler first (obstacles only)
-            if (this.enableItemCollisions) {
-                this.collisions?.add(obstacle);
-            }
-            // Random rotation parameters
-            const speed = 5 + Math.random() * 25; // 5..30 deg/s
-            const dir: 1 | -1 = Math.random() < 0.5 ? -1 : 1;
-            const rot = new Rotator(this.ticker, obstacle, speed, dir);
-            if (boundary) rot.setBoundary(boundary);
-            rot.start();
-            this.rotators.push(rot);
-            {
-                // Drifter: slow random drift with bouncing inside grid bounds
-                const maxSpeed = 0.02 + Math.random() * 2; // 0.02..~2.02 cells/s
-                const angle = Math.random() * Math.PI * 2;
-                const speed = Math.random() * maxSpeed; // random magnitude up to max
-                const vx = Math.cos(angle) * speed;
-                const vy = Math.sin(angle) * speed;
-                const drift = new Drifter(this.ticker, obstacle, maxSpeed, boundary, true);
-                drift.setVelocity(vx, vy);
-                drift.start();
-                this.drifters.push(drift);
-            }
+            // // register obstacle into collision handler first (obstacles only)
+            // if (this.enableItemCollisions) {
+            //     this.collisions?.add(obstacle);
+            // }
+            // // Random rotation parameters
+            // const speed = 5 + Math.random() * 25; // 5..30 deg/s
+            // const dir: 1 | -1 = Math.random() < 0.5 ? -1 : 1;
+            // const rot = new Rotator(this.ticker, obstacle, speed, dir);
+            // if (boundary) rot.setBoundary(boundary);
+            // rot.start();
+            // this.rotators.push(rot);
+            // {
+            //     // Drifter: slow random drift with bouncing inside grid bounds
+            //     const maxSpeed = 0.02 + Math.random() * 50; // 0.02..~2.02 cells/s
+            //     const angle = Math.random() * Math.PI * 2;
+            //     const speed = Math.random() * maxSpeed; // random magnitude up to max
+            //     const vx = Math.cos(angle) * speed;
+            //     const vy = Math.sin(angle) * speed;
+            //     const drift = new Drifter(this.ticker, obstacle, maxSpeed, boundary, true);
+            //     drift.setVelocity(vx, vy);
+            //     drift.start();
+            //     this.drifters.push(drift);
+            // }
         }
 
         // Load targets

@@ -11,8 +11,15 @@
   },
   "Obstacles": [
     {
-      "Pose": { "Position": { "X": 1.5, "Y": 1.5 }, "Size": { "X": 1, "Y": 1 } },
-      "Design": { "Color": "#ff33ff" }
+      "Pose": { "Position": { "X": 2, "Y": 2 }, "Size": { "X": 1, "Y": 1 } },
+      "Design": {
+        "Color": "#ff33ff",
+        "BorderRadius": 0,
+        "BorderWidth": 0.003,
+        "Border": "solid",
+        "BorderColor": "#990099",
+        "Image": "assets/shapes.svg"
+      }
     },
     {
       "Pose": { "Position": { "X": 3, "Y": 5 }, "Size": { "X": 2, "Y": 2 } },
@@ -26,7 +33,7 @@
       }
     },
     {
-      "Pose": { "Position": { "X": 6, "Y": 6 }, "Size": { "X": 1, "Y": 1 } },
+      "Pose": { "Position": { "X": 6, "Y": 6 }, "Size": { "X": 4, "Y": 4 } },
       "Design": {
         "Color": "transparent",
         "Border": "solid",
