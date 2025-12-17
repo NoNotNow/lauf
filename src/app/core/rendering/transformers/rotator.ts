@@ -3,7 +3,6 @@ import { StageItem } from '../../models/game-items/stage-item';
 import { TickService } from '../../services/tick.service';
 import { poseContainmentAgainstAABB, AABB } from '../collision';
 import { StageItemPhysics } from '../physics/stage-item-physics';
-import { BoundaryRect } from './drifter';
 
 // Rotates a single StageItem continuously using the TickService.
 // - speedDegPerSec: degrees per second
@@ -14,7 +13,7 @@ export class Rotator {
   private _item?: StageItem;
   private _speedDegPerSec = 10;
   private _direction: 1 | -1 = 1;
-  private _boundary?: BoundaryRect;
+  private _boundary?: AABB;
   private _bounce = true;
 
   constructor(
@@ -49,7 +48,7 @@ export class Rotator {
     }
   }
 
-  setBoundary(boundary: BoundaryRect | undefined): void {
+  setBoundary(boundary: AABB | undefined): void {
     this._boundary = boundary;
   }
 

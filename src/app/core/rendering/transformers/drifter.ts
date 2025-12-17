@@ -3,13 +3,7 @@ import { StageItem } from '../../models/game-items/stage-item';
 import { TickService } from '../../services/tick.service';
 import { poseContainmentAgainstAABB, AABB } from '../collision';
 import { StageItemPhysics } from '../physics/stage-item-physics';
-
-export interface BoundaryRect {
-  minX: number;
-  minY: number;
-  maxX: number;
-  maxY: number;
-}
+import { reflectVelocity } from '../physics/bounce';
 
 // Moves a single StageItem with a (slow) velocity vector. Optionally bounces within a boundary.
 // - directionalVelocityMax: cap for the velocity magnitude (cells/sec)
@@ -22,14 +16,14 @@ export class Drifter {
   private _vx = 0; // cells/sec
   private _vy = 0; // cells/sec
   private _directionalVelocityMax = 0.1; // cells/sec
-  private _boundary?: BoundaryRect;
+  private _boundary?: AABB;
   private _bounce = true;
 
   constructor(
     private ticker: TickService,
     item?: StageItem,
     directionalVelocityMax?: number,
-    boundary?: BoundaryRect,
+    boundary?: AABB,
     bounce: boolean = true
   ) {
     if (item) this._item = item;
@@ -49,7 +43,7 @@ export class Drifter {
     }
   }
 
-  setBoundary(boundary: BoundaryRect | undefined): void {
+  setBoundary(boundary: AABB | undefined): void {
     this._boundary = boundary;
   }
 
@@ -136,15 +130,14 @@ export class Drifter {
         y += res.mtv.y;
 
         if (this._bounce) {
-          // Reflect velocity around collision normal: v' = v - 2*(v·n)*n
-          const nx = res.normal.x;
-          const ny = res.normal.y;
-          const dot = this._vx * nx + this._vy * ny;
-          this._vx = this._vx - 2 * dot * nx;
-          this._vy = this._vy - 2 * dot * ny;
+          // Reflect velocity around collision normal with restitution
+          const restitution = StageItemPhysics.get(it).restitution ?? 1.0;
+          const v = reflectVelocity({ x: this._vx, y: this._vy }, res.normal, restitution);
+          this._vx = v.x;
+          this._vy = v.y;
           // tiny nudge along normal to avoid re-penetration due to numeric issues
-          x += nx * 1e-6;
-          y += ny * 1e-6;
+          x += res.normal.x * 1e-6;
+          y += res.normal.y * 1e-6;
           // persist reflected velocity to physics
           StageItemPhysics.setVelocity(it, this._vx, this._vy);
         }
