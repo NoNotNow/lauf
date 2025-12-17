@@ -3,7 +3,6 @@ import { StageItem } from '../models/game-items/stage-item';
 import { TickService } from '../services/tick.service';
 import { orientedBoundingBoxFromPose, orientedBoundingBoxIntersectsOrientedBoundingBox } from './collision';
 import { StageItemPhysics } from './physics/stage-item-physics';
-import { TINY_NUDGE } from './physics/bounce';
 import { applyItemItemCollisionImpulse } from './physics/impulses';
 
 export interface CollisionEvent {
@@ -18,6 +17,7 @@ export class CollisionHandler {
   private items: StageItem[] = [];
   private _restitutionDefault = 1.0;
   private _frictionDefault = 0.8;
+  private _iterations = 8; // sequential impulse iterations per tick
   public readonly events$ = new Subject<CollisionEvent>();
 
   constructor(private ticker: TickService) {}
@@ -28,6 +28,10 @@ export class CollisionHandler {
 
   setFrictionDefault(mu: number): void {
     this._frictionDefault = Math.max(0, Number(mu) || 0);
+  }
+
+  setIterations(n: number): void {
+    this._iterations = Math.max(1, Math.floor(n || 1));
   }
 
   add(item: StageItem): void {
@@ -59,6 +63,8 @@ export class CollisionHandler {
     const n = this.items.length;
     if (n < 2) return;
 
+    // Build contact list once per tick
+    const contacts: { a: StageItem; b: StageItem; normal: { x: number; y: number }; aobb: any; bobb: any }[] = [];
     for (let i = 0; i < n - 1; i++) {
       const ai = this.items[i];
       const ap = ai?.Pose;
@@ -69,42 +75,55 @@ export class CollisionHandler {
         const bp = bj?.Pose;
         if (!bp) continue;
         const bobb = orientedBoundingBoxFromPose(bp);
-
         const res = orientedBoundingBoxIntersectsOrientedBoundingBox(aobb, bobb);
         if (!res.overlaps) continue;
+        contacts.push({ a: ai, b: bj, normal: res.normal, aobb, bobb });
+        this.events$.next({ a: ai, b: bj, normal: res.normal, minimalTranslationVector: res.minimalTranslationVector });
+      }
+    }
 
-        const normal = res.normal; // from A to B
-        // Resolve collision with angular coupling (normal + friction)
-        const sa = StageItemPhysics.get(ai);
-        const sb = StageItemPhysics.get(bj);
+    if (contacts.length === 0) return;
+
+    // Iterative solver over contacts to distribute impulses like a physics engine
+    for (let iter = 0; iter < this._iterations; iter++) {
+      for (const c of contacts) {
+        const sa = StageItemPhysics.get(c.a);
+        const sb = StageItemPhysics.get(c.b);
         const e = Math.min(
           this._restitutionDefault,
           Math.min(sa.restitution ?? this._restitutionDefault, sb.restitution ?? this._restitutionDefault)
         );
         applyItemItemCollisionImpulse(
-          ai,
-          bj,
-          ap,
-          bp,
-          aobb,
-          bobb,
-          normal,
+          c.a,
+          c.b,
+          c.a.Pose,
+          c.b.Pose,
+          c.aobb,
+          c.bobb,
+          c.normal,
           { restitution: e, friction: this._frictionDefault }
         );
-
-        // Tiny positional nudge to prevent sticking
-        const eps = 100 * TINY_NUDGE; // keep previous magnitude while reusing shared constant
-        const apose = ai.Pose;
-        const bpose = bj.Pose;
-        apose.Position = apose.Position ?? ({ x: 0, y: 0 } as any);
-        bpose.Position = bpose.Position ?? ({ x: 0, y: 0 } as any);
-        apose.Position.x -= normal.x * eps;
-        apose.Position.y -= normal.y * eps;
-        bpose.Position.x += normal.x * eps;
-        bpose.Position.y += normal.y * eps;
-
-        this.events$.next({ a: ai, b: bj, normal, minimalTranslationVector: res.minimalTranslationVector });
       }
+    }
+
+    // Small non-energetic positional correction (split impulse style)
+    const slop = 0.001;
+    for (const c of contacts) {
+      const aPose = c.a.Pose as any;
+      const bPose = c.b.Pose as any;
+      aPose.Position = aPose.Position ?? { x: 0, y: 0 };
+      bPose.Position = bPose.Position ?? { x: 0, y: 0 };
+      const sa = StageItemPhysics.get(c.a);
+      const sb = StageItemPhysics.get(c.b);
+      const invMassA = 1 / Math.max(1e-6, sa.mass);
+      const invMassB = 1 / Math.max(1e-6, sb.mass);
+      const sum = invMassA + invMassB;
+      const wA = sum > 0 ? invMassA / sum : 0.5;
+      const wB = sum > 0 ? invMassB / sum : 0.5;
+      aPose.Position.x -= c.normal.x * slop * wA;
+      aPose.Position.y -= c.normal.y * slop * wA;
+      bPose.Position.x += c.normal.x * slop * wB;
+      bPose.Position.y += c.normal.y * slop * wB;
     }
   }
 }
