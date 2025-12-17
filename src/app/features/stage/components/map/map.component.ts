@@ -98,6 +98,7 @@ export class MapComponent implements AfterViewInit, OnDestroy, MapLoader {
             const speed = 5 + Math.random() * 25; // 5..30 deg/s
             const dir: 1 | -1 = Math.random() < 0.5 ? -1 : 1;
             const rot = new Rotator(this.ticker, obstacle, speed, dir);
+            if (boundary) rot.setBoundary(boundary);
             rot.start();
             this.rotators.push(rot);
 
