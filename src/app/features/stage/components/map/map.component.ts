@@ -178,12 +178,12 @@ export class MapComponent implements AfterViewInit, OnDestroy, MapLoader {
             }
             // Keyboard controller: arrow keys/WASD control avatar velocities
             this.avatarController = new KeyboardController(this.ticker, m.avatar, {
-                linearAccel: 2.0,
+                linearAccel: 20.0,
                 linearBrake: 2.5,
-                linearDamping: 1.2,
-                maxSpeed: 4.0,
-                angularAccel: 180,
-                angularDamping: 120,
+                linearDamping: .1,
+                maxSpeed: 10.0,
+                angularAccel: 360,
+                angularDamping: 20,
                 maxOmega: 240,
             });
             this.avatarController.start();

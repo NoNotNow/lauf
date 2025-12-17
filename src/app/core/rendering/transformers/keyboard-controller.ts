@@ -47,8 +47,8 @@ export class KeyboardController {
     // Subscribe to ticks to update velocities using dt
     this.sub = this.ticker.ticks$.subscribe(({ time }) => this.onTick(time));
     // Listen to keyboard
-    window.addEventListener('keydown', this.onKeyDown, { passive: true });
-    window.addEventListener('keyup', this.onKeyUp, { passive: true });
+    window.addEventListener('keydown', this.onKeyDown, { passive: false });
+    window.addEventListener('keyup', this.onKeyUp, { passive: false });
   }
 
   stop(): void {
@@ -61,6 +61,7 @@ export class KeyboardController {
 
   private onKeyDown = (e: KeyboardEvent) => {
     const k = normalizeKey(e);
+    e.preventDefault();
     if (k) this.keys.add(k);
   };
 
@@ -89,12 +90,13 @@ export class KeyboardController {
     const leftHeld = this.keys.has('ArrowLeft') || this.keys.has('KeyA');
     const rightHeld = this.keys.has('ArrowRight') || this.keys.has('KeyD');
 
-    // Facing direction from item rotation (degrees). 0 deg assumed to face +X.
+    // Facing direction from item rotation (degrees). 0 deg faces up (negative Y).
     const pose: any = (item as any).Pose ?? ((item as any).Pose = {});
     const rotDeg = toNumber(pose.Rotation, 0);
     const rotRad = rotDeg * Math.PI / 180;
-    const fx = Math.cos(rotRad);
-    const fy = Math.sin(rotRad);
+    // Forward vector: at 0°, forward is (0, -1); rotates with pose.
+    const fx = Math.sin(rotRad);
+    const fy = -Math.cos(rotRad);
 
     // Linear acceleration along forward vector
     let ax = 0, ay = 0;
