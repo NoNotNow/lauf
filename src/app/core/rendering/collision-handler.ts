@@ -3,12 +3,13 @@ import { StageItem } from '../models/game-items/stage-item';
 import { TickService } from '../services/tick.service';
 import { orientedBoundingBoxFromPose, orientedBoundingBoxIntersectsOrientedBoundingBox } from './collision';
 import { StageItemPhysics } from './physics/stage-item-physics';
+import { TINY_NUDGE } from './physics/bounce';
 
 export interface CollisionEvent {
   a: StageItem;
   b: StageItem;
   normal: { x: number; y: number }; // from A to B
-  mtv: { x: number; y: number };    // push A by +minimalTranslationVector to separate
+  minimalTranslationVector: { x: number; y: number };    // push A by +minimalTranslationVector to separate
 }
 
 export class CollisionHandler {
@@ -95,7 +96,7 @@ export class CollisionHandler {
         }
 
         // Tiny positional nudge to prevent sticking
-        const eps = 1e-4;
+        const eps = 100 * TINY_NUDGE; // keep previous magnitude while reusing shared constant
         const apose = ai.Pose;
         const bpose = bj.Pose;
         apose.Position = apose.Position ?? ({ x: 0, y: 0 } as any);
@@ -105,7 +106,7 @@ export class CollisionHandler {
         bpose.Position.x += normal.x * eps;
         bpose.Position.y += normal.y * eps;
 
-        this.events$.next({ a: ai, b: bj, normal, mtv: res.minimalTranslationVector });
+        this.events$.next({ a: ai, b: bj, normal, minimalTranslationVector: res.minimalTranslationVector });
       }
     }
   }

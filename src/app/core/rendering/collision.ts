@@ -95,9 +95,9 @@ export function containmentAgainstAxisAlignedBoundingBox(orientedBoundingBox: Or
 }
 
 // Convenience: from a Pose and AxisAlignedBoundingBox
-export function poseContainmentAgainstAxisAlignedBoundingBox(pose: Pose | undefined, aabb: AxisAlignedBoundingBox): OverlapResult {
+export function poseContainmentAgainstAxisAlignedBoundingBox(pose: Pose | undefined, axisAlignedBoundingBox: AxisAlignedBoundingBox): OverlapResult {
   const obb = orientedBoundingBoxFromPose(pose);
-  return containmentAgainstAxisAlignedBoundingBox(obb, aabb);
+  return containmentAgainstAxisAlignedBoundingBox(obb, axisAlignedBoundingBox);
 }
 
 // ---------- OrientedBoundingBox vs OrientedBoundingBox (item–item) ----------
@@ -108,8 +108,8 @@ function len(v: Vec2): number { return Math.hypot(v.x, v.y); }
 function normalize(v: Vec2): Vec2 { const l = len(v) || 1; return { x: v.x / l, y: v.y / l }; }
 
 // Build 4 edge normals (axes) for an OrientedBoundingBox (two unique directions suffice)
-function orientedBoundingBoxAxes(obb: OrientedBoundingBox): Vec2[] {
-  const c = obb.corners;
+function orientedBoundingBoxAxes(orientedBoundingBox: OrientedBoundingBox): Vec2[] {
+  const c = orientedBoundingBox.corners;
   const e0 = normalize(sub(c[1], c[0])); // top edge direction
   const e1 = normalize(sub(c[3], c[0])); // left edge direction
   // Use their normals as separating axes

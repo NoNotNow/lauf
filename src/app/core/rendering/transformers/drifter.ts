@@ -3,7 +3,7 @@ import { StageItem } from '../../models/game-items/stage-item';
 import { TickService } from '../../services/tick.service';
 import { poseContainmentAgainstAxisAlignedBoundingBox, AxisAlignedBoundingBox } from '../collision';
 import { StageItemPhysics } from '../physics/stage-item-physics';
-import { reflectVelocity } from '../physics/bounce';
+import { reflectVelocity, TINY_NUDGE } from '../physics/bounce';
 
 // Moves a single StageItem with a (slow) velocity vector. Optionally bounces within a boundary.
 // - directionalVelocityMax: cap for the velocity magnitude (cells/sec)
@@ -136,8 +136,8 @@ export class Drifter {
           this._vx = v.x;
           this._vy = v.y;
           // tiny nudge along normal to avoid re-penetration due to numeric issues
-          x += res.normal.x * 1e-6;
-          y += res.normal.y * 1e-6;
+          x += res.normal.x * TINY_NUDGE;
+          y += res.normal.y * TINY_NUDGE;
           // persist reflected velocity to physics
           StageItemPhysics.setVelocity(it, this._vx, this._vy);
         }
