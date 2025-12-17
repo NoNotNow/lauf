@@ -9,6 +9,7 @@ import { AnimatorService } from '../../../../core/rendering/animator.service';
 import { TickService } from '../../../../core/services/tick.service';
 import { Rotator } from '../../../../core/rendering/transformers/rotator';
 import { Wobbler } from '../../../../core/rendering/transformers/wobbler';
+import { Drifter, BoundaryRect } from '../../../../core/rendering/transformers/drifter';
 
 @Component({
     selector: 'app-map',
@@ -42,6 +43,7 @@ export class MapComponent implements AfterViewInit, OnDestroy, MapLoader {
     private tickSub?: any;
     private rotators: Rotator[] = [];
     private wobblers: Wobbler[] = [];
+    private drifters: Drifter[] = [];
 
     constructor(
         private startup: StartupService,
@@ -62,6 +64,7 @@ export class MapComponent implements AfterViewInit, OnDestroy, MapLoader {
         this.ticker.stop();
         this.rotators.forEach(r => r.stop());
         this.wobblers.forEach(w => w.stop());
+        this.drifters.forEach(d => d.stop());
         this.animator.destroy();
     }
 
@@ -80,11 +83,16 @@ export class MapComponent implements AfterViewInit, OnDestroy, MapLoader {
         // Stop existing transformers if reloading a map
         this.rotators.forEach(r => r.stop());
         this.wobblers.forEach(w => w.stop());
+        this.drifters.forEach(d => d.stop());
         this.rotators = [];
         this.wobblers = [];
+        this.drifters = [];
 
         // Give every obstacle its own rotator and wobbler with random parameters
         const obstacles = m.obstacles ?? [];
+        const boundary: BoundaryRect | undefined = this.gridSize
+            ? { minX: 0, minY: 0, maxX: this.gridSize.x-1, maxY: this.gridSize.y -1}
+            : undefined;
         for (const obstacle of obstacles) {
             // Random rotation parameters
             const speed = 5 + Math.random() * 25; // 5..30 deg/s
@@ -93,12 +101,24 @@ export class MapComponent implements AfterViewInit, OnDestroy, MapLoader {
             rot.start();
             this.rotators.push(rot);
 
-            // Random wobble parameters
-            const amp = 0.05 + Math.random() * 0.2; // 0.05..0.25 cells
-            const freq = 0.2 + Math.random() * 0.8; // 0.2..1.0 Hz
-            const wob = new Wobbler(this.ticker, obstacle, amp, freq);
-            wob.start();
-            this.wobblers.push(wob);
+            // // Random wobble parameters
+            // const amp = 0.05 + Math.random() * 0.2; // 0.05..0.25 cells
+            // const freq = 0.2 + Math.random() * 0.8; // 0.2..1.0 Hz
+            // const wob = new Wobbler(this.ticker, obstacle, amp, freq);
+            // wob.start();
+            // this.wobblers.push(wob);
+            {
+                // Drifter: slow random drift with bouncing inside grid bounds
+                const maxSpeed = 0.02 + Math.random() * 2; // 0.02..0.15 cells/s
+                const angle = Math.random() * Math.PI * 2;
+                const speed = Math.random() * maxSpeed; // random magnitude up to max
+                const vx = Math.cos(angle) * speed;
+                const vy = Math.sin(angle) * speed;
+                const drift = new Drifter(this.ticker, obstacle, maxSpeed, boundary, true);
+                drift.setVelocity(vx, vy);
+                drift.start();
+                this.drifters.push(drift);
+            }
         }
 
         // Load targets
