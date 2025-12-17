@@ -10,6 +10,7 @@ import { TickService } from '../../../../core/services/tick.service';
 import { Rotator } from '../../../../core/rendering/transformers/rotator';
 import { Wobbler } from '../../../../core/rendering/transformers/wobbler';
 import { Drifter } from '../../../../core/rendering/transformers/drifter';
+import { KeyboardController } from '../../../../core/rendering/transformers/keyboard-controller';
 import { CollisionHandler } from '../../../../core/rendering/collision-handler';
 import { AxisAlignedBoundingBox } from '../../../../core/rendering/collision';
 import { PhysicsIntegrator } from '../../../../core/rendering/physics/physics-integrator';
@@ -54,6 +55,7 @@ export class MapComponent implements AfterViewInit, OnDestroy, MapLoader {
     private rotators: Rotator[] = [];
     private wobblers: Wobbler[] = [];
     private drifters: Drifter[] = [];
+    private avatarController?: KeyboardController;
     private collisions?: CollisionHandler;
     private integrator?: PhysicsIntegrator;
     enableItemCollisions = true;
@@ -98,6 +100,7 @@ export class MapComponent implements AfterViewInit, OnDestroy, MapLoader {
         this.rotators.forEach(r => r.stop());
         this.wobblers.forEach(w => w.stop());
         this.drifters.forEach(d => d.stop());
+        this.avatarController?.stop();
         this.animator.destroy();
         this.collisions?.stop();
         this.integrator?.stop();
@@ -123,6 +126,8 @@ export class MapComponent implements AfterViewInit, OnDestroy, MapLoader {
         this.rotators = [];
         this.wobblers = [];
         this.drifters = [];
+        this.avatarController?.stop();
+        this.avatarController = undefined;
         this.collisions?.clear();
         this.integrator?.stop();
         this.integrator = new PhysicsIntegrator(this.ticker);
@@ -164,23 +169,24 @@ export class MapComponent implements AfterViewInit, OnDestroy, MapLoader {
             this.targets.items = m.targets || [];
         }
 
-        // Load avatar: movement + physics; rendering handled by avatarsCanvas draw callback
+        // Load avatar: keyboard-controlled movement + physics; rendering handled by avatarsCanvas draw callback
         if (m.avatar) {
             // Give the avatar its own movement and physics similar to obstacles
             const boundary: AxisAlignedBoundingBox | undefined = this.getGridBoundary();
             if (this.enableItemCollisions) {
                 this.collisions?.add(m.avatar);
             }
-            // Simple drifting movement with bouncing at grid boundaries
-            const maxSpeed = 0.02 + Math.random() * 50; // 0.02..~2.02 cells/s
-            const angle = Math.random() * Math.PI * 2;
-            const speed = Math.random() * maxSpeed;
-            const vx = Math.cos(angle) * speed;
-            const vy = Math.sin(angle) * speed;
-            const drift = new Drifter(this.ticker, m.avatar, maxSpeed, boundary, true);
-            drift.setVelocity(vx, vy);
-            drift.start();
-            this.drifters.push(drift);
+            // Keyboard controller: arrow keys/WASD control avatar velocities
+            this.avatarController = new KeyboardController(this.ticker, m.avatar, {
+                linearAccel: 2.0,
+                linearBrake: 2.5,
+                linearDamping: 1.2,
+                maxSpeed: 4.0,
+                angularAccel: 180,
+                angularDamping: 120,
+                maxOmega: 240,
+            });
+            this.avatarController.start();
 
             // Integrate avatar pose from physics
             this.integrator?.add(m.avatar);
