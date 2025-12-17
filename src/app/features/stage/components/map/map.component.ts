@@ -40,8 +40,8 @@ export class MapComponent implements AfterViewInit, OnDestroy, MapLoader {
     };
 
     private tickSub?: any;
-    private rotator?: Rotator;
-    private wobbler?: Wobbler;
+    private rotators: Rotator[] = [];
+    private wobblers: Wobbler[] = [];
 
     constructor(
         private startup: StartupService,
@@ -60,8 +60,8 @@ export class MapComponent implements AfterViewInit, OnDestroy, MapLoader {
     ngOnDestroy(): void {
         this.tickSub?.unsubscribe?.();
         this.ticker.stop();
-        this.rotator?.stop();
-        this.wobbler?.stop();
+        this.rotators.forEach(r => r.stop());
+        this.wobblers.forEach(w => w.stop());
         this.animator.destroy();
     }
 
@@ -77,23 +77,28 @@ export class MapComponent implements AfterViewInit, OnDestroy, MapLoader {
         // Provide map to animator (obstacles drawn via canvas layer per tick)
         this.animator.setMap(m);
 
-        // Slowly rotate obstacles using the ticker
-        // if (!this.rotator) {
-        //     this.rotator = new Rotator(this.ticker, obstacles, 10 /* deg/s */, 1 /* cw */);
-        //     this.rotator.start();
-        // } else {
-        //     this.rotator.setItems(obstacles);
-        //     this.rotator.start();
-        // }
-        const wobbleItems = (m.obstacles ?? []).sort(() => 0.5 - Math.random()).slice(0, 2);
+        // Stop existing transformers if reloading a map
+        this.rotators.forEach(r => r.stop());
+        this.wobblers.forEach(w => w.stop());
+        this.rotators = [];
+        this.wobblers = [];
 
-        // Apply gentle wobble with per-item random phases
-        if (!this.wobbler) {
-            this.wobbler = new Wobbler(this.ticker, wobbleItems, 0.15 /* cells */, 0.5 /* Hz */);
-            this.wobbler.start();
-        } else {
-            this.wobbler.setItems(wobbleItems);
-            this.wobbler.start();
+        // Give every obstacle its own rotator and wobbler with random parameters
+        const obstacles = m.obstacles ?? [];
+        for (const obstacle of obstacles) {
+            // Random rotation parameters
+            const speed = 5 + Math.random() * 25; // 5..30 deg/s
+            const dir: 1 | -1 = Math.random() < 0.5 ? -1 : 1;
+            const rot = new Rotator(this.ticker, obstacle, speed, dir);
+            rot.start();
+            this.rotators.push(rot);
+
+            // Random wobble parameters
+            const amp = 0.05 + Math.random() * 0.2; // 0.05..0.25 cells
+            const freq = 0.2 + Math.random() * 0.8; // 0.2..1.0 Hz
+            const wob = new Wobbler(this.ticker, obstacle, amp, freq);
+            wob.start();
+            this.wobblers.push(wob);
         }
 
         // Load targets

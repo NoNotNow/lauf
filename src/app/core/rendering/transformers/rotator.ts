@@ -2,29 +2,29 @@ import { Subscription } from 'rxjs';
 import { StageItem } from '../../models/game-items/stage-item';
 import { TickService } from '../../services/tick.service';
 
-// Rotates given StageItems continuously using the TickService.
+// Rotates a single StageItem continuously using the TickService.
 // - speedDegPerSec: degrees per second
 // - direction: +1 for clockwise, -1 for counter-clockwise
 export class Rotator {
   private sub?: Subscription;
   private lastTime?: number;
-  private _items: StageItem[] = [];
+  private _item?: StageItem;
   private _speedDegPerSec = 10;
   private _direction: 1 | -1 = 1;
 
   constructor(
     private ticker: TickService,
-    items?: StageItem[],
+    item?: StageItem,
     speedDegPerSec?: number,
     direction?: 1 | -1
   ) {
-    if (items) this._items = items;
+    if (item) this._item = item;
     if (typeof speedDegPerSec === 'number') this._speedDegPerSec = speedDegPerSec;
     if (direction === 1 || direction === -1) this._direction = direction;
   }
 
-  setItems(items: StageItem[] | undefined): void {
-    this._items = items ?? [];
+  setItem(item: StageItem | undefined): void {
+    this._item = item;
   }
 
   setSpeed(speedDegPerSec: number): void {
@@ -50,7 +50,7 @@ export class Rotator {
   }
 
   private onTick(time: number): void {
-    if (!this._items?.length) {
+    if (!this._item) {
       this.lastTime = time;
       return;
     }
@@ -60,10 +60,9 @@ export class Rotator {
     if (dtSec === 0) return;
 
     const delta = this._direction * this._speedDegPerSec * dtSec;
-    for (const it of this._items) {
-      if (!it?.Pose) continue;
-      const r = (Number(it.Pose.Rotation ?? 0) + delta) % 360;
-      it.Pose.Rotation = r < 0 ? r + 360 : r;
-    }
+    const it = this._item;
+    if (!it?.Pose) return;
+    const r = (Number(it.Pose.Rotation ?? 0) + delta) % 360;
+    it.Pose.Rotation = r < 0 ? r + 360 : r;
   }
 }
