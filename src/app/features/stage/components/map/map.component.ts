@@ -91,7 +91,7 @@ export class MapComponent implements AfterViewInit, OnDestroy, MapLoader {
         // Give every obstacle its own rotator and wobbler with random parameters
         const obstacles = m.obstacles ?? [];
         const boundary: BoundaryRect | undefined = this.gridSize
-            ? { minX: 0, minY: 0, maxX: this.gridSize.x-1, maxY: this.gridSize.y -1}
+            ? { minX: 0, minY: 0, maxX: this.gridSize.x, maxY: this.gridSize.y }
             : undefined;
         for (const obstacle of obstacles) {
             // Random rotation parameters

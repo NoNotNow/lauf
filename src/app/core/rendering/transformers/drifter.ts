@@ -1,6 +1,7 @@
 import { Subscription } from 'rxjs';
 import { StageItem } from '../../models/game-items/stage-item';
 import { TickService } from '../../services/tick.service';
+import { poseContainmentAgainstAABB, AABB } from '../collision';
 
 export interface BoundaryRect {
   minX: number;
@@ -105,29 +106,39 @@ export class Drifter {
     let pos = pose.Position;
     if (!pos) pos = pose.Position = { x: 0, y: 0 } as any;
 
+    // Proposed new position
     let x = Number(pos.x ?? 0) + this._vx * dtSec;
     let y = Number(pos.y ?? 0) + this._vy * dtSec;
 
+    // If boundary is present, check OBB containment using real Size & Rotation
     if (this._boundary) {
-      const b = this._boundary;
-      if (this._bounce) {
-        // Bounce like a ball off walls: clamp to edge and reflect velocity component
-        if (x < b.minX) {
-          x = b.minX;
-          this._vx = Math.abs(this._vx);
-        } else if (x > b.maxX) {
-          x = b.maxX;
-          this._vx = -Math.abs(this._vx);
+      const b: AABB = this._boundary as AABB;
+      // Build a lightweight pose clone for collision check
+      const testPose = {
+        Position: { x, y },
+        Size: { x: Number(pose.Size?.x ?? 0), y: Number(pose.Size?.y ?? 0) },
+        Rotation: Number(pose.Rotation ?? 0)
+      } as any;
+
+      const res = poseContainmentAgainstAABB(testPose, b);
+      if (res.overlaps) {
+        // Correct position by MTV
+        x += res.mtv.x;
+        y += res.mtv.y;
+
+        if (this._bounce) {
+          // Reflect velocity around collision normal: v' = v - 2*(v·n)*n
+          const nx = res.normal.x;
+          const ny = res.normal.y;
+          const dot = this._vx * nx + this._vy * ny;
+          this._vx = this._vx - 2 * dot * nx;
+          this._vy = this._vy - 2 * dot * ny;
+          // tiny nudge along normal to avoid re-penetration due to numeric issues
+          x += nx * 1e-6;
+          y += ny * 1e-6;
         }
-        if (y < b.minY) {
-          y = b.minY;
-          this._vy = Math.abs(this._vy);
-        } else if (y > b.maxY) {
-          y = b.maxY;
-          this._vy = -Math.abs(this._vy);
-        }
-      } else {
-        // If not bouncing, just clamp to the boundary
+      } else if (!this._bounce) {
+        // No overlap and not bouncing: still clamp the top-left to boundary (legacy behavior)
         x = Math.max(b.minX, Math.min(b.maxX, x));
         y = Math.max(b.minY, Math.min(b.maxY, y));
       }
