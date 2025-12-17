@@ -83,7 +83,10 @@ export class MapComponent implements AfterViewInit, OnDestroy, MapLoader {
         this.startup.main(this);
         // Start ticking and request redraw on each frame
         this.ticker.start();
-        this.tickSub = this.ticker.ticks$.subscribe(() => this.animLayer?.requestRedraw());
+        this.tickSub = this.ticker.ticks$.subscribe(() => {
+            this.animLayer?.requestRedraw();
+            this.avatarsCanvas?.requestRedraw();
+        });
         if (this.enableItemCollisions) {
             this.collisions?.start();
         }
