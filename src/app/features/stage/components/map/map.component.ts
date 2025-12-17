@@ -33,13 +33,20 @@ export class MapComponent implements AfterViewInit, OnDestroy, MapLoader {
     @ViewChild('targetsLayer')
     targets!: HtmlGameItemComponent;
 
-    @ViewChild('avatarsLayer')
-    avatars!: HtmlGameItemComponent;
+    // Avatar layer is now canvas-based to use the same renderer as obstacles
+    @ViewChild('avatarsCanvas')
+    avatarsCanvas!: CanvasLayerComponent;
 
     // Draw callback for the animator-driven obstacles layer
     drawFrame = (ctx: CanvasRenderingContext2D, _canvas: HTMLCanvasElement, geom?: any) => {
         if (!geom) return;
         this.animator.draw(ctx, geom);
+    };
+
+    // Draw callback for the avatar canvas layer using the same bitmap pipeline
+    drawAvatarFrame = (ctx: CanvasRenderingContext2D, _canvas: HTMLCanvasElement, geom?: any) => {
+        if (!geom || !this.currentMap?.avatar) return;
+        this.animator.drawItems([this.currentMap.avatar], ctx, geom);
     };
 
     private tickSub?: any;
@@ -48,6 +55,7 @@ export class MapComponent implements AfterViewInit, OnDestroy, MapLoader {
     private drifters: Drifter[] = [];
     private collisions?: CollisionHandler;
     enableItemCollisions = true;
+    private currentMap?: GameMap;
 
     // Helper to compute current grid boundary in cell coordinates
     private getGridBoundary(): AxisAlignedBoundingBox | undefined {
@@ -93,6 +101,7 @@ export class MapComponent implements AfterViewInit, OnDestroy, MapLoader {
     loadMap(m: GameMap): void {
         console.log('Loaded map:', m);
         if (!m) return;
+        this.currentMap = m;
         // Update grid size from map
         if (m.size) {
             this.gridSize = new Point(m.size.x, m.size.y);
@@ -144,9 +153,23 @@ export class MapComponent implements AfterViewInit, OnDestroy, MapLoader {
             this.targets.items = m.targets || [];
         }
 
-        // Load avatars
-        if (this.avatars && m.avatars) {
-            this.avatars.items = [m.avatars];
+        // Load avatar: movement + physics; rendering handled by avatarsCanvas draw callback
+        if (m.avatar) {
+            // Give the avatar its own movement and physics similar to obstacles
+            const boundary: AxisAlignedBoundingBox | undefined = this.getGridBoundary();
+            if (this.enableItemCollisions) {
+                this.collisions?.add(m.avatar);
+            }
+            // Simple drifting movement with bouncing at grid boundaries
+            const maxSpeed = 0.02 + Math.random() * 50; // 0.02..~2.02 cells/s
+            const angle = Math.random() * Math.PI * 2;
+            const speed = Math.random() * maxSpeed;
+            const vx = Math.cos(angle) * speed;
+            const vy = Math.sin(angle) * speed;
+            const drift = new Drifter(this.ticker, m.avatar, maxSpeed, boundary, true);
+            drift.setVelocity(vx, vy);
+            drift.start();
+            this.drifters.push(drift);
         }
     }
 }

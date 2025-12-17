@@ -22,7 +22,7 @@
       }
     },
     {
-      "Pose": { "Position": { "X": 1, "Y": 8 }, "Size": { "X": 2, "Y": 2 } },
+      "Pose": { "Position": { "X": 1, "Y": 8 }, "Size": { "X": 0.7, "Y": 0.7 } },
       "Design": {
         "Color": "transparent",
         "Border": "none",
@@ -44,9 +44,17 @@
       }
     },
     {
-      "Pose": { "Position": { "X": 3, "Y": 5 }, "Size": { "X": 2, "Y": 2 } },
+      "Pose": { "Position": { "X": 9, "Y": 5 }, "Size": { "X": 1.5, "Y": 1.5 } },
       "Design": {
-        "Color": "#ffff55",
+        "Color": "transparent",
+        "BorderRadius": 2,
+        "Image": "assets/spiral.svg"
+      }
+    },
+    {
+      "Pose": { "Position": { "X": 3, "Y": 5 }, "Size": { "X": 1, "Y": 1 } },
+      "Design": {
+        "Color": "transparent",
         "BorderRadius": 2,
         "BorderWidth": 0.1,
         "border": "dashed",
@@ -55,7 +63,7 @@
       }
     },
     {
-      "Pose": { "Position": { "X": 6, "Y": 6 }, "Size": { "X": 4, "Y": 4 } },
+      "Pose": { "Position": { "X": 6, "Y": 6 }, "Size": { "X": 2, "Y": 2 } },
       "Design": {
         "Color": "transparent",
         "Border": "solid",
@@ -84,7 +92,7 @@
       }
     },
     {
-      "Pose": { "Position": { "X": 0, "Y": 7 }, "Size": { "X": 2, "Y": 3 } },
+      "Pose": { "Position": { "X": 0, "Y": 7 }, "Size": { "X": 0.1, "Y": 5 } },
       "Design": {
         "Color": "#ffd6e7",
         "Border": "solid",
@@ -101,7 +109,11 @@
     }
   ],
   "Avatar": {
-    "Pose": { "Position": { "X": 0, "Y": 0 }, "Size": { "X": 1, "Y": 1 } },
-    "Design": { "Color": "#007bff" }
+    "Pose": { "Position": { "X": 0, "Y": 0 }, "Size": { "X": 1.3, "Y": 1.8 } },
+    "Design": {
+      "Color": "#0000FF",
+      "Border": "none",
+      "Image": "assets/hero.svg"
+    }
   }
 }

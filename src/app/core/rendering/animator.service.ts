@@ -14,6 +14,8 @@ export class AnimatorService {
   private map?: GameMap;
   private bitmaps: BitmapEntry[] = [];
   private supersample = 2;
+  // cache for ad-hoc rendered items (e.g., avatar layer)
+  private adhocBitmaps?: Map<StageItem, StageItemBitmap>;
 
   setMap(map?: GameMap): void {
     this.map = map;
@@ -26,6 +28,10 @@ export class AnimatorService {
     this.supersample = f;
     // propagate to all bitmaps
     for (const e of this.bitmaps) e.bmp.setSupersample(f);
+    // also propagate to adhoc items
+    if (this.adhocBitmaps) {
+      this.adhocBitmaps.forEach?.((bmp) => bmp.setSupersample(f));
+    }
   }
 
   // Draw current frame into given context using grid geometry
@@ -42,9 +48,33 @@ export class AnimatorService {
     }
   }
 
+  // Draw a provided list of items using the same bitmap pipeline (separate layer)
+  drawItems(items: StageItem[] | undefined, ctx: CanvasRenderingContext2D, geom: GridGeometry): void {
+    if (!items || !geom) return;
+    if (!this.adhocBitmaps) this.adhocBitmaps = new Map<StageItem, StageItemBitmap>();
+    for (const item of items) {
+      if (!item) continue;
+      let bmp = this.adhocBitmaps.get(item);
+      if (!bmp) {
+        bmp = new StageItemBitmap(item, undefined as any, this.supersample);
+        this.adhocBitmaps.set(item, bmp);
+      }
+      try {
+        bmp.draw(ctx, item.Pose, geom);
+      } catch (e) {
+        // eslint-disable-next-line no-console
+        console.warn('Animator drawItems failed for item', e, item);
+      }
+    }
+  }
+
   destroy(): void {
     for (const e of this.bitmaps) e.bmp.destroy();
     this.bitmaps = [];
+    if (this.adhocBitmaps) {
+      this.adhocBitmaps.forEach?.((bmp) => bmp.destroy());
+      this.adhocBitmaps = undefined;
+    }
   }
 
   private rebuildBitmaps(): void {

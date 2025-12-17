@@ -7,7 +7,7 @@ export class Map{
     public size: Point;
     public obstacles: Obstacle[] = [];
     public targets: Target[] = [];
-    public avatars: Avatar;
+    public avatar: Avatar;
     public design: Design;
 
     // Fills the current instance from a plain JSON/object without replacing it
@@ -54,8 +54,8 @@ export class Map{
 
         const avatar = g('avatar','Avatar') ?? g('avatars','Avatars');
         if (avatar) {
-            if (!this.avatars) this.avatars = new Avatar();
-            this.avatars.FromJson?.(avatar);
+            if (!this.avatar) this.avatar = new Avatar();
+            this.avatar.FromJson?.(avatar);
         }
 
         return this;

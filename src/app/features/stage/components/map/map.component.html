@@ -9,6 +9,6 @@
     <app-html-game-item #targetsLayer [gridSize]="gridSize" [items]="[]" [color]="'rgba(0,200,100,0.6)'"></app-html-game-item>
   </div>
   <div class="layer avatars">
-    <app-html-game-item #avatarsLayer [gridSize]="gridSize" [items]="[]" [color]="'rgba(0,100,255,0.8)'"></app-html-game-item>
+    <app-canvas-layer #avatarsCanvas [gridSize]="gridSize" [draw]="drawAvatarFrame"></app-canvas-layer>
   </div>
 </div>
