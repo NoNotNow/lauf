@@ -4,6 +4,7 @@ import { TickService } from '../../services/tick.service';
 import { poseContainmentAgainstAxisAlignedBoundingBox, AxisAlignedBoundingBox } from '../collision';
 import { StageItemPhysics } from '../physics/stage-item-physics';
 import { reflectVelocity, TINY_NUDGE } from '../physics/bounce';
+import { toNumber, clamp } from '../../utils/number-utils';
 
 // Moves a single StageItem with a (slow) velocity vector. Optionally bounces within a boundary.
 // - directionalVelocityMax: cap for the velocity magnitude (cells/sec)
@@ -28,13 +29,13 @@ export class Drifter {
 
   private syncVelocityFromPhysics(item: StageItem): void {
     const phys = StageItemPhysics.get(item);
-    this._vx = Number(phys.vx ?? this._vx) || this._vx;
-    this._vy = Number(phys.vy ?? this._vy) || this._vy;
+    this._vx = toNumber(phys.vx ?? this._vx, this._vx);
+    this._vy = toNumber(phys.vy ?? this._vy, this._vy);
   }
 
   private integratePosition(pos: { x: number; y: number }, dtSec: number): { x: number; y: number } {
-    const x = Number(pos.x ?? 0) + this._vx * dtSec;
-    const y = Number(pos.y ?? 0) + this._vy * dtSec;
+    const x = toNumber(pos.x, 0) + this._vx * dtSec;
+    const y = toNumber(pos.y, 0) + this._vy * dtSec;
     return { x, y };
   }
 
@@ -48,8 +49,8 @@ export class Drifter {
     const b: AxisAlignedBoundingBox = this._boundary as AxisAlignedBoundingBox;
     const testPose = {
       Position: { x, y },
-      Size: { x: Number(pose.Size?.x ?? 0), y: Number(pose.Size?.y ?? 0) },
-      Rotation: Number(pose.Rotation ?? 0)
+      Size: { x: toNumber(pose.Size?.x, 0), y: toNumber(pose.Size?.y, 0) },
+      Rotation: toNumber(pose.Rotation, 0)
     } as any;
 
     const res = poseContainmentAgainstAxisAlignedBoundingBox(testPose, b);
@@ -113,8 +114,8 @@ export class Drifter {
 
   // Explicitly set velocity (cells/sec). Will be clamped to the configured max magnitude.
   setVelocity(vx: number, vy: number): void {
-    this._vx = Number(vx) || 0;
-    this._vy = Number(vy) || 0;
+    this._vx = toNumber(vx, 0);
+    this._vy = toNumber(vy, 0);
     this.clampVelocityToMax();
     if (this._item) {
       StageItemPhysics.setVelocity(this._item, this._vx, this._vy);

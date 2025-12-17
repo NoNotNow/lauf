@@ -49,6 +49,13 @@ export class MapComponent implements AfterViewInit, OnDestroy, MapLoader {
     private collisions?: CollisionHandler;
     enableItemCollisions = true;
 
+    // Helper to compute current grid boundary in cell coordinates
+    private getGridBoundary(): AxisAlignedBoundingBox | undefined {
+        return this.gridSize
+            ? { minX: 0, minY: 0, maxX: this.gridSize.x, maxY: this.gridSize.y }
+            : undefined;
+    }
+
     constructor(
     private startup: StartupService,
     private animator: AnimatorService,
@@ -103,11 +110,9 @@ export class MapComponent implements AfterViewInit, OnDestroy, MapLoader {
         this.drifters = [];
         this.collisions?.clear();
 
-        // Give every obstacle its own rotator and wobbler with random parameters
+        // Give every obstacle its own rotator and drifter with random parameters
         const obstacles = m.obstacles ?? [];
-        const boundary: AxisAlignedBoundingBox | undefined = this.gridSize
-            ? { minX: 0, minY: 0, maxX: this.gridSize.x, maxY: this.gridSize.y }
-            : undefined;
+        const boundary: AxisAlignedBoundingBox | undefined = this.getGridBoundary();
         for (const obstacle of obstacles) {
             // register obstacle into collision handler first (obstacles only)
             if (this.enableItemCollisions) {
@@ -120,13 +125,6 @@ export class MapComponent implements AfterViewInit, OnDestroy, MapLoader {
             if (boundary) rot.setBoundary(boundary);
             rot.start();
             this.rotators.push(rot);
-
-            // // Random wobble parameters
-            // const amp = 0.05 + Math.random() * 0.2; // 0.05..0.25 cells
-            // const freq = 0.2 + Math.random() * 0.8; // 0.2..1.0 Hz
-            // const wob = new Wobbler(this.ticker, obstacle, amp, freq);
-            // wob.start();
-            // this.wobblers.push(wob);
             {
                 // Drifter: slow random drift with bouncing inside grid bounds
                 const maxSpeed = 0.02 + Math.random() * 2; // 0.02..~2.02 cells/s

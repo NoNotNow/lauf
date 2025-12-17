@@ -3,6 +3,7 @@ import { StageItem } from '../../models/game-items/stage-item';
 import { TickService } from '../../services/tick.service';
 import { poseContainmentAgainstAxisAlignedBoundingBox, AxisAlignedBoundingBox } from '../collision';
 import { StageItemPhysics } from '../physics/stage-item-physics';
+import { toNumber, normalizeAngleDeg360 } from '../../utils/number-utils';
 
 // Rotates a single StageItem continuously using the TickService.
 // - speedDegPerSec: degrees per second
@@ -17,22 +18,16 @@ export class Rotator {
   private _bounce = true;
 
   // ---- Small helpers to keep methods focused ----
-  private normalizeAngle360(a: number): number {
-    let x = a % 360;
-    if (x < 0) x += 360;
-    return x;
-  }
-
   private tryApplyRotationWithinBoundary(pose: any, angle: number): boolean {
     if (!this._boundary) {
-      pose.Rotation = this.normalizeAngle360(angle);
+      pose.Rotation = normalizeAngleDeg360(angle);
       return true;
     }
     const b: AxisAlignedBoundingBox = this._boundary as AxisAlignedBoundingBox;
     const testPose = {
-      Position: { x: Number(pose.Position?.x ?? 0), y: Number(pose.Position?.y ?? 0) },
-      Size: { x: Number(pose.Size?.x ?? 0), y: Number(pose.Size?.y ?? 0) },
-      Rotation: this.normalizeAngle360(angle)
+      Position: { x: toNumber(pose.Position?.x, 0), y: toNumber(pose.Position?.y, 0) },
+      Size: { x: toNumber(pose.Size?.x, 0), y: toNumber(pose.Size?.y, 0) },
+      Rotation: normalizeAngleDeg360(angle)
     } as any;
     const res = poseContainmentAgainstAxisAlignedBoundingBox(testPose, b);
     if (!res.overlaps) {
@@ -125,7 +120,7 @@ export class Rotator {
     const it = this._item;
     if (!it?.Pose) return;
     const pose = it.Pose as any;
-    const r0 = Number(pose.Rotation ?? 0);
+    const r0 = toNumber(pose.Rotation, 0);
 
     const r1 = r0 + delta;
     if (this.tryApplyRotationWithinBoundary(pose, r1)) return;
