@@ -75,8 +75,8 @@ export function containmentAgainstAABB(obb: OBB, aabb: AABB): OverlapResult {
   if (!anyLeak) return { overlaps: false, mtv: { x: 0, y: 0 }, normal: { x: 0, y: 0 } };
 
   // Choose the smallest magnitude correction; direction pushes inward
-  let mtv: Vec2 = { x: 0, y: 0 };
-  let normal: Vec2 = { x: 0, y: 0 };
+  let mtv: Vec2;
+  let normal: Vec2;
 
   // Candidate corrections along x
   const corrLeft = leakLeft > 0 ? { x: leakLeft, y: 0 } : undefined;   // move +x
