@@ -11,7 +11,7 @@
   },
   "Obstacles": [
     {
-      "Pose": { "Position": { "X": 2, "Y": 2 }, "Size": { "X": 1, "Y": 1 } },
+      "Pose": { "Position": { "X": 2, "Y": 2 }, "Size": { "X": 0.2, "Y": 0.2 } },
       "Design": {
         "Color": "#ff33ff",
         "BorderRadius": 0,
@@ -22,7 +22,7 @@
       }
     },
     {
-      "Pose": { "Position": { "X": 1, "Y": 8 }, "Size": { "X": 0.7, "Y": 0.7 } },
+      "Pose": { "Position": { "X": 1, "Y": 8 }, "Size": { "X": 0.14, "Y": 0.14 } },
       "Design": {
         "Color": "transparent",
         "Border": "none",
@@ -33,7 +33,7 @@
       }
     },
     {
-      "Pose": { "Position": { "X": 4, "Y": 1 }, "Size": { "X": 2, "Y": 2 } },
+      "Pose": { "Position": { "X": 4, "Y": 1 }, "Size": { "X": 0.4, "Y": 0.4 } },
       "Design": {
         "Color": "transparent",
         "Border": "none",
@@ -44,7 +44,7 @@
       }
     },
     {
-      "Pose": { "Position": { "X": 9, "Y": 5 }, "Size": { "X": 1.5, "Y": 1.5 } },
+      "Pose": { "Position": { "X": 9, "Y": 5 }, "Size": { "X": 0.3, "Y": 0.3 } },
       "Design": {
         "Color": "transparent",
         "BorderRadius": 2,
@@ -52,7 +52,7 @@
       }
     },
     {
-      "Pose": { "Position": { "X": 3, "Y": 5 }, "Size": { "X": 1, "Y": 1 } },
+      "Pose": { "Position": { "X": 3, "Y": 5 }, "Size": { "X": 0.2, "Y": 0.2 } },
       "Design": {
         "Color": "transparent",
         "BorderRadius": 2,
@@ -63,7 +63,7 @@
       }
     },
     {
-      "Pose": { "Position": { "X": 6, "Y": 6 }, "Size": { "X": 2, "Y": 2 } },
+      "Pose": { "Position": { "X": 6, "Y": 6 }, "Size": { "X": 0.4, "Y": 0.4 } },
       "Design": {
         "Color": "transparent",
         "Border": "solid",
@@ -74,7 +74,7 @@
       }
     },
     {
-      "Pose": { "Position": { "X": 8, "Y": 0 }, "Size": { "X": 1, "Y": 1 } },
+      "Pose": { "Position": { "X": 8, "Y": 0 }, "Size": { "X": 0.2, "Y": 0.2 } },
       "Design": {
         "Color": "#cce5ff",
         "Border": "dashed",
@@ -85,14 +85,14 @@
       }
     },
     {
-      "Pose": { "Position": { "X": 7, "Y": 4 }, "Size": { "X": 1, "Y": 3 } },
+      "Pose": { "Position": { "X": 7, "Y": 4 }, "Size": { "X": 0.2, "Y": 0.6 } },
       "Design": {
         "Color": "#66cc99",
         "Border": "none"
       }
     },
     {
-      "Pose": { "Position": { "X": 0, "Y": 7 }, "Size": { "X": 0.1, "Y": 5 } },
+      "Pose": { "Position": { "X": 0, "Y": 7 }, "Size": { "X": 0.02, "Y": 1 } },
       "Design": {
         "Color": "#ffd6e7",
         "Border": "solid",
@@ -104,12 +104,12 @@
   ],
   "Targets": [
     {
-      "Pose": { "Position": { "X": 8, "Y": 8 }, "Size": { "X": 1, "Y": 1 } },
+      "Pose": { "Position": { "X": 8, "Y": 8 }, "Size": { "X": 0.2, "Y": 0.2 } },
       "Design": { "Color": "#00aa00" }
     }
   ],
   "Avatar": {
-    "Pose": { "Position": { "X": 5, "Y": 5 }, "Size": { "X": 1.3, "Y": 1.8 } },
+    "Pose": { "Position": { "X": 5, "Y": 5 }, "Size": { "X": 0.26, "Y": 0.36 } },
     "Design": {
       "Color": "transparent",
       "Border": "none",

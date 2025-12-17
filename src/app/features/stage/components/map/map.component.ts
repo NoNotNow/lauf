@@ -149,9 +149,9 @@ export class MapComponent implements AfterViewInit, OnDestroy, MapLoader {
             this.rotators.push(rot);
             {
                 // Drifter: slow random drift with bouncing inside grid bounds
-                const maxSpeed = 0.02 + Math.random() * 50; // 0.02..~2.02 cells/s
+                const maxSpeed = 0.02 + Math.random() * 15; // 0.02..~2.02 cells/s
                 const angle = Math.random() * Math.PI * 2;
-                const speed = Math.random() * maxSpeed; // random magnitude up to max
+                const speed = Math.random() * maxSpeed/2; // random magnitude up to max
                 const vx = Math.cos(angle) * speed;
                 const vy = Math.sin(angle) * speed;
                 const drift = new Drifter(this.ticker, obstacle, maxSpeed, boundary, true);
@@ -178,12 +178,12 @@ export class MapComponent implements AfterViewInit, OnDestroy, MapLoader {
             }
             // Keyboard controller: arrow keys/WASD control avatar velocities
             this.avatarController = new KeyboardController(this.ticker, m.avatar, {
-                linearAccel: 20.0,
+                linearAccel: 5.0,
                 linearBrake: 2.5,
-                linearDamping: .1,
-                maxSpeed: 10.0,
-                angularAccel: 360,
-                angularDamping: 20,
+                linearDamping: .5,
+                maxSpeed: 8.0,
+                angularAccel: 600,
+                angularDamping: 200,
                 maxOmega: 240,
             });
             this.avatarController.start();
