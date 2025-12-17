@@ -19,6 +19,66 @@ export class Drifter {
   private _boundary?: AxisAlignedBoundingBox;
   private _bounce = true;
 
+  // ---- Small helpers to keep methods focused ----
+  private ensurePoseAndPosition(item: StageItem): { pose: any; pos: any } {
+    const pose = item.Pose ?? (item.Pose = { Position: undefined as any, Size: undefined as any, Rotation: undefined as any } as any);
+    const pos = pose.Position ?? (pose.Position = { x: 0, y: 0 } as any);
+    return { pose, pos };
+  }
+
+  private syncVelocityFromPhysics(item: StageItem): void {
+    const phys = StageItemPhysics.get(item);
+    this._vx = Number(phys.vx ?? this._vx) || this._vx;
+    this._vy = Number(phys.vy ?? this._vy) || this._vy;
+  }
+
+  private integratePosition(pos: { x: number; y: number }, dtSec: number): { x: number; y: number } {
+    const x = Number(pos.x ?? 0) + this._vx * dtSec;
+    const y = Number(pos.y ?? 0) + this._vy * dtSec;
+    return { x, y };
+  }
+
+  private applyBoundaryContainmentAndBounce(
+    item: StageItem,
+    pose: any,
+    x: number,
+    y: number
+  ): { x: number; y: number } {
+    if (!this._boundary) return { x, y };
+    const b: AxisAlignedBoundingBox = this._boundary as AxisAlignedBoundingBox;
+    const testPose = {
+      Position: { x, y },
+      Size: { x: Number(pose.Size?.x ?? 0), y: Number(pose.Size?.y ?? 0) },
+      Rotation: Number(pose.Rotation ?? 0)
+    } as any;
+
+    const res = poseContainmentAgainstAxisAlignedBoundingBox(testPose, b);
+    if (res.overlaps) {
+      // Correct position by MTV
+      x += res.minimalTranslationVector.x;
+      y += res.minimalTranslationVector.y;
+
+      if (this._bounce) {
+        // Reflect velocity around collision normal with restitution
+        const restitution = StageItemPhysics.get(item).restitution ?? 1.0;
+        const v = reflectVelocity({ x: this._vx, y: this._vy }, res.normal, restitution);
+        this._vx = v.x;
+        this._vy = v.y;
+        // tiny nudge along normal to avoid re-penetration due to numeric issues
+        x += res.normal.x * TINY_NUDGE;
+        y += res.normal.y * TINY_NUDGE;
+        // persist reflected velocity to physics
+        StageItemPhysics.setVelocity(item, this._vx, this._vy);
+      }
+    } else if (!this._bounce) {
+      // No overlap and not bouncing: still clamp the top-left to boundary (legacy behavior)
+      x = Math.max(b.minX, Math.min(b.maxX, x));
+      y = Math.max(b.minY, Math.min(b.maxY, y));
+    }
+
+    return { x, y };
+  }
+
   constructor(
     private ticker: TickService,
     item?: StageItem,
@@ -100,53 +160,16 @@ export class Drifter {
     if (dtSec === 0) return;
 
     // Ensure Pose and Position exist
-    const pose = it.Pose ?? (it.Pose = { Position: undefined as any, Size: undefined as any, Rotation: undefined as any } as any);
-    let pos = pose.Position;
-    if (!pos) pos = pose.Position = { x: 0, y: 0 } as any;
+    const { pose, pos } = this.ensurePoseAndPosition(it);
 
     // Get authoritative velocity from physics if present
-    const phys = StageItemPhysics.get(it);
-    this._vx = Number(phys.vx ?? this._vx) || this._vx;
-    this._vy = Number(phys.vy ?? this._vy) || this._vy;
+    this.syncVelocityFromPhysics(it);
 
     // Proposed new position
-    let x = Number(pos.x ?? 0) + this._vx * dtSec;
-    let y = Number(pos.y ?? 0) + this._vy * dtSec;
+    let { x, y } = this.integratePosition(pos, dtSec);
 
-    // If boundary is present, check OrientedBoundingBox containment using real Size & Rotation
-    if (this._boundary) {
-      const b: AxisAlignedBoundingBox = this._boundary as AxisAlignedBoundingBox;
-      // Build a lightweight pose clone for collision check
-      const testPose = {
-        Position: { x, y },
-        Size: { x: Number(pose.Size?.x ?? 0), y: Number(pose.Size?.y ?? 0) },
-        Rotation: Number(pose.Rotation ?? 0)
-      } as any;
-
-      const res = poseContainmentAgainstAxisAlignedBoundingBox(testPose, b);
-      if (res.overlaps) {
-        // Correct position by MTV
-        x += res.minimalTranslationVector.x;
-        y += res.minimalTranslationVector.y;
-
-        if (this._bounce) {
-          // Reflect velocity around collision normal with restitution
-          const restitution = StageItemPhysics.get(it).restitution ?? 1.0;
-          const v = reflectVelocity({ x: this._vx, y: this._vy }, res.normal, restitution);
-          this._vx = v.x;
-          this._vy = v.y;
-          // tiny nudge along normal to avoid re-penetration due to numeric issues
-          x += res.normal.x * TINY_NUDGE;
-          y += res.normal.y * TINY_NUDGE;
-          // persist reflected velocity to physics
-          StageItemPhysics.setVelocity(it, this._vx, this._vy);
-        }
-      } else if (!this._bounce) {
-        // No overlap and not bouncing: still clamp the top-left to boundary (legacy behavior)
-        x = Math.max(b.minX, Math.min(b.maxX, x));
-        y = Math.max(b.minY, Math.min(b.maxY, y));
-      }
-    }
+    // Boundary containment and bounce
+    ({ x, y } = this.applyBoundaryContainmentAndBounce(it, pose, x, y));
 
     pos.x = x;
     pos.y = y;

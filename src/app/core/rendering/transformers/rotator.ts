@@ -16,6 +16,43 @@ export class Rotator {
   private _boundary?: AxisAlignedBoundingBox;
   private _bounce = true;
 
+  // ---- Small helpers to keep methods focused ----
+  private normalizeAngle360(a: number): number {
+    let x = a % 360;
+    if (x < 0) x += 360;
+    return x;
+  }
+
+  private tryApplyRotationWithinBoundary(pose: any, angle: number): boolean {
+    if (!this._boundary) {
+      pose.Rotation = this.normalizeAngle360(angle);
+      return true;
+    }
+    const b: AxisAlignedBoundingBox = this._boundary as AxisAlignedBoundingBox;
+    const testPose = {
+      Position: { x: Number(pose.Position?.x ?? 0), y: Number(pose.Position?.y ?? 0) },
+      Size: { x: Number(pose.Size?.x ?? 0), y: Number(pose.Size?.y ?? 0) },
+      Rotation: this.normalizeAngle360(angle)
+    } as any;
+    const res = poseContainmentAgainstAxisAlignedBoundingBox(testPose, b);
+    if (!res.overlaps) {
+      pose.Rotation = testPose.Rotation;
+      return true;
+    }
+    return false;
+  }
+
+  private flipDirectionAndBacktrack(item: StageItem | undefined, baseAngle: number, delta: number): number | null {
+    if (!this._bounce) return null;
+    this._direction = (this._direction === 1 ? -1 : 1);
+    if (item) {
+      const cur = StageItemPhysics.get(item).omega;
+      StageItemPhysics.setAngular(item, -cur || -this._direction * this._speedDegPerSec);
+    }
+    const backtrack = (delta) * -0.5; // half step in the opposite direction
+    return baseAngle + backtrack;
+  }
+
   constructor(
     private ticker: TickService,
     item?: StageItem,
@@ -89,49 +126,16 @@ export class Rotator {
     if (!it?.Pose) return;
     const pose = it.Pose as any;
     const r0 = Number(pose.Rotation ?? 0);
-    const norm = (a: number) => {
-      let x = a % 360;
-      if (x < 0) x += 360;
-      return x;
-    };
-    const tryApply = (angle: number): boolean => {
-      if (!this._boundary) {
-        pose.Rotation = norm(angle);
-        return true;
-      }
-      const b: AxisAlignedBoundingBox = this._boundary as AxisAlignedBoundingBox;
-      const testPose = {
-        Position: { x: Number(pose.Position?.x ?? 0), y: Number(pose.Position?.y ?? 0) },
-        Size: { x: Number(pose.Size?.x ?? 0), y: Number(pose.Size?.y ?? 0) },
-        Rotation: norm(angle)
-      } as any;
-      const res = poseContainmentAgainstAxisAlignedBoundingBox(testPose, b);
-      if (!res.overlaps) {
-        pose.Rotation = testPose.Rotation;
-        return true;
-      }
-      return false;
-    };
 
     const r1 = r0 + delta;
-    if (tryApply(r1)) return;
+    if (this.tryApplyRotationWithinBoundary(pose, r1)) return;
 
     // Collision on proposed rotation
-    if (!this._bounce) {
-      // Do not rotate into collision
-      return;
-    }
+    if (!this._bounce) return; // Do not rotate into collision
 
     // Flip direction and try a smaller backtrack step to mimic bounce
-    this._direction = (this._direction === 1 ? -1 : 1);
-    if (this._item) {
-      // flip physics omega
-      const cur = StageItemPhysics.get(this._item).omega;
-      StageItemPhysics.setAngular(this._item, -cur || -this._direction * this._speedDegPerSec);
-    }
-    const backtrack = (delta) * -0.5; // half step in the opposite direction
-    const r2 = r0 + backtrack;
-    if (tryApply(r2)) return;
+    const r2 = this.flipDirectionAndBacktrack(it, r0, delta);
+    if (r2 != null && this.tryApplyRotationWithinBoundary(pose, r2)) return;
 
     // As a fallback, keep original angle (no change this tick)
   }
