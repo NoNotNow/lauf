@@ -12,6 +12,7 @@ import { Wobbler } from '../../../../core/rendering/transformers/wobbler';
 import { Drifter } from '../../../../core/rendering/transformers/drifter';
 import { CollisionHandler } from '../../../../core/rendering/collision-handler';
 import { AxisAlignedBoundingBox } from '../../../../core/rendering/collision';
+import { PhysicsIntegrator } from '../../../../core/rendering/physics/physics-integrator';
 
 @Component({
     selector: 'app-map',
@@ -54,6 +55,7 @@ export class MapComponent implements AfterViewInit, OnDestroy, MapLoader {
     private wobblers: Wobbler[] = [];
     private drifters: Drifter[] = [];
     private collisions?: CollisionHandler;
+    private integrator?: PhysicsIntegrator;
     enableItemCollisions = true;
     private currentMap?: GameMap;
 
@@ -95,6 +97,7 @@ export class MapComponent implements AfterViewInit, OnDestroy, MapLoader {
         this.drifters.forEach(d => d.stop());
         this.animator.destroy();
         this.collisions?.stop();
+        this.integrator?.stop();
     }
 
     // Accepts a Map object and applies it to the grid, obstacles, and game items layers
@@ -118,10 +121,13 @@ export class MapComponent implements AfterViewInit, OnDestroy, MapLoader {
         this.wobblers = [];
         this.drifters = [];
         this.collisions?.clear();
+        this.integrator?.stop();
+        this.integrator = new PhysicsIntegrator(this.ticker);
 
         // Give every obstacle its own rotator and drifter with random parameters
         const obstacles = m.obstacles ?? [];
         const boundary: AxisAlignedBoundingBox | undefined = this.getGridBoundary();
+        this.integrator.setBoundary(boundary, true);
         for (const obstacle of obstacles) {
             // register obstacle into collision handler first (obstacles only)
             if (this.enableItemCollisions) {
@@ -131,7 +137,6 @@ export class MapComponent implements AfterViewInit, OnDestroy, MapLoader {
             const speed = 5 + Math.random() * 25; // 5..30 deg/s
             const dir: 1 | -1 = Math.random() < 0.5 ? -1 : 1;
             const rot = new Rotator(this.ticker, obstacle, speed, dir);
-            if (boundary) rot.setBoundary(boundary);
             rot.start();
             this.rotators.push(rot);
             {
@@ -146,7 +151,10 @@ export class MapComponent implements AfterViewInit, OnDestroy, MapLoader {
                 drift.start();
                 this.drifters.push(drift);
             }
+            // Integrate obstacle pose from physics
+            this.integrator.add(obstacle);
         }
+        this.integrator.start();
 
         // Load targets
         if (this.targets) {
@@ -170,6 +178,9 @@ export class MapComponent implements AfterViewInit, OnDestroy, MapLoader {
             drift.setVelocity(vx, vy);
             drift.start();
             this.drifters.push(drift);
+
+            // Integrate avatar pose from physics
+            this.integrator?.add(m.avatar);
         }
     }
 }

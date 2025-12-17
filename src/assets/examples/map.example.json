@@ -109,9 +109,9 @@
     }
   ],
   "Avatar": {
-    "Pose": { "Position": { "X": 0, "Y": 0 }, "Size": { "X": 1.3, "Y": 1.8 } },
+    "Pose": { "Position": { "X": 5, "Y": 5 }, "Size": { "X": 1.3, "Y": 1.8 } },
     "Design": {
-      "Color": "#0000FF",
+      "Color": "transparent",
       "Border": "none",
       "Image": "assets/hero.svg"
     }
