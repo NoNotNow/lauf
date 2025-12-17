@@ -11,7 +11,7 @@
   },
   "Obstacles": [
     {
-      "Pose": { "Position": { "X": 2, "Y": 2 }, "Size": { "X": 1, "Y": 1 } },
+      "Pose": { "Position": { "X": 1.5, "Y": 1.5 }, "Size": { "X": 1, "Y": 1 } },
       "Design": { "Color": "#ff33ff" }
     },
     {

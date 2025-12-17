@@ -72,13 +72,13 @@ export class StageItemBitmap {
 
     if (!this.offscreenCanvas) return;
 
-    const wCells = Math.max(1, Math.floor(pose?.Size?.x ?? this.item.Pose?.Size?.x ?? 1));
-    const hCells = Math.max(1, Math.floor(pose?.Size?.y ?? this.item.Pose?.Size?.y ?? 1));
+    const wCells = Math.max(0.01, pose?.Size?.x ?? this.item.Pose?.Size?.x ?? 1);
+    const hCells = Math.max(0.01, pose?.Size?.y ?? this.item.Pose?.Size?.y ?? 1);
 
     // Destination rect (no padding for blit; padding already baked if needed in renderer)
     const { x, y, w, h } = geom.rectForCells(
-      Math.floor(pose?.Position?.x ?? 0),
-      Math.floor(pose?.Position?.y ?? 0),
+      pose?.Position?.x ?? 0,
+      pose?.Position?.y ?? 0,
       wCells,
       hCells,
       0

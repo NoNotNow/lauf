@@ -8,6 +8,7 @@ import { CanvasLayerComponent } from '../../../../shared/components/common/canva
 import { AnimatorService } from '../../../../core/rendering/animator.service';
 import { TickService } from '../../../../core/services/tick.service';
 import { Rotator } from '../../../../core/rendering/transformers/rotator';
+import { Wobbler } from '../../../../core/rendering/transformers/wobbler';
 
 @Component({
     selector: 'app-map',
@@ -40,6 +41,7 @@ export class MapComponent implements AfterViewInit, OnDestroy, MapLoader {
 
     private tickSub?: any;
     private rotator?: Rotator;
+    private wobbler?: Wobbler;
 
     constructor(
         private startup: StartupService,
@@ -59,6 +61,7 @@ export class MapComponent implements AfterViewInit, OnDestroy, MapLoader {
         this.tickSub?.unsubscribe?.();
         this.ticker.stop();
         this.rotator?.stop();
+        this.wobbler?.stop();
         this.animator.destroy();
     }
 
@@ -75,13 +78,22 @@ export class MapComponent implements AfterViewInit, OnDestroy, MapLoader {
         this.animator.setMap(m);
 
         // Slowly rotate obstacles using the ticker
-        const obstacles = m.obstacles ?? [];
-        if (!this.rotator) {
-            this.rotator = new Rotator(this.ticker, obstacles, 10 /* deg/s */, 1 /* cw */);
-            this.rotator.start();
+        // if (!this.rotator) {
+        //     this.rotator = new Rotator(this.ticker, obstacles, 10 /* deg/s */, 1 /* cw */);
+        //     this.rotator.start();
+        // } else {
+        //     this.rotator.setItems(obstacles);
+        //     this.rotator.start();
+        // }
+        const wobbleItems = (m.obstacles ?? []).sort(() => 0.5 - Math.random()).slice(0, 2);
+
+        // Apply gentle wobble with per-item random phases
+        if (!this.wobbler) {
+            this.wobbler = new Wobbler(this.ticker, wobbleItems, 0.15 /* cells */, 0.5 /* Hz */);
+            this.wobbler.start();
         } else {
-            this.rotator.setItems(obstacles);
-            this.rotator.start();
+            this.wobbler.setItems(wobbleItems);
+            this.wobbler.start();
         }
 
         // Load targets
