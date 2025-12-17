@@ -11,7 +11,7 @@ import { Rotator } from '../../../../core/rendering/transformers/rotator';
 import { Wobbler } from '../../../../core/rendering/transformers/wobbler';
 import { Drifter } from '../../../../core/rendering/transformers/drifter';
 import { CollisionHandler } from '../../../../core/rendering/collision-handler';
-import { AABB } from '../../../../core/rendering/collision';
+import { AxisAlignedBoundingBox } from '../../../../core/rendering/collision';
 
 @Component({
     selector: 'app-map',
@@ -105,7 +105,7 @@ export class MapComponent implements AfterViewInit, OnDestroy, MapLoader {
 
         // Give every obstacle its own rotator and wobbler with random parameters
         const obstacles = m.obstacles ?? [];
-        const boundary: AABB | undefined = this.gridSize
+        const boundary: AxisAlignedBoundingBox | undefined = this.gridSize
             ? { minX: 0, minY: 0, maxX: this.gridSize.x, maxY: this.gridSize.y }
             : undefined;
         for (const obstacle of obstacles) {

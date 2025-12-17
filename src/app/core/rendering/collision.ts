@@ -5,9 +5,9 @@ import { Pose } from '../models/pose';
 
 export interface Vec2 { x: number; y: number }
 
-export interface AABB { minX: number; minY: number; maxX: number; maxY: number }
+export interface AxisAlignedBoundingBox { minX: number; minY: number; maxX: number; maxY: number }
 
-export interface OBB {
+export interface OrientedBoundingBox {
   center: Vec2;        // center in cell coordinates
   half: Vec2;          // half extents (width/2, height/2) in cells
   rotationDeg: number; // rotation in degrees (clockwise positive)
@@ -16,16 +16,16 @@ export interface OBB {
 
 export interface OverlapResult {
   overlaps: boolean;  // true if shape violates the boundary interior (i.e., not fully contained)
-  mtv: Vec2;          // minimal translation vector to bring OBB fully inside AABB (0,0 if none)
-  normal: Vec2;       // collision normal (unit vector) pointing inward (same direction as mtv), or {0,0}
+  minimalTranslationVector: Vec2;          // minimal translation vector to bring OrientedBoundingBox fully inside AxisAlignedBoundingBox (0,0 if none)
+  normal: Vec2;       // collision normal (unit vector) pointing inward (same direction as minimalTranslationVector), or {0,0}
 }
 
 export function degToRad(deg: number): number { return (deg || 0) * Math.PI / 180; }
 
-// Builds an OBB from a Pose. Convention:
+// Builds an OrientedBoundingBox from a Pose. Convention:
 // - Pose.Position is top-left cell of the axis-aligned bounding rect when rotation=0.
 // - Rotation is around the rectangle center.
-export function obbFromPose(pose: Pose | undefined): OBB {
+export function orientedBoundingBoxFromPose(pose: Pose | undefined): OrientedBoundingBox {
   const px = Number(pose?.Position?.x ?? 0);
   const py = Number(pose?.Position?.y ?? 0);
   const w = Math.max(0, Number(pose?.Size?.x ?? 0));
@@ -55,24 +55,24 @@ export function obbFromPose(pose: Pose | undefined): OBB {
   return { center: { x: cx, y: cy }, half, rotationDeg: rot, corners };
 }
 
-// Compute if OBB is fully contained in AABB. If not, return minimal translation vector to move it inside.
-// Strategy: compare OBB extrema along world X and Y axes to AABB limits and choose the smallest correction.
-export function containmentAgainstAABB(obb: OBB, aabb: AABB): OverlapResult {
-  const xs = obb.corners.map(p => p.x);
-  const ys = obb.corners.map(p => p.y);
+// Compute if OrientedBoundingBox is fully contained in AxisAlignedBoundingBox. If not, return minimal translation vector to move it inside.
+// Strategy: compare OrientedBoundingBox extrema along world X and Y axes to AxisAlignedBoundingBox limits and choose the smallest correction.
+export function containmentAgainstAxisAlignedBoundingBox(orientedBoundingBox: OrientedBoundingBox, axisAlignedBoundingBox: AxisAlignedBoundingBox): OverlapResult {
+  const xs = orientedBoundingBox.corners.map(p => p.x);
+  const ys = orientedBoundingBox.corners.map(p => p.y);
   const minX = Math.min(...xs);
   const maxX = Math.max(...xs);
   const minY = Math.min(...ys);
   const maxY = Math.max(...ys);
 
-  // Positive values mean the OBB leaks outside in that direction
-  const leakLeft = Math.max(0, aabb.minX - minX);
-  const leakRight = Math.max(0, maxX - aabb.maxX);
-  const leakTop = Math.max(0, aabb.minY - minY);
-  const leakBottom = Math.max(0, maxY - aabb.maxY);
+  // Positive values mean the OrientedBoundingBox leaks outside in that direction
+  const leakLeft = Math.max(0, axisAlignedBoundingBox.minX - minX);
+  const leakRight = Math.max(0, maxX - axisAlignedBoundingBox.maxX);
+  const leakTop = Math.max(0, axisAlignedBoundingBox.minY - minY);
+  const leakBottom = Math.max(0, maxY - axisAlignedBoundingBox.maxY);
 
   const anyLeak = (leakLeft + leakRight + leakTop + leakBottom) > 0;
-  if (!anyLeak) return { overlaps: false, mtv: { x: 0, y: 0 }, normal: { x: 0, y: 0 } };
+  if (!anyLeak) return { overlaps: false, minimalTranslationVector: { x: 0, y: 0 }, normal: { x: 0, y: 0 } };
 
   // Choose the smallest magnitude correction; direction pushes inward
   let mtv: Vec2;
@@ -91,24 +91,24 @@ export function containmentAgainstAABB(obb: OBB, aabb: AABB): OverlapResult {
   const len = Math.hypot(mtv.x, mtv.y) || 1;
   normal = { x: mtv.x / len, y: mtv.y / len };
 
-  return { overlaps: true, mtv, normal };
+  return { overlaps: true, minimalTranslationVector: mtv, normal };
 }
 
-// Convenience: from a Pose and AABB
-export function poseContainmentAgainstAABB(pose: Pose | undefined, aabb: AABB): OverlapResult {
-  const obb = obbFromPose(pose);
-  return containmentAgainstAABB(obb, aabb);
+// Convenience: from a Pose and AxisAlignedBoundingBox
+export function poseContainmentAgainstAxisAlignedBoundingBox(pose: Pose | undefined, aabb: AxisAlignedBoundingBox): OverlapResult {
+  const obb = orientedBoundingBoxFromPose(pose);
+  return containmentAgainstAxisAlignedBoundingBox(obb, aabb);
 }
 
-// ---------- OBB vs OBB (item–item) ----------
+// ---------- OrientedBoundingBox vs OrientedBoundingBox (item–item) ----------
 
 function dot(a: Vec2, b: Vec2): number { return a.x * b.x + a.y * b.y; }
 function sub(a: Vec2, b: Vec2): Vec2 { return { x: a.x - b.x, y: a.y - b.y }; }
 function len(v: Vec2): number { return Math.hypot(v.x, v.y); }
 function normalize(v: Vec2): Vec2 { const l = len(v) || 1; return { x: v.x / l, y: v.y / l }; }
 
-// Build 4 edge normals (axes) for an OBB (two unique directions suffice)
-function obbAxes(obb: OBB): Vec2[] {
+// Build 4 edge normals (axes) for an OrientedBoundingBox (two unique directions suffice)
+function orientedBoundingBoxAxes(obb: OrientedBoundingBox): Vec2[] {
   const c = obb.corners;
   const e0 = normalize(sub(c[1], c[0])); // top edge direction
   const e1 = normalize(sub(c[3], c[0])); // left edge direction
@@ -128,11 +128,11 @@ function projectOntoAxis(points: Vec2[], axis: Vec2): { min: number; max: number
   return { min, max };
 }
 
-export interface ObbObbResult { overlaps: boolean; mtv: Vec2; normal: Vec2 }
+export interface OrientedBoundingBoxIntersectionResult { overlaps: boolean; minimalTranslationVector: Vec2; normal: Vec2 }
 
 // SAT overlap test between two OBBs; returns MTV to push A out of B
-export function obbIntersectsObb(a: OBB, b: OBB): ObbObbResult {
-  const axes = [...obbAxes(a), ...obbAxes(b)];
+export function orientedBoundingBoxIntersectsOrientedBoundingBox(a: OrientedBoundingBox, b: OrientedBoundingBox): OrientedBoundingBoxIntersectionResult {
+  const axes = [...orientedBoundingBoxAxes(a), ...orientedBoundingBoxAxes(b)];
   let smallestOverlap = Infinity;
   let mtvAxis: Vec2 | null = null;
 
@@ -143,7 +143,7 @@ export function obbIntersectsObb(a: OBB, b: OBB): ObbObbResult {
     const pb = projectOntoAxis(b.corners, axis);
     const overlap = Math.min(pa.max, pb.max) - Math.max(pa.min, pb.min);
     if (overlap <= 0) {
-      return { overlaps: false, mtv: { x: 0, y: 0 }, normal: { x: 0, y: 0 } };
+      return { overlaps: false, minimalTranslationVector: { x: 0, y: 0 }, normal: { x: 0, y: 0 } };
     }
     if (overlap < smallestOverlap) {
       // determine axis direction to push A away from B
@@ -155,5 +155,5 @@ export function obbIntersectsObb(a: OBB, b: OBB): ObbObbResult {
 
   const normal = normalize(mtvAxis!);
   const mtv = { x: normal.x * smallestOverlap, y: normal.y * smallestOverlap };
-  return { overlaps: true, mtv, normal };
+  return { overlaps: true, minimalTranslationVector: mtv, normal };
 }

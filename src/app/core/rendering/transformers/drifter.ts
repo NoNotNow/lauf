@@ -1,7 +1,7 @@
 import { Subscription } from 'rxjs';
 import { StageItem } from '../../models/game-items/stage-item';
 import { TickService } from '../../services/tick.service';
-import { poseContainmentAgainstAABB, AABB } from '../collision';
+import { poseContainmentAgainstAxisAlignedBoundingBox, AxisAlignedBoundingBox } from '../collision';
 import { StageItemPhysics } from '../physics/stage-item-physics';
 import { reflectVelocity } from '../physics/bounce';
 
@@ -16,14 +16,14 @@ export class Drifter {
   private _vx = 0; // cells/sec
   private _vy = 0; // cells/sec
   private _directionalVelocityMax = 0.1; // cells/sec
-  private _boundary?: AABB;
+  private _boundary?: AxisAlignedBoundingBox;
   private _bounce = true;
 
   constructor(
     private ticker: TickService,
     item?: StageItem,
     directionalVelocityMax?: number,
-    boundary?: AABB,
+    boundary?: AxisAlignedBoundingBox,
     bounce: boolean = true
   ) {
     if (item) this._item = item;
@@ -43,7 +43,7 @@ export class Drifter {
     }
   }
 
-  setBoundary(boundary: AABB | undefined): void {
+  setBoundary(boundary: AxisAlignedBoundingBox | undefined): void {
     this._boundary = boundary;
   }
 
@@ -113,9 +113,9 @@ export class Drifter {
     let x = Number(pos.x ?? 0) + this._vx * dtSec;
     let y = Number(pos.y ?? 0) + this._vy * dtSec;
 
-    // If boundary is present, check OBB containment using real Size & Rotation
+    // If boundary is present, check OrientedBoundingBox containment using real Size & Rotation
     if (this._boundary) {
-      const b: AABB = this._boundary as AABB;
+      const b: AxisAlignedBoundingBox = this._boundary as AxisAlignedBoundingBox;
       // Build a lightweight pose clone for collision check
       const testPose = {
         Position: { x, y },
@@ -123,11 +123,11 @@ export class Drifter {
         Rotation: Number(pose.Rotation ?? 0)
       } as any;
 
-      const res = poseContainmentAgainstAABB(testPose, b);
+      const res = poseContainmentAgainstAxisAlignedBoundingBox(testPose, b);
       if (res.overlaps) {
         // Correct position by MTV
-        x += res.mtv.x;
-        y += res.mtv.y;
+        x += res.minimalTranslationVector.x;
+        y += res.minimalTranslationVector.y;
 
         if (this._bounce) {
           // Reflect velocity around collision normal with restitution

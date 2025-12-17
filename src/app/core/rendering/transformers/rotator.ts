@@ -1,7 +1,7 @@
 import { Subscription } from 'rxjs';
 import { StageItem } from '../../models/game-items/stage-item';
 import { TickService } from '../../services/tick.service';
-import { poseContainmentAgainstAABB, AABB } from '../collision';
+import { poseContainmentAgainstAxisAlignedBoundingBox, AxisAlignedBoundingBox } from '../collision';
 import { StageItemPhysics } from '../physics/stage-item-physics';
 
 // Rotates a single StageItem continuously using the TickService.
@@ -13,7 +13,7 @@ export class Rotator {
   private _item?: StageItem;
   private _speedDegPerSec = 10;
   private _direction: 1 | -1 = 1;
-  private _boundary?: AABB;
+  private _boundary?: AxisAlignedBoundingBox;
   private _bounce = true;
 
   constructor(
@@ -48,7 +48,7 @@ export class Rotator {
     }
   }
 
-  setBoundary(boundary: AABB | undefined): void {
+  setBoundary(boundary: AxisAlignedBoundingBox | undefined): void {
     this._boundary = boundary;
   }
 
@@ -99,13 +99,13 @@ export class Rotator {
         pose.Rotation = norm(angle);
         return true;
       }
-      const b: AABB = this._boundary as AABB;
+      const b: AxisAlignedBoundingBox = this._boundary as AxisAlignedBoundingBox;
       const testPose = {
         Position: { x: Number(pose.Position?.x ?? 0), y: Number(pose.Position?.y ?? 0) },
         Size: { x: Number(pose.Size?.x ?? 0), y: Number(pose.Size?.y ?? 0) },
         Rotation: norm(angle)
       } as any;
-      const res = poseContainmentAgainstAABB(testPose, b);
+      const res = poseContainmentAgainstAxisAlignedBoundingBox(testPose, b);
       if (!res.overlaps) {
         pose.Rotation = testPose.Rotation;
         return true;

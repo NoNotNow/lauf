@@ -1,14 +1,14 @@
 import { Subscription, Subject } from 'rxjs';
 import { StageItem } from '../models/game-items/stage-item';
 import { TickService } from '../services/tick.service';
-import { obbFromPose, obbIntersectsObb } from './collision';
+import { orientedBoundingBoxFromPose, orientedBoundingBoxIntersectsOrientedBoundingBox } from './collision';
 import { StageItemPhysics } from './physics/stage-item-physics';
 
 export interface CollisionEvent {
   a: StageItem;
   b: StageItem;
   normal: { x: number; y: number }; // from A to B
-  mtv: { x: number; y: number };    // push A by +mtv to separate
+  mtv: { x: number; y: number };    // push A by +minimalTranslationVector to separate
 }
 
 export class CollisionHandler {
@@ -56,14 +56,14 @@ export class CollisionHandler {
       const ai = this.items[i];
       const ap = ai?.Pose;
       if (!ap) continue;
-      const aobb = obbFromPose(ap);
+      const aobb = orientedBoundingBoxFromPose(ap);
       for (let j = i + 1; j < n; j++) {
         const bj = this.items[j];
         const bp = bj?.Pose;
         if (!bp) continue;
-        const bobb = obbFromPose(bp);
+        const bobb = orientedBoundingBoxFromPose(bp);
 
-        const res = obbIntersectsObb(aobb, bobb);
+        const res = orientedBoundingBoxIntersectsOrientedBoundingBox(aobb, bobb);
         if (!res.overlaps) continue;
 
         const normal = res.normal; // from A to B
@@ -105,7 +105,7 @@ export class CollisionHandler {
         bpose.Position.x += normal.x * eps;
         bpose.Position.y += normal.y * eps;
 
-        this.events$.next({ a: ai, b: bj, normal, mtv: res.mtv });
+        this.events$.next({ a: ai, b: bj, normal, mtv: res.minimalTranslationVector });
       }
     }
   }
