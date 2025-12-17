@@ -3,7 +3,7 @@
     <app-grid [gridSize]="gridSize" [color]="gridColor" [lineWidth]="gridLineWidth"></app-grid>
   </div>
   <div class="layer obstacles">
-    <app-obstacles [gridSize]="gridSize"></app-obstacles>
+    <app-canvas-layer [gridSize]="gridSize" [draw]="drawFrame"></app-canvas-layer>
   </div>
   <div class="layer targets">
     <app-html-game-item #targetsLayer [gridSize]="gridSize" [items]="[]" [color]="'rgba(0,200,100,0.6)'"></app-html-game-item>
