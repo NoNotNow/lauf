@@ -7,6 +7,7 @@ import {StartupService, MapLoader} from '../../../../core/services/startup.servi
 import { CanvasLayerComponent } from '../../../../shared/components/common/canvas-layer/canvas-layer.component';
 import { AnimatorService } from '../../../../core/rendering/animator.service';
 import { TickService } from '../../../../core/services/tick.service';
+import { Rotator } from '../../../../core/rendering/transformers/rotator';
 
 @Component({
     selector: 'app-map',
@@ -38,6 +39,7 @@ export class MapComponent implements AfterViewInit, OnDestroy, MapLoader {
     };
 
     private tickSub?: any;
+    private rotator?: Rotator;
 
     constructor(
         private startup: StartupService,
@@ -56,6 +58,7 @@ export class MapComponent implements AfterViewInit, OnDestroy, MapLoader {
     ngOnDestroy(): void {
         this.tickSub?.unsubscribe?.();
         this.ticker.stop();
+        this.rotator?.stop();
         this.animator.destroy();
     }
 
@@ -70,6 +73,16 @@ export class MapComponent implements AfterViewInit, OnDestroy, MapLoader {
 
         // Provide map to animator (obstacles drawn via canvas layer per tick)
         this.animator.setMap(m);
+
+        // Slowly rotate obstacles using the ticker
+        const obstacles = m.obstacles ?? [];
+        if (!this.rotator) {
+            this.rotator = new Rotator(this.ticker, obstacles, 10 /* deg/s */, 1 /* cw */);
+            this.rotator.start();
+        } else {
+            this.rotator.setItems(obstacles);
+            this.rotator.start();
+        }
 
         // Load targets
         if (this.targets) {
