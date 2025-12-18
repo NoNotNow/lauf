@@ -3,6 +3,7 @@ import { Point } from '../../../../core/models/point';
 import { CanvasLayerComponent } from '../../../../shared/components/common/canvas-layer/canvas-layer.component';
 import { Camera } from '../../../../core/rendering/camera';
 import { GridGeometry } from '../../../../core/models/canvas-geometry';
+import { GridBitmap } from '../../../../core/rendering/grid-bitmap';
 
 @Component({
   selector: 'app-grid',
@@ -28,9 +29,12 @@ export class GridComponent implements OnChanges {
   // Changing this value forces CanvasLayer to redraw
   redrawKey = '';
 
+  private bitmap = new GridBitmap();
+
   ngOnChanges(changes: SimpleChanges): void {
     if (changes['gridSize'] || changes['color'] || changes['lineWidth']) {
       this.updateRedrawKey();
+      this.bitmap.invalidate();
     }
   }
 
@@ -52,45 +56,7 @@ export class GridComponent implements OnChanges {
         return;
     }
 
-    const cellW = geom.cellW;
-    const cellH = geom.cellH;
-    const unit = Math.min(cellW, cellH);
-    const lw = Math.max(1, Math.round((this.lineWidth ?? 0) * unit));
-    
-    ctx.strokeStyle = this.color;
-    ctx.lineWidth = lw;
-
-    // Determine visible range of lines to optimize drawing
-    // We use a dummy rect at (0,0) to find the current view offset in cell units
-    const origin = geom.rectForCells(0, 0, 0, 0);
-    const viewX = -origin.x / cellW;
-    const viewY = -origin.y / cellH;
-    const visibleCols = canvas.width / cellW;
-    const visibleRows = canvas.height / cellH;
-
-    const startCol = Math.max(0, Math.floor(viewX));
-    const endCol = Math.min(geom.cols, Math.ceil(viewX + visibleCols));
-
-    const startRow = Math.max(0, Math.floor(viewY));
-    const endRow = Math.min(geom.rows, Math.ceil(viewY + visibleRows));
-
-    // Vertical lines
-    for (let i = startCol; i <= endCol; i++) {
-        const rect = geom.rectForCells(i, startRow, 0, endRow - startRow);
-        ctx.beginPath();
-        ctx.moveTo(rect.x, rect.y);
-        ctx.lineTo(rect.x, rect.y + rect.h);
-        ctx.stroke();
-    }
-
-    // Horizontal lines
-    for (let j = startRow; j <= endRow; j++) {
-        const rect = geom.rectForCells(startCol, j, endCol - startCol, 0);
-        ctx.beginPath();
-        ctx.moveTo(rect.x, rect.y);
-        ctx.lineTo(rect.x + rect.w, rect.y);
-        ctx.stroke();
-    }
+    this.bitmap.draw(ctx, canvas.width, canvas.height, geom, this.color, this.lineWidth);
   };
 
   private drawLegacy(ctx: CanvasRenderingContext2D, canvas: HTMLCanvasElement) {
