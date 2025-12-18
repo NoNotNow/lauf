@@ -31,22 +31,54 @@ export class GridBitmap {
     targetCtx.save();
     
     // Use setTransform to set the pattern's origin to the grid's top-left
-    const matrix = new DOMMatrix().translate(gridRect.x, gridRect.y);
-    this.pattern.setTransform(matrix);
+    // Use floor/round to avoid subpixel gaps at the start
+    const startX = Math.round(gridRect.x);
+    const startY = Math.round(gridRect.y);
     
-    targetCtx.fillStyle = this.pattern;
-    targetCtx.fillRect(gridRect.x, gridRect.y, gridRect.w, gridRect.h);
+    // The total width/height should be exactly the sum of cell sizes, but we round the outer bounds
+    const endX = Math.round(gridRect.x + geom.cols * geom.cellW);
+    const endY = Math.round(gridRect.y + geom.rows * geom.cellH);
+    const totalW = endX - startX;
+    const totalH = endY - startY;
 
-    // CanvasPattern only draws the "inner" lines if we're not careful.
-    // Actually, it repeats. If we draw at (0,0) in pattern, it will be at (gridRect.x, gridRect.y).
-    // To get the right and bottom borders, we might need one extra stroke or a slightly larger rect.
-    // But usually we want the borders to be exactly on the edge.
+    // The pattern was created with rounded dimensions
+    const roundedW = Math.round(geom.cellW);
+    const roundedH = Math.round(geom.cellH);
     
+    // We must scale the pattern to match the actual fractional cell size
+    // We use the fractional geom.cellW to maintain the grid's internal consistency
+    const scaleX = geom.cellW / roundedW;
+    const scaleY = geom.cellH / roundedH;
+
+    const matrix = new DOMMatrix().translate(startX, startY).scale(scaleX, scaleY);
+    this.pattern.setTransform(matrix);
+
+    targetCtx.fillStyle = this.pattern;
+    // Fill the exact rounded area
+    targetCtx.fillRect(startX, startY, totalW, totalH);
+
     // Draw the outermost borders manually to ensure they are crisp and present
     const lw = Math.max(1, Math.round(lineWidth * Math.min(geom.cellW, geom.cellH)));
     targetCtx.strokeStyle = color;
     targetCtx.lineWidth = lw;
-    targetCtx.strokeRect(gridRect.x, gridRect.y, gridRect.w, gridRect.h);
+    
+    // For crisp outer borders, we should align them to half-pixels if lw is odd
+    const offset = (lw % 2 === 1) ? 0.5 : 0;
+    
+    targetCtx.beginPath();
+    // Top and Left edges
+    targetCtx.moveTo(startX + offset, startY);
+    targetCtx.lineTo(startX + offset, endY);
+    targetCtx.moveTo(startX, startY + offset);
+    targetCtx.lineTo(endX, startY + offset);
+    
+    // Bottom and Right edges
+    // These must be precisely at endX/endY to match the pattern's right/bottom alignment
+    targetCtx.moveTo(endX - offset, startY);
+    targetCtx.lineTo(endX - offset, endY);
+    targetCtx.moveTo(startX, endY - offset);
+    targetCtx.lineTo(endX, endY - offset);
+    targetCtx.stroke();
 
     targetCtx.restore();
   }
@@ -61,10 +93,12 @@ export class GridBitmap {
     const unit = Math.min(cellW, cellH);
     const lw = Math.max(1, Math.round(lineWidth * unit));
     
-    // Create a pattern canvas that is exactly one cell large
+    const roundedW = Math.round(cellW);
+    const roundedH = Math.round(cellH);
+
     const pCanvas = document.createElement("canvas");
-    pCanvas.width = cellW;
-    pCanvas.height = cellH;
+    pCanvas.width = roundedW;
+    pCanvas.height = roundedH;
     const pCtx = pCanvas.getContext("2d");
     
     if (!pCtx) return;
@@ -72,15 +106,12 @@ export class GridBitmap {
     pCtx.strokeStyle = color;
     pCtx.lineWidth = lw;
 
-    // Draw top and left edges. When repeated, they form the full grid.
-    // We use 0.5 offset if lw is odd for crisp lines, but since this is a pattern
-    // and we might be zoomed, it's better to just draw.
-    pCtx.beginPath();
-    pCtx.moveTo(0, 0);
-    pCtx.lineTo(cellW, 0);
-    pCtx.moveTo(0, 0);
-    pCtx.lineTo(0, cellH);
-    pCtx.stroke();
+    // For crisp lines in the pattern, use the same half-pixel offset if lw is odd.
+    // This ensures that the internal lines of the grid are also crisp.
+    const offset = (lw % 2 === 1) ? 0.5 : 0;
+    // We draw the rectangle such that it perfectly fits the pattern repeats.
+    // The right and bottom edges should be at roundedW and roundedH to overlap with the next cell's left/top.
+    pCtx.strokeRect(offset, offset, roundedW, roundedH);
 
     const dummyCtx = document.createElement("canvas").getContext("2d");
     if (dummyCtx) {
