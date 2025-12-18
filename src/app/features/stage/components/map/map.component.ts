@@ -9,6 +9,7 @@ import {TickService} from '../../../../core/services/tick.service';
 import {Rotator} from '../../../../core/rendering/transformers/rotator';
 import {Wobbler} from '../../../../core/rendering/transformers/wobbler';
 import {Drifter} from '../../../../core/rendering/transformers/drifter';
+import {Gravity} from '../../../../core/rendering/transformers/gravity';
 import {KeyboardController} from '../../../../core/rendering/transformers/keyboard-controller';
 import {CollisionHandler} from '../../../../core/rendering/collision-handler';
 import {AxisAlignedBoundingBox} from '../../../../core/rendering/collision';
@@ -57,6 +58,7 @@ export class MapComponent implements AfterViewInit, OnDestroy, MapLoader {
     private rotators: Rotator[] = [];
     private wobblers: Wobbler[] = [];
     private drifters: Drifter[] = [];
+    private gravities: Gravity[] = [];
     private avatarController?: KeyboardController;
     private collisions?: CollisionHandler;
     private integrator?: PhysicsIntegrator;
@@ -107,6 +109,7 @@ export class MapComponent implements AfterViewInit, OnDestroy, MapLoader {
         this.rotators.forEach(r => r.stop());
         this.wobblers.forEach(w => w.stop());
         this.drifters.forEach(d => d.stop());
+        this.gravities.forEach(g => g.stop());
         this.avatarController?.stop();
         this.animator.destroy();
         this.collisions?.stop();
@@ -130,9 +133,11 @@ export class MapComponent implements AfterViewInit, OnDestroy, MapLoader {
         this.rotators.forEach(r => r.stop());
         this.wobblers.forEach(w => w.stop());
         this.drifters.forEach(d => d.stop());
+        this.gravities.forEach(g => g.stop());
         this.rotators = [];
         this.wobblers = [];
         this.drifters = [];
+        this.gravities = [];
         this.avatarController?.stop();
         this.avatarController = undefined;
         this.collisions?.clear();
@@ -166,6 +171,12 @@ export class MapComponent implements AfterViewInit, OnDestroy, MapLoader {
                 drift.start();
                 this.drifters.push(drift);
             }
+            {
+                // Gravity: apply constant downward acceleration
+                const grav = new Gravity(this.ticker, obstacle, .5);
+                grav.start();
+                this.gravities.push(grav);
+            }
             // Integrate obstacle pose from physics
             this.integrator.add(obstacle);
         }
@@ -190,6 +201,13 @@ export class MapComponent implements AfterViewInit, OnDestroy, MapLoader {
                 maxOmega: 240,
             });
             this.avatarController.start();
+            
+            {
+                // Gravity for avatar
+                const grav = new Gravity(this.ticker, m.avatar, .5);
+                grav.start();
+                this.gravities.push(grav);
+            }
 
             // Integrate avatar pose from physics
             this.integrator?.add(m.avatar);

@@ -61,7 +61,7 @@ export class KeyboardController {
 
   private onKeyDown = (e: KeyboardEvent) => {
     const k = normalizeKey(e);
-    e.preventDefault();
+    if(k != null) e.preventDefault();
     if (k) this.keys.add(k);
   };
 
