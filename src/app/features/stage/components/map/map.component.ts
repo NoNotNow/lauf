@@ -186,7 +186,7 @@ export class MapComponent implements AfterViewInit, OnDestroy, MapLoader {
                 linearDamping: .5,
                 maxSpeed: 8.0,
                 angularAccel: 600,
-                angularDamping: 200,
+                angularDamping: 600,
                 maxOmega: 240,
             });
             this.avatarController.start();

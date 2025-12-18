@@ -114,6 +114,7 @@
       "Color": "transparent",
       "Border": "none",
       "Image": "assets/hero.svg"
-    }
+    },
+    "restitution": 0.5
   }
 }

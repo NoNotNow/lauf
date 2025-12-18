@@ -29,7 +29,11 @@ export class StageItemPhysics {
     static get(item: StageItem): PhysicsState {
         let s = store.get(item);
         if (!s) {
-            s = {...DEFAULT_STATE, mass: massFromItem(item)};
+            s = {
+                ...DEFAULT_STATE,
+                mass: massFromItem(item),
+                restitution: item.restitution !== undefined ? item.restitution : DEFAULT_STATE.restitution
+            };
             store.set(item, s);
         }
         return s;
@@ -38,8 +42,8 @@ export class StageItemPhysics {
     static set(item: StageItem, partial: Partial<PhysicsState>): PhysicsState {
         const s = {...StageItemPhysics.get(item), ...partial} as PhysicsState;
         // ensure sane values
-        s.mass = Math.max(1e-6, Number(s.mass) || 1);
-        s.restitution = Math.min(1, Math.max(0, Number(s.restitution) || 1.0));
+        s.mass = Math.max(1e-6, Number(s.mass) ?? 1);
+        s.restitution = Math.min(1, Math.max(0, s.restitution ?? 1.0));
         store.set(item, s);
         return s;
     }

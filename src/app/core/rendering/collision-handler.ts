@@ -89,10 +89,7 @@ export class CollisionHandler {
       for (const c of contacts) {
         const sa = StageItemPhysics.get(c.a);
         const sb = StageItemPhysics.get(c.b);
-        const e = Math.min(
-          this._restitutionDefault,
-          Math.min(sa.restitution ?? this._restitutionDefault, sb.restitution ?? this._restitutionDefault)
-        );
+        const e = Math.min(sa.restitution, sb.restitution);
         applyItemItemCollisionImpulse(
           c.a,
           c.b,
