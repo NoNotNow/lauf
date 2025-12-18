@@ -5,15 +5,16 @@ import {HtmlGameItemComponent} from '../html-game-item/html-game-item.component'
 import {Map as GameMap} from '../../../../core/models/map';
 import {StartupService, MapLoader} from '../../../../core/services/startup.service';
 import { CanvasLayerComponent } from '../../../../shared/components/common/canvas-layer/canvas-layer.component';
-import { AnimatorService } from '../../../../core/rendering/animator.service';
-import { TickService } from '../../../../core/services/tick.service';
-import { Rotator } from '../../../../core/rendering/transformers/rotator';
-import { Wobbler } from '../../../../core/rendering/transformers/wobbler';
-import { Drifter } from '../../../../core/rendering/transformers/drifter';
-import { KeyboardController } from '../../../../core/rendering/transformers/keyboard-controller';
-import { CollisionHandler } from '../../../../core/rendering/collision-handler';
-import { AxisAlignedBoundingBox } from '../../../../core/rendering/collision';
-import { PhysicsIntegrator } from '../../../../core/rendering/physics/physics-integrator';
+import {AnimatorService} from '../../../../core/rendering/animator.service';
+import {TickService} from '../../../../core/services/tick.service';
+import {Rotator} from '../../../../core/rendering/transformers/rotator';
+import {Wobbler} from '../../../../core/rendering/transformers/wobbler';
+import {Drifter} from '../../../../core/rendering/transformers/drifter';
+import {KeyboardController} from '../../../../core/rendering/transformers/keyboard-controller';
+import {CollisionHandler} from '../../../../core/rendering/collision-handler';
+import {AxisAlignedBoundingBox} from '../../../../core/rendering/collision';
+import {PhysicsIntegrator} from '../../../../core/rendering/physics/physics-integrator';
+import {Camera} from '../../../../core/rendering/camera';
 
 @Component({
     selector: 'app-map',
@@ -28,6 +29,11 @@ export class MapComponent implements AfterViewInit, OnDestroy, MapLoader {
     gridColor = '#cccccc';
     gridLineWidth = 0.01; // in cell units (1.0 == one cell)
     gridSize: Point = new Point(10, 10);
+
+    camera = new Camera(new Point(5, 5), 10);
+
+    @ViewChild(GridComponent)
+    grid!: GridComponent;
 
     @ViewChild(CanvasLayerComponent)
     animLayer!: CanvasLayerComponent;
@@ -86,8 +92,14 @@ export class MapComponent implements AfterViewInit, OnDestroy, MapLoader {
         // Start ticking and request redraw on each frame
         this.ticker.start();
         this.tickSub = this.ticker.ticks$.subscribe(() => {
+            if (this.currentMap?.avatar) {
+                this.camera.setTarget(this.currentMap.avatar.Pose.Position, 5.0); // Zoom in on avatar
+            }
+            this.camera.update();
+            this.grid?.requestRedraw();
             this.animLayer?.requestRedraw();
             this.avatarsCanvas?.requestRedraw();
+            this.targets?.requestUpdate();
         });
         if (this.enableItemCollisions) {
             this.collisions?.start();

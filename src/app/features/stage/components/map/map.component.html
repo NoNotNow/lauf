@@ -1,14 +1,14 @@
 <div class="container">
   <div class="layer">
-    <app-grid [gridSize]="gridSize" [color]="gridColor" [lineWidth]="gridLineWidth"></app-grid>
+    <app-grid [gridSize]="gridSize" [color]="gridColor" [lineWidth]="gridLineWidth" [camera]="camera"></app-grid>
   </div>
   <div class="layer obstacles">
-    <app-canvas-layer [gridSize]="gridSize" [draw]="drawFrame"></app-canvas-layer>
+    <app-canvas-layer [gridSize]="gridSize" [draw]="drawFrame" [camera]="camera"></app-canvas-layer>
   </div>
   <div class="layer targets">
-    <app-html-game-item #targetsLayer [gridSize]="gridSize" [items]="[]" [color]="'rgba(0,200,100,0.6)'"></app-html-game-item>
+    <app-html-game-item #targetsLayer [gridSize]="gridSize" [items]="[]" [color]="'rgba(0,200,100,0.6)'" [camera]="camera"></app-html-game-item>
   </div>
   <div class="layer avatars">
-    <app-canvas-layer #avatarsCanvas [gridSize]="gridSize" [draw]="drawAvatarFrame"></app-canvas-layer>
+    <app-canvas-layer #avatarsCanvas [gridSize]="gridSize" [draw]="drawAvatarFrame" [camera]="camera"></app-canvas-layer>
   </div>
 </div>

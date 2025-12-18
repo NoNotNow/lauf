@@ -1,6 +1,7 @@
 import { AfterViewInit, Component, ElementRef, Input, OnDestroy, OnChanges, SimpleChanges, ViewChild } from '@angular/core';
 import { Point } from '../../../../core/models/point';
 import { GridGeometry } from '../../../../core/models/canvas-geometry';
+import { Camera } from '../../../../core/rendering/camera';
 
 @Component({
   selector: 'app-canvas-layer',
@@ -20,6 +21,8 @@ export class CanvasLayerComponent implements AfterViewInit, OnDestroy, OnChanges
 
   // Optional grid size for geometry computation (x: cols, y: rows)
   @Input() gridSize?: Point;
+
+  @Input() camera?: Camera;
 
   private resizeObserver?: ResizeObserver;
   private onExternalRedraw = () => this.drawNow();
@@ -84,7 +87,7 @@ export class CanvasLayerComponent implements AfterViewInit, OnDestroy, OnChanges
     const cellW = canvas.width / cols;
     const cellH = canvas.height / rows;
 
-    const geom: GridGeometry = {
+    let geom: GridGeometry = {
       cols,
       rows,
       cellW,
@@ -98,6 +101,10 @@ export class CanvasLayerComponent implements AfterViewInit, OnDestroy, OnChanges
         return { x, y, w, h };
       }
     };
+
+    if (this.camera) {
+      geom = this.camera.transformGeometry(geom, canvas.width, canvas.height);
+    }
 
     this.draw?.(ctx, canvas, geom);
   }

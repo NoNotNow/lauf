@@ -1,6 +1,8 @@
-import { Component, Input, OnChanges, SimpleChanges } from '@angular/core';
+import { Component, Input, OnChanges, SimpleChanges, ViewChild } from '@angular/core';
 import { Point } from '../../../../core/models/point';
 import { CanvasLayerComponent } from '../../../../shared/components/common/canvas-layer/canvas-layer.component';
+import { Camera } from '../../../../core/rendering/camera';
+import { GridGeometry } from '../../../../core/models/canvas-geometry';
 
 @Component({
   selector: 'app-grid',
@@ -18,11 +20,16 @@ export class GridComponent implements OnChanges {
   @Input() color: string = '#cccccc';
   @Input() lineWidth: number = 0.02;
 
+  @Input() camera?: Camera;
+
+  @ViewChild('layer')
+  layer!: CanvasLayerComponent;
+
   // Changing this value forces CanvasLayer to redraw
   redrawKey = '';
 
   ngOnChanges(changes: SimpleChanges): void {
-    if (changes['size'] || changes['color'] || changes['lineWidth']) {
+    if (changes['gridSize'] || changes['color'] || changes['lineWidth']) {
       this.updateRedrawKey();
     }
   }
@@ -33,8 +40,60 @@ export class GridComponent implements OnChanges {
     this.redrawKey = `${N}x${M}-${this.color}-${this.lineWidth}`;
   }
 
+  requestRedraw(): void {
+    this.layer?.requestRedraw();
+  }
+
   // Draw callback used by CanvasLayerComponent
-  drawGrid = (ctx: CanvasRenderingContext2D, canvas: HTMLCanvasElement) => {
+  drawGrid = (ctx: CanvasRenderingContext2D, canvas: HTMLCanvasElement, geom?: GridGeometry) => {
+    if (!geom) {
+        // Fallback to legacy drawing if geom is missing (should not happen with new CanvasLayer)
+        this.drawLegacy(ctx, canvas);
+        return;
+    }
+
+    const cellW = geom.cellW;
+    const cellH = geom.cellH;
+    const unit = Math.min(cellW, cellH);
+    const lw = Math.max(1, Math.round((this.lineWidth ?? 0) * unit));
+    
+    ctx.strokeStyle = this.color;
+    ctx.lineWidth = lw;
+
+    // Determine visible range of lines to optimize drawing
+    // We use a dummy rect at (0,0) to find the current view offset in cell units
+    const origin = geom.rectForCells(0, 0, 0, 0);
+    const viewX = -origin.x / cellW;
+    const viewY = -origin.y / cellH;
+    const visibleCols = canvas.width / cellW;
+    const visibleRows = canvas.height / cellH;
+
+    const startCol = Math.max(0, Math.floor(viewX));
+    const endCol = Math.min(geom.cols, Math.ceil(viewX + visibleCols));
+
+    const startRow = Math.max(0, Math.floor(viewY));
+    const endRow = Math.min(geom.rows, Math.ceil(viewY + visibleRows));
+
+    // Vertical lines
+    for (let i = startCol; i <= endCol; i++) {
+        const rect = geom.rectForCells(i, startRow, 0, endRow - startRow);
+        ctx.beginPath();
+        ctx.moveTo(rect.x, rect.y);
+        ctx.lineTo(rect.x, rect.y + rect.h);
+        ctx.stroke();
+    }
+
+    // Horizontal lines
+    for (let j = startRow; j <= endRow; j++) {
+        const rect = geom.rectForCells(startCol, j, endCol - startCol, 0);
+        ctx.beginPath();
+        ctx.moveTo(rect.x, rect.y);
+        ctx.lineTo(rect.x + rect.w, rect.y);
+        ctx.stroke();
+    }
+  };
+
+  private drawLegacy(ctx: CanvasRenderingContext2D, canvas: HTMLCanvasElement) {
     const w = canvas.width;
     const h = canvas.height;
     const N = Math.max(1, Math.floor(this.gridSize?.x ?? 1));
@@ -77,5 +136,5 @@ export class GridComponent implements OnChanges {
         ctx.stroke();
       }
     }
-  };
+  }
 }

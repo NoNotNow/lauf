@@ -109,12 +109,12 @@ export class StageItemBitmap {
   }
 
   private ensurePrerender(pose: Pose, geom: GridGeometry): void {
-    const wCells = Math.max(1, Math.floor(pose?.Size?.x ?? this.item.Pose?.Size?.x ?? 1));
-    const hCells = Math.max(1, Math.floor(pose?.Size?.y ?? this.item.Pose?.Size?.y ?? 1));
+    const wCells = pose?.Size?.x ?? this.item.Pose?.Size?.x ?? 1;
+    const hCells = pose?.Size?.y ?? this.item.Pose?.Size?.y ?? 1;
 
     // Key includes dimensions (in pixels), selected design fields, and supersample
-    const pxW = Math.max(1, Math.round(wCells * geom.cellW));
-    const pxH = Math.max(1, Math.round(hCells * geom.cellH));
+    const pxW = Math.max(1, Math.ceil(wCells * geom.cellW));
+    const pxH = Math.max(1, Math.ceil(hCells * geom.cellH));
     const d = this.item?.Design ?? {} as any;
     const key = [
       pxW,
@@ -173,8 +173,15 @@ export class StageItemBitmap {
       rows: geom.rows,
       cellW: geom.cellW,
       cellH: geom.cellH,
-      rectForCells: (col: number, row: number, wCells2?: number, hCells2?: number, padRatio?: number) =>
-        geom.rectForCells(col, row, wCells2, hCells2, padRatio)
+      rectForCells: (col: number, row: number, wCells2: number = 1, hCells2: number = 1, padRatio: number = 0) => {
+        const pad = Math.max(0, Math.min(geom.cellW, geom.cellH) * Math.max(0, Math.min(0.5, padRatio)));
+        return {
+          x: col * geom.cellW + pad,
+          y: row * geom.cellH + pad,
+          w: Math.max(0, wCells2 * geom.cellW - 2 * pad),
+          h: Math.max(0, hCells2 * geom.cellH - 2 * pad)
+        };
+      }
     };
 
     this.renderer.draw(clone, ctx as CanvasRenderingContext2D, localGeom);

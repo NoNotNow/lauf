@@ -10,10 +10,10 @@ export class StageItemRenderer {
     draw(item: StageItem, ctx: CanvasRenderingContext2D, geom: GridGeometry): void {
         if (!item) return;
 
-        const posX = Math.floor(item.Pose?.Position?.x ?? 0);
-        const posY = Math.floor(item.Pose?.Position?.y ?? 0);
-        const wCells = Math.max(1, Math.floor(item.Pose?.Size?.x ?? 1));
-        const hCells = Math.max(1, Math.floor(item.Pose?.Size?.y ?? 1));
+        const posX = item.Pose?.Position?.x ?? 0;
+        const posY = item.Pose?.Position?.y ?? 0;
+        const wCells = item.Pose?.Size?.x ?? 1;
+        const hCells = item.Pose?.Size?.y ?? 1;
 
         //the padRatio should equal the border width of the item.
         const padRatio = (item.Design?.BorderWidth ?? 0.00) / 2;

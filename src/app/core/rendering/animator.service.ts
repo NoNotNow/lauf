@@ -37,6 +37,11 @@ export class AnimatorService {
   // Draw current frame into given context using grid geometry
   draw(ctx: CanvasRenderingContext2D, geom: GridGeometry): void {
     if (!this.map || !geom) return;
+
+    // Optional: adapt supersample to zoom level for optimal performance/quality
+    // If we are zoomed in, we might want higher supersampling, but StageItemBitmap already
+    // uses geom.cellW which is larger when zoomed in.
+
     // Obstacles (static for now)
     for (const { item, bmp } of this.bitmaps) {
       try {
