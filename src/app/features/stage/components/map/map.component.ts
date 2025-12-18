@@ -29,7 +29,7 @@ export class MapComponent implements AfterViewInit, OnDestroy, MapLoader {
     gridLineWidth = 0.01; // in cell units (1.0 == one cell)
     gridSize: Point = new Point(10, 10);
 
-    camera = new Camera(new Point(5, 5), 30);
+    camera = new Camera(new Point(5, 5), 15);
 
     @ViewChild(GridComponent)
     grid!: GridComponent;

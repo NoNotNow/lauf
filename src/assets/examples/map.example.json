@@ -44,7 +44,7 @@
       }
     },
     {
-      "Pose": { "Position": { "X": 9, "Y": 5 }, "Size": { "X": 0.3, "Y": 0.3 } },
+      "Pose": { "Position": { "X": 9, "Y": 5 }, "Size": { "X": 0.9, "Y": 0.9 } },
       "Design": {
         "Color": "transparent",
         "BorderRadius": 2,
@@ -52,35 +52,35 @@
       }
     },
     {
-      "Pose": { "Position": { "X": 3, "Y": 5 }, "Size": { "X": 0.2, "Y": 0.2 } },
+      "Pose": { "Position": { "X": 3, "Y": 5 }, "Size": { "X": 0.6, "Y": 0.2 } },
       "Design": {
         "Color": "transparent",
-        "BorderRadius": 2,
-        "BorderWidth": 0.1,
+        "BorderRadius": 0.2,
+        "BorderWidth": 0.01,
         "border": "dashed",
         "BorderColor": "#ff9900",
         "Image": "assets/shapes.svg"
       }
     },
     {
-      "Pose": { "Position": { "X": 6, "Y": 6 }, "Size": { "X": 0.4, "Y": 0.4 } },
+      "Pose": { "Position": { "X": 6, "Y": 6 }, "Size": { "X": 0.8, "Y": 0.8 } },
       "Design": {
         "Color": "transparent",
         "Border": "solid",
         "BorderColor": "#cc6600",
         "BorderWidth": 0.012,
-        "BorderRadius": 1,
+        "BorderRadius": 0,
         "Image": "assets/ufo.svg"
       }
     },
     {
-      "Pose": { "Position": { "X": 8, "Y": 0 }, "Size": { "X": 0.2, "Y": 0.2 } },
+      "Pose": { "Position": { "X": 8, "Y": 0 }, "Size": { "X": 0.8, "Y": 0.8 } },
       "Design": {
-        "Color": "#cce5ff",
+        "Color": "transparent",
         "Border": "dashed",
         "BorderColor": "#0056b3",
-        "BorderWidth": 0.12,
-        "BorderRadius": 0.3,
+        "BorderWidth": 0.012,
+        "BorderRadius": 0.03,
         "Image": "assets/shapes.svg"
       }
     },
@@ -92,19 +92,19 @@
       }
     },
     {
-      "Pose": { "Position": { "X": 0, "Y": 7 }, "Size": { "X": 0.03, "Y": 2 } },
+      "Pose": { "Position": { "X": 0, "Y": 7 }, "Size": { "X": 0.04, "Y": 2 } },
       "Design": {
         "Color": "#ffd6e7",
         "Border": "solid",
         "BorderColor": "#b30059",
-        "BorderWidth": 0.18,
-        "BorderRadius": 0.6
+        "BorderWidth": 0.018,
+        "BorderRadius": 0.06
       }
     }
   ],
   "Targets": [
     {
-      "Pose": { "Position": { "X": 8, "Y": 8 }, "Size": { "X": 0.2, "Y": 0.2 } },
+      "Pose": { "Position": { "X": 8, "Y": 8 }, "Size": { "X": 1, "Y": 1 } },
       "Design": { "Color": "#00aa00" }
     }
   ],
