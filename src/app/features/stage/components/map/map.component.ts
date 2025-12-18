@@ -1,7 +1,6 @@
 import {AfterViewInit, Component, OnDestroy, ViewChild} from '@angular/core';
 import {GridComponent} from '../grid/grid.component';
 import {Point} from '../../../../core/models/point';
-import {HtmlGameItemComponent} from '../html-game-item/html-game-item.component';
 import {Map as GameMap} from '../../../../core/models/map';
 import {StartupService, MapLoader} from '../../../../core/services/startup.service';
 import { CanvasLayerComponent } from '../../../../shared/components/common/canvas-layer/canvas-layer.component';
@@ -19,7 +18,7 @@ import {Camera} from '../../../../core/rendering/camera';
 @Component({
     selector: 'app-map',
     standalone: true,
-    imports: [GridComponent, CanvasLayerComponent, HtmlGameItemComponent],
+    imports: [GridComponent, CanvasLayerComponent],
     providers: [],
     templateUrl: './map.component.html',
     styleUrl: './map.component.scss'
@@ -30,16 +29,13 @@ export class MapComponent implements AfterViewInit, OnDestroy, MapLoader {
     gridLineWidth = 0.01; // in cell units (1.0 == one cell)
     gridSize: Point = new Point(10, 10);
 
-    camera = new Camera(new Point(5, 5), 10);
+    camera = new Camera(new Point(5, 5), 30);
 
     @ViewChild(GridComponent)
     grid!: GridComponent;
 
     @ViewChild(CanvasLayerComponent)
     animLayer!: CanvasLayerComponent;
-
-    @ViewChild('targetsLayer')
-    targets!: HtmlGameItemComponent;
 
     // Avatar layer is now canvas-based to use the same renderer as obstacles
     @ViewChild('avatarsCanvas')
@@ -99,7 +95,6 @@ export class MapComponent implements AfterViewInit, OnDestroy, MapLoader {
             this.grid?.requestRedraw();
             this.animLayer?.requestRedraw();
             this.avatarsCanvas?.requestRedraw();
-            this.targets?.requestUpdate();
         });
         if (this.enableItemCollisions) {
             this.collisions?.start();
@@ -176,10 +171,6 @@ export class MapComponent implements AfterViewInit, OnDestroy, MapLoader {
         }
         this.integrator.start();
 
-        // Load targets
-        if (this.targets) {
-            this.targets.items = m.targets || [];
-        }
 
         // Load avatar: keyboard-controlled movement + physics; rendering handled by avatarsCanvas draw callback
         if (m.avatar) {
@@ -190,8 +181,8 @@ export class MapComponent implements AfterViewInit, OnDestroy, MapLoader {
             }
             // Keyboard controller: arrow keys/WASD control avatar velocities
             this.avatarController = new KeyboardController(this.ticker, m.avatar, {
-                linearAccel: 5.0,
-                linearBrake: 2.5,
+                linearAccel: 2.5,
+                linearBrake: 2.0,
                 linearDamping: .5,
                 maxSpeed: 8.0,
                 angularAccel: 600,

@@ -92,7 +92,7 @@
       }
     },
     {
-      "Pose": { "Position": { "X": 0, "Y": 7 }, "Size": { "X": 0.02, "Y": 1 } },
+      "Pose": { "Position": { "X": 0, "Y": 7 }, "Size": { "X": 0.03, "Y": 2 } },
       "Design": {
         "Color": "#ffd6e7",
         "Border": "solid",

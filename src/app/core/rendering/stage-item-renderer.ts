@@ -10,16 +10,7 @@ export class StageItemRenderer {
     draw(item: StageItem, ctx: CanvasRenderingContext2D, geom: GridGeometry): void {
         if (!item) return;
 
-        const posX = item.Pose?.Position?.x ?? 0;
-        const posY = item.Pose?.Position?.y ?? 0;
-        const wCells = item.Pose?.Size?.x ?? 1;
-        const hCells = item.Pose?.Size?.y ?? 1;
-
-        //the padRatio should equal the border width of the item.
-        const padRatio = (item.Design?.BorderWidth ?? 0.00) / 2;
-        const {x, y, w, h} = geom.rectForCells(posX, posY, wCells, hCells, padRatio);
-
-        // Build rounded-rect path  helper
+        // Build rounded-rect path helper
         const pathRoundedRect = (
             ctx2: CanvasRenderingContext2D,
             rx: number,
@@ -47,6 +38,11 @@ export class StageItemRenderer {
             ctx2.quadraticCurveTo(rx, ry, rx + r2, ry);
         };
 
+        const posX = item.Pose?.Position?.x ?? 0;
+        const posY = item.Pose?.Position?.y ?? 0;
+        const wCells = item.Pose?.Size?.x ?? 1;
+        const hCells = item.Pose?.Size?.y ?? 1;
+
         // Resolve design properties
         const fill = item.Design?.Color ?? 'rgba(200,0,0,0.6)';
         const bwCells = Math.max(0, Number(item.Design?.BorderWidth ?? 0));
@@ -57,6 +53,20 @@ export class StageItemRenderer {
         const radius = radiusCells * Math.min(geom.cellW, geom.cellH);
         const imageUrl = item.Design?.Image ?? '';
 
+        // Calculate the base rectangle without padding first
+        const base = geom.rectForCells(posX, posY, wCells, hCells, 0);
+        
+        // We want the border to be "inside" the base rectangle (border-box).
+        // If the border is thicker than the item, we cap it and center it.
+        const effectiveBw = (borderStyle === 'none') ? 0 : Math.min(bw, base.w, base.h);
+        const padX = effectiveBw / 2;
+        const padY = effectiveBw / 2;
+        
+        const x = base.x + padX;
+        const y = base.y + padY;
+        const w = Math.max(0, base.w - effectiveBw);
+        const h = Math.max(0, base.h - effectiveBw);
+
         // Draw filled rounded rect
         ctx.save();
         pathRoundedRect(ctx, x, y, w, h, radius);
@@ -64,7 +74,7 @@ export class StageItemRenderer {
         ctx.fill();
 
         // Optional image overlay
-        if (imageUrl) {
+        if (imageUrl && w > 0 && h > 0) {
             const img = this.imageCache.get(imageUrl);
             if (img && (img.complete && img.naturalWidth > 0)) {
                 pathRoundedRect(ctx, x, y, w, h, radius);
@@ -83,14 +93,14 @@ export class StageItemRenderer {
         }
 
         // Optional border (respect style)
-        if (bw > 0 && borderStyle !== 'none') {
-            ctx.lineWidth = bw;
+        if (effectiveBw > 0) {
+            ctx.lineWidth = effectiveBw;
             ctx.strokeStyle = borderColor;
             ctx.lineJoin = 'round';
             ctx.lineCap = 'round';
             if (borderStyle === 'dashed') {
-                const dash = Math.max(2, bw * 2);
-                const gap = Math.max(2, Math.round(bw * 1.5));
+                const dash = Math.max(2, effectiveBw * 2);
+                const gap = Math.max(2, Math.round(effectiveBw * 1.5));
                 ctx.setLineDash([dash, gap]);
             } else {
                 ctx.setLineDash([]);
