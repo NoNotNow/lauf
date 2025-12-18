@@ -183,7 +183,7 @@ export class MapComponent implements AfterViewInit, OnDestroy, MapLoader {
             this.avatarController = new KeyboardController(this.ticker, m.avatar, {
                 linearAccel: 2.5,
                 linearBrake: 2.0,
-                linearDamping: .5,
+                linearDamping: .2,
                 maxSpeed: 8.0,
                 angularAccel: 600,
                 angularDamping: 600,
