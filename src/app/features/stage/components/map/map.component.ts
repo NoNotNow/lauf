@@ -94,9 +94,23 @@ export class MapComponent implements AfterViewInit, OnDestroy, MapLoader {
                 this.camera.setTarget(this.currentMap.avatar.Pose.Position, 5.0); // Zoom in on avatar
             }
             this.camera.update();
-            this.grid?.requestRedraw();
-            this.animLayer?.requestRedraw();
+
+            const cameraDirty = this.camera.isDirty;
+
+            // Only redraw static layers if the camera moved
+            if (cameraDirty) {
+                this.grid?.requestRedraw();
+                this.animLayer?.requestRedraw();
+            }
+
+            // Avatar might still be moving even if camera is stationary (though usually camera follows avatar)
+            // For now, always redraw avatar layer if we want to be safe, or check if avatar moved.
+            // Given the avatar is one item, redrawing it is cheap.
             this.avatarsCanvas?.requestRedraw();
+
+            if (cameraDirty) {
+                this.camera.clearDirty();
+            }
         });
         if (this.enableItemCollisions) {
             this.collisions?.start();

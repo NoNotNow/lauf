@@ -93,12 +93,13 @@ export class CanvasLayerComponent implements AfterViewInit, OnDestroy, OnChanges
       cellW,
       cellH,
       rectForCells: (col: number, row: number, wCells: number = 1, hCells: number = 1, padRatio: number = 0) => {
-        const pad = Math.max(0, Math.min(cellW, cellH) * Math.max(0, Math.min(0.5, padRatio)));
+        const minSide = cellW < cellH ? cellW : cellH;
+        const pad = padRatio > 0 ? (minSide * (padRatio > 0.5 ? 0.5 : padRatio)) : 0;
         const x = col * cellW + pad;
         const y = row * cellH + pad;
-        const w = Math.max(0, wCells * cellW - 2 * pad);
-        const h = Math.max(0, hCells * cellH - 2 * pad);
-        return { x, y, w, h };
+        const w = wCells * cellW - 2 * pad;
+        const h = hCells * cellH - 2 * pad;
+        return { x, y, w: w < 0 ? 0 : w, h: h < 0 ? 0 : h };
       }
     };
 

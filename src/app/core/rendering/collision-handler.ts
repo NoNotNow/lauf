@@ -63,18 +63,31 @@ export class CollisionHandler {
     const n = this.items.length;
     if (n < 2) return;
 
+    // Cache OBBs to avoid re-calculating them in the inner loop
+    const obbs = this.items.map(item => {
+      const p = item?.Pose;
+      return p ? orientedBoundingBoxFromPose(p) : null;
+    });
+
     // Build contact list once per tick
     const contacts: { a: StageItem; b: StageItem; normal: { x: number; y: number }; aobb: any; bobb: any }[] = [];
     for (let i = 0; i < n - 1; i++) {
       const ai = this.items[i];
-      const ap = ai?.Pose;
-      if (!ap) continue;
-      const aobb = orientedBoundingBoxFromPose(ap);
+      const aobb = obbs[i];
+      if (!aobb) continue;
+      
       for (let j = i + 1; j < n; j++) {
         const bj = this.items[j];
-        const bp = bj?.Pose;
-        if (!bp) continue;
-        const bobb = orientedBoundingBoxFromPose(bp);
+        const bobb = obbs[j];
+        if (!bobb) continue;
+
+        // Broad-phase pruning: check distance between centers first (approximate circular check)
+        const dx = bobb.center.x - aobb.center.x;
+        const dy = bobb.center.y - aobb.center.y;
+        const distSq = dx * dx + dy * dy;
+        const radiusSum = Math.max(aobb.half.x, aobb.half.y) + Math.max(bobb.half.x, bobb.half.y);
+        if (distSq > radiusSum * radiusSum) continue;
+
         const res = orientedBoundingBoxIntersectsOrientedBoundingBox(aobb, bobb);
         if (!res.overlaps) continue;
         contacts.push({ a: ai, b: bj, normal: res.normal, aobb, bobb });

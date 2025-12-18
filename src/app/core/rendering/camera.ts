@@ -17,12 +17,23 @@ export class Camera {
   private targetZoom: number = 1.0;
   private lerpFactor: number = 0.1;
 
+  private _dirty = true;
+
   constructor(initialCenter?: Point, initialVisibleCells: number = 10) {
     if (initialCenter) {
       this.center = new Point(initialCenter.x, initialCenter.y);
       this.targetCenter = new Point(initialCenter.x, initialCenter.y);
     }
     this.visibleCells = initialVisibleCells;
+  }
+
+  get isDirty(): boolean {
+    return this._dirty;
+  }
+
+  // Resets the dirty flag. Should be called after the view has been updated.
+  clearDirty(): void {
+    this._dirty = false;
   }
 
   setTarget(center: Point, zoom: number = 1.0): void {
@@ -36,16 +47,20 @@ export class Camera {
     const dz = this.targetZoom - this.zoom;
 
     // Small threshold to stop updating if we are very close
-    if (Math.abs(dx) < 0.001 && Math.abs(dy) < 0.001 && Math.abs(dz) < 0.001) {
-      this.center.x = this.targetCenter.x;
-      this.center.y = this.targetCenter.y;
-      this.zoom = this.targetZoom;
+    if (Math.abs(dx) < 0.0001 && Math.abs(dy) < 0.0001 && Math.abs(dz) < 0.0001) {
+      if (this.center.x !== this.targetCenter.x || this.center.y !== this.targetCenter.y || this.zoom !== this.targetZoom) {
+        this.center.x = this.targetCenter.x;
+        this.center.y = this.targetCenter.y;
+        this.zoom = this.targetZoom;
+        this._dirty = true;
+      }
       return;
     }
 
     this.center.x += dx * this.lerpFactor;
     this.center.y += dy * this.lerpFactor;
     this.zoom += dz * this.lerpFactor;
+    this._dirty = true;
   }
 
   transformGeometry(baseGeom: GridGeometry, canvasWidth: number, canvasHeight: number): GridGeometry {
@@ -71,15 +86,16 @@ export class Camera {
       cellW,
       cellH,
       rectForCells: (col: number, row: number, wCells: number = 1, hCells: number = 1, padRatio: number = 0) => {
-        const pad = Math.max(0, Math.min(cellW, cellH) * Math.max(0, Math.min(0.5, padRatio)));
+        const minSide = cellW < cellH ? cellW : cellH;
+        const pad = padRatio > 0 ? (minSide * (padRatio > 0.5 ? 0.5 : padRatio)) : 0;
         
         // Transform cell coordinates to screen pixels
         const x = (col - viewX) * cellW + pad;
         const y = (row - viewY) * cellH + pad;
-        const w = Math.max(0, wCells * cellW - 2 * pad);
-        const h = Math.max(0, hCells * cellH - 2 * pad);
+        const w = wCells * cellW - 2 * pad;
+        const h = hCells * cellH - 2 * pad;
         
-        return { x, y, w, h };
+        return { x, y, w: w < 0 ? 0 : w, h: h < 0 ? 0 : h };
       }
     };
   }

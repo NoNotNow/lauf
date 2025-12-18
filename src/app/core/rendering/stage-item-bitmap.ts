@@ -158,14 +158,8 @@ export class StageItemBitmap {
     }
 
     // Draw the item at origin with the requested size
-    const clone = new StageItem().FromJson({
-      Pose: {
-        Position: { x: 0, y: 0 },
-        Size: { x: wCells, y: hCells },
-        Rotation: 0
-      },
-      Design: this.item.Design ? { ...this.item.ToJson()?.Design } : undefined
-    });
+    // We pass the original item's design directly to avoid unnecessary cloning/serialization
+    const design = this.item.Design;
 
     // Local geometry that uses same cell sizes but starts at 0,0
     const localGeom: GridGeometry = {
@@ -174,17 +168,30 @@ export class StageItemBitmap {
       cellW: geom.cellW,
       cellH: geom.cellH,
       rectForCells: (col: number, row: number, wCells2: number = 1, hCells2: number = 1, padRatio: number = 0) => {
-        const pad = Math.max(0, Math.min(geom.cellW, geom.cellH) * Math.max(0, Math.min(0.5, padRatio)));
+        const minSide = geom.cellW < geom.cellH ? geom.cellW : geom.cellH;
+        const pad = padRatio > 0 ? (minSide * (padRatio > 0.5 ? 0.5 : padRatio)) : 0;
+        const w = wCells2 * geom.cellW - 2 * pad;
+        const h = hCells2 * geom.cellH - 2 * pad;
         return {
           x: col * geom.cellW + pad,
           y: row * geom.cellH + pad,
-          w: Math.max(0, wCells2 * geom.cellW - 2 * pad),
-          h: Math.max(0, hCells2 * geom.cellH - 2 * pad)
+          w: w < 0 ? 0 : w,
+          h: h < 0 ? 0 : h
         };
       }
     };
 
-    this.renderer.draw(clone, ctx as CanvasRenderingContext2D, localGeom);
+    // Create a minimal lightweight "item-like" object for the renderer
+    const drawItem = {
+      Pose: {
+        Position: { x: 0, y: 0 },
+        Size: { x: wCells, y: hCells },
+        Rotation: 0
+      },
+      Design: design
+    } as any;
+
+    this.renderer.draw(drawItem, ctx as CanvasRenderingContext2D, localGeom);
 
     if (ss !== 1) {
       (ctx as CanvasRenderingContext2D).restore?.();
