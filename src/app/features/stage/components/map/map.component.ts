@@ -64,29 +64,9 @@ export class MapComponent implements AfterViewInit, OnDestroy, MapLoader {
     ) {}
 
     ngAfterViewInit(): void {
-        // Trigger startup to load and provide the Map to this component
         this.startup.main(this);
-        // Start ticking and request redraw on each frame
         this.ticker.start();
-        this.tickSub = this.ticker.ticks$.subscribe(() => {
-            // Update camera following avatar
-            this.worldContext?.updateCamera();
-
-            const cameraDirty = this.worldContext?.isCameraDirty() ?? false;
-
-            // Only redraw static layers if the camera moved
-            if (cameraDirty) {
-                this.grid?.requestRedraw();
-                this.animLayer?.requestRedraw();
-            }
-
-            // Always redraw avatar layer (cheap operation)
-            this.avatarsCanvas?.requestRedraw();
-
-            if (cameraDirty) {
-                this.worldContext?.clearCameraDirty();
-            }
-        });
+        this.tickSub = this.ticker.ticks$.subscribe(() => this.onTick());
     }
 
     ngOnDestroy(): void {
@@ -96,51 +76,61 @@ export class MapComponent implements AfterViewInit, OnDestroy, MapLoader {
         this.animator.destroy();
     }
 
-    // Accepts a Map object and applies it to the grid, obstacles, and game items layers
     protected gridBackgroundColor: string = 'transparent';
-    loadMap(m: GameMap): void {
-        console.log('Loaded map:', m);
-        if (!m) return;
-        this.currentMap = m;
 
-        // Update grid size from map
-        if (m.size) {
-            this.gridSize = new Point(m.size.x, m.size.y);
+    loadMap(map: GameMap): void {
+        if (!map) return;
+
+        this.currentMap = map;
+        this.updateGridFromMap(map);
+        this.applyDesignConfiguration(map);
+        this.animator.setMap(map);
+        this.rebuildWorld(map);
+    }
+
+    private onTick(): void {
+        this.worldContext?.updateCamera();
+        const cameraDirty = this.worldContext?.isCameraDirty() ?? false;
+
+        if (cameraDirty) {
+            this.redrawStaticLayers();
         }
 
-        // Apply visual design configuration
-        this.applyDesignConfiguration(m);
+        this.avatarsCanvas?.requestRedraw();
 
-        // Provide map to animator (obstacles drawn via canvas layer per tick)
-        this.animator.setMap(m);
+        if (cameraDirty) {
+            this.worldContext?.clearCameraDirty();
+        }
+    }
 
-        // Cleanup previous world if reloading
+    private redrawStaticLayers(): void {
+        this.grid?.requestRedraw();
+        this.animLayer?.requestRedraw();
+    }
+
+    private updateGridFromMap(map: GameMap): void {
+        if (map.size) {
+            this.gridSize = new Point(map.size.x, map.size.y);
+        }
+    }
+
+    private rebuildWorld(map: GameMap): void {
         this.worldContext?.cleanup();
-
-        // Assemble the game world with all systems
-        this.worldContext = this.worldAssembler.buildWorld(m, {
+        this.worldContext = this.worldAssembler.buildWorld(map, {
             enableCollisions: this.enableItemCollisions,
             gridSize: this.gridSize,
         });
-
-        // Start all game systems
         this.worldContext.start();
     }
 
     private applyDesignConfiguration(map: GameMap): void {
         if (!map.design) return;
 
-        if (map.design.Border.Width) {
-            this.gridLineWidth = map.design.Border.Width;
-        }
-        if (map.design.Border.Color) {
-            this.gridColor = map.design.Border.Color;
-        }
-        if (map.design.Border.Style) {
-            this.gridBorder = map.design.Border.Style;
-        }
-        if (map.design.Color) {
-            this.gridBackgroundColor = map.design.Color;
-        }
+        const { Border, Color } = map.design;
+
+        if (Border.Width) this.gridLineWidth = Border.Width;
+        if (Border.Color) this.gridColor = Border.Color;
+        if (Border.Style) this.gridBorder = Border.Style;
+        if (Color) this.gridBackgroundColor = Color;
     }
 }

@@ -58,6 +58,14 @@ export class WorldContext {
     return this.camera;
   }
 
+  getCollisionHandler(): CollisionHandler | undefined {
+    return this.collisions;
+  }
+
+  getIntegrator(): PhysicsIntegrator | undefined {
+    return this.integrator;
+  }
+
   setAvatar(avatar: any): void {
     this.avatar = avatar;
   }

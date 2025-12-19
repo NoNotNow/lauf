@@ -114,10 +114,7 @@ export class WorldAssemblerService {
   }
 
   private wireObstacleCollision(obstacle: Obstacle, context: WorldContext): void {
-    // Access private collision handler through getter (if available)
-    // For now, we'll assume context provides access
-    const handler = (context as any).collisions as CollisionHandler | undefined;
-    handler?.add(obstacle);
+    context.getCollisionHandler()?.add(obstacle);
   }
 
   private attachRotator(obstacle: Obstacle, context: WorldContext): void {
@@ -146,8 +143,7 @@ export class WorldAssemblerService {
   }
 
   private registerWithIntegrator(obstacle: Obstacle, context: WorldContext): void {
-    const integrator = (context as any).integrator as PhysicsIntegrator | undefined;
-    integrator?.add(obstacle);
+    context.getIntegrator()?.add(obstacle);
   }
 
   private assembleAvatar(
@@ -163,8 +159,7 @@ export class WorldAssemblerService {
   }
 
   private wireAvatarCollision(avatar: any, context: WorldContext): void {
-    const handler = (context as any).collisions as CollisionHandler | undefined;
-    handler?.add(avatar);
+    context.getCollisionHandler()?.add(avatar);
   }
 
   private attachAvatarController(
