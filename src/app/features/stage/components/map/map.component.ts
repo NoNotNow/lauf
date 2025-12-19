@@ -6,7 +6,6 @@ import {StartupService, MapLoader} from '../../../../core/services/startup.servi
 import { CanvasLayerComponent } from '../../../../shared/components/common/canvas-layer/canvas-layer.component';
 import {AnimatorService} from '../../../../core/rendering/animator.service';
 import {TickService} from '../../../../core/services/tick.service';
-import {Camera} from '../../../../core/rendering/camera';
 import {WorldAssemblerService} from '../../../../core/services/world-assembler.service';
 import {WorldContext} from '../../../../core/models/world-context';
 
@@ -25,7 +24,10 @@ export class MapComponent implements AfterViewInit, OnDestroy, MapLoader {
     gridSize: Point = new Point(10, 10);
     gridBorder = "solid";
 
-    camera = new Camera(new Point(5, 5), 15);
+    // Camera accessor for template
+    get camera() {
+        return this.worldContext?.getCamera();
+    }
 
     @ViewChild(GridComponent)
     grid!: GridComponent;
@@ -67,12 +69,10 @@ export class MapComponent implements AfterViewInit, OnDestroy, MapLoader {
         // Start ticking and request redraw on each frame
         this.ticker.start();
         this.tickSub = this.ticker.ticks$.subscribe(() => {
-            if (this.currentMap?.avatar) {
-                this.camera.setTarget(this.currentMap.avatar.Pose.Position, 5.0); // Zoom in on avatar
-            }
-            this.camera.update();
+            // Update camera following avatar
+            this.worldContext?.updateCamera();
 
-            const cameraDirty = this.camera.isDirty;
+            const cameraDirty = this.worldContext?.isCameraDirty() ?? false;
 
             // Only redraw static layers if the camera moved
             if (cameraDirty) {
@@ -80,13 +80,11 @@ export class MapComponent implements AfterViewInit, OnDestroy, MapLoader {
                 this.animLayer?.requestRedraw();
             }
 
-            // Avatar might still be moving even if camera is stationary (though usually camera follows avatar)
-            // For now, always redraw avatar layer if we want to be safe, or check if avatar moved.
-            // Given the avatar is one item, redrawing it is cheap.
+            // Always redraw avatar layer (cheap operation)
             this.avatarsCanvas?.requestRedraw();
 
             if (cameraDirty) {
-                this.camera.clearDirty();
+                this.worldContext?.clearCameraDirty();
             }
         });
     }

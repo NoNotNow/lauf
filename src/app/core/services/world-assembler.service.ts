@@ -11,10 +11,13 @@ import { Gravity } from '../rendering/transformers/gravity';
 import { KeyboardController } from '../rendering/transformers/keyboard-controller';
 import { Obstacle } from '../models/game-items/stage-items';
 import { Point } from '../models/point';
+import { Camera } from '../rendering/camera';
 
 export interface WorldAssemblerConfig {
   enableCollisions: boolean;
   gridSize?: Point;
+  cameraInitialPosition?: Point;
+  cameraVisibleCells?: number;
   avatarControllerParams?: {
     linearAccel: number;
     linearBrake: number;
@@ -38,6 +41,10 @@ export class WorldAssemblerService {
     const context = new WorldContext();
     const boundary = this.createBoundary(config.gridSize);
 
+    // Setup camera
+    const camera = this.createCamera(config);
+    context.setCamera(camera);
+
     // Setup collision handler
     if (config.enableCollisions) {
       const collisions = this.createCollisionHandler();
@@ -59,6 +66,7 @@ export class WorldAssemblerService {
         boundary,
         config.avatarControllerParams
       );
+      context.setAvatar(map.avatar);
     }
 
     return context;
@@ -67,6 +75,12 @@ export class WorldAssemblerService {
   private createBoundary(gridSize?: Point): AxisAlignedBoundingBox | undefined {
     if (!gridSize) return undefined;
     return { minX: 0, minY: 0, maxX: gridSize.x, maxY: gridSize.y };
+  }
+
+  private createCamera(config: WorldAssemblerConfig): Camera {
+    const initialPosition = config.cameraInitialPosition ?? new Point(5, 5);
+    const visibleCells = config.cameraVisibleCells ?? 15;
+    return new Camera(initialPosition, visibleCells);
   }
 
   private createCollisionHandler(): CollisionHandler {

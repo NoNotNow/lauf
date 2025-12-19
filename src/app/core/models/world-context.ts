@@ -5,10 +5,11 @@ import { Gravity } from '../rendering/transformers/gravity';
 import { KeyboardController } from '../rendering/transformers/keyboard-controller';
 import { CollisionHandler } from '../rendering/collision-handler';
 import { PhysicsIntegrator } from '../rendering/physics/physics-integrator';
+import { Camera } from '../rendering/camera';
 
 /**
  * Container for all game systems assembled by WorldAssembler.
- * Manages lifecycle of transformers, physics, and controllers.
+ * Manages lifecycle of transformers, physics, controllers, and camera.
  */
 export class WorldContext {
   private rotators: Rotator[] = [];
@@ -18,6 +19,8 @@ export class WorldContext {
   private avatarController?: KeyboardController;
   private integrator?: PhysicsIntegrator;
   private collisions?: CollisionHandler;
+  private camera?: Camera;
+  private avatar?: any;
 
   addRotator(rotator: Rotator): void {
     this.rotators.push(rotator);
@@ -45,6 +48,33 @@ export class WorldContext {
 
   setCollisionHandler(handler: CollisionHandler): void {
     this.collisions = handler;
+  }
+
+  setCamera(camera: Camera): void {
+    this.camera = camera;
+  }
+
+  getCamera(): Camera | undefined {
+    return this.camera;
+  }
+
+  setAvatar(avatar: any): void {
+    this.avatar = avatar;
+  }
+
+  updateCamera(): void {
+    if (this.camera && this.avatar) {
+      this.camera.setTarget(this.avatar.Pose.Position, 5.0);
+      this.camera.update();
+    }
+  }
+
+  isCameraDirty(): boolean {
+    return this.camera?.isDirty ?? false;
+  }
+
+  clearCameraDirty(): void {
+    this.camera?.clearDirty();
   }
 
   start(): void {
