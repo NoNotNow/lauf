@@ -115,8 +115,7 @@ export class MapComponent implements AfterViewInit, OnDestroy, MapLoader {
     private rebuildWorld(map: GameMap): void {
         this.worldContext?.cleanup();
         this.worldContext = this.worldAssembler.buildWorld(map, {
-            enableCollisions: this.enableItemCollisions,
-            gridSize: this.gridSize,
+            enableCollisions: this.enableItemCollisions
         });
         this.worldContext.start();
     }

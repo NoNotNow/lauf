@@ -88,7 +88,7 @@
       }
     },
     {
-      "Pose": { "Position": { "X": 4, "Y": 7 }, "Size": { "X": 1, "Y": 2 } },
+      "Pose": { "Position": { "X": 4, "Y": 8 }, "Size": { "X": 0.7, "Y": 2 } },
       "Design": {
         "Color": "transparent",
         "Image": "assets/tree.svg"
@@ -113,6 +113,15 @@
       "Border": {"Style": "none"},
       "Image": "assets/hero.svg"
     },
-    "restitution": 0.7
+    "restitution": 0.7,
+    "ControllerParams": {
+      "linearAccel": 3.0,
+      "linearBrake": 2.5,
+      "linearDamping": 0.15,
+      "maxSpeed": 10.0,
+      "angularAccel": 700,
+      "angularDamping": 500,
+      "maxOmega": 300
+    }
   }
 }

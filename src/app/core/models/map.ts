@@ -1,6 +1,7 @@
 import {Avatar, Obstacle, Target} from "./game-items/stage-items";
 import {Design} from "./design/design";
 import {Point} from "./point";
+import {Camera} from "../rendering/camera";
 
 export class Map{
     public name:string;
@@ -9,6 +10,7 @@ export class Map{
     public targets: Target[] = [];
     public avatar: Avatar;
     public design: Design;
+    public camera: Camera;
 
     // Fills the current instance from a plain JSON/object without replacing it
     public FromJson(data: any): this {
@@ -56,6 +58,14 @@ export class Map{
         if (avatar) {
             if (!this.avatar) this.avatar = new Avatar();
             this.avatar.FromJson?.(avatar);
+        }
+
+        const camera = g('camera', 'Camera');
+        if (camera) {
+            const pos = camera.position ?? camera.Position ?? camera.center ?? camera.Center;
+            const initialPos = pos ? new Point(pos.x ?? pos.X, pos.y ?? pos.Y) : undefined;
+            const visibleCells = camera.visibleCells ?? camera.VisibleCells ?? 50;
+            this.camera = new Camera(initialPos, visibleCells);
         }
 
         return this;
