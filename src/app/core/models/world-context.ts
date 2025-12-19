@@ -73,7 +73,7 @@ export class WorldContext {
 
   updateCamera(): void {
     if (this.camera && this.avatar) {
-      this.camera.setTarget(this.avatar.Pose.Position, 5.0);
+      this.camera.setTarget(this.avatar.Pose.Position, this.camera.getZoom());
       this.camera.update();
     }
   }

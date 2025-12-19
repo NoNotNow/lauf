@@ -3,14 +3,12 @@ import { GridGeometry } from '../models/canvas-geometry';
 
 export interface Viewport {
   center: Point;
-  zoom: number; // 1.0 means the 'visibleCells' fits the canvas
-  visibleCells: number; // How many cells (approx) visible on the shorter axis
+  zoom: number; // 1.0 means the entirety of the grid is visible
 }
 
 export class Camera {
   private center: Point = new Point(0, 0);
   private zoom: number = 1.0;
-  private visibleCells: number = 10; // Default view width/height in cells
 
   // Smoothing
   private targetCenter: Point = new Point(0, 0);
@@ -19,12 +17,11 @@ export class Camera {
 
   private _dirty = true;
 
-  constructor(initialCenter?: Point, initialVisibleCells: number = 10, initialZoom: number = 1.0) {
+  constructor(initialCenter?: Point, initialZoom: number = 1.0) {
     if (initialCenter) {
       this.center = new Point(initialCenter.x, initialCenter.y);
       this.targetCenter = new Point(initialCenter.x, initialCenter.y);
     }
-    this.visibleCells = initialVisibleCells;
     this.zoom = initialZoom;
     this.targetZoom = initialZoom;
   }
@@ -70,10 +67,14 @@ export class Camera {
     // We want to override rectForCells to account for our camera.
 
     const aspect = canvasWidth / canvasHeight;
+
+    // When zoom is 1, entirety of the grid is visible.
+    // When zoom is 10, only 10% of it are visible.
+    // This means viewSize = gridSide / zoom.
     
     // Effective number of cells visible on screen
-    const viewWidth = this.visibleCells / this.zoom * (aspect > 1 ? aspect : 1);
-    const viewHeight = this.visibleCells / this.zoom * (aspect > 1 ? 1 : 1 / aspect);
+    const viewWidth = baseGeom.cols / this.zoom;
+    const viewHeight = baseGeom.rows / this.zoom;
 
     const cellW = canvasWidth / viewWidth;
     const cellH = canvasHeight / viewHeight;

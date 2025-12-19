@@ -1,7 +1,7 @@
 {
   "Name": "Sample Level 1",
   "Size": { "X": 10, "Y": 10 },
-  "Camera": { "Position": { "X": 5, "Y": 5 }, "Zoom": 5.0 },
+  "Camera": { "Position": { "X": 5, "Y": 5 }, "Zoom": 3.0 },
   "Design": {
     "Color": "#118800",
     "Border": {"Style": "dashed", "Color": "#FF00FF", "Width": "0.002"},
@@ -117,12 +117,12 @@
       "Border": {"Style": "none"},
       "Image": "assets/hero.svg"
     },
-    "Physics": { "canMove": true, "canRotate": true, "hasGravity": false, "restitution": 0.7
+    "Physics": {"mass": 1.0, "canMove": true, "canRotate": true, "hasGravity": true, "restitution": 0.7
     },
     "ControllerParams": {
       "linearAccel": 3.0,
       "linearBrake": 2.5,
-      "linearDamping": 0.15,
+      "linearDamping": 0.5,
       "maxSpeed": 10.0,
       "angularAccel": 700,
       "angularDamping": 500,
