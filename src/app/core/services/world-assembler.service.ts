@@ -9,7 +9,7 @@ import { Rotator } from '../rendering/transformers/rotator';
 import { Drifter } from '../rendering/transformers/drifter';
 import { Gravity } from '../rendering/transformers/gravity';
 import { KeyboardController } from '../rendering/transformers/keyboard-controller';
-import { Obstacle, Avatar, Target } from '../models/game-items/stage-items';
+import { Avatar, Obstacle, Target, Transformer } from '../models/game-items/stage-items';
 import { StageItem } from '../models/game-items/stage-item';
 import { Point } from '../models/point';
 import { Camera } from '../rendering/camera';
@@ -101,12 +101,10 @@ export class WorldAssemblerService {
       if (physics.hasCollision) {
         this.wireCollision(obstacle, context);
       }
-      // if (physics.canRotate) {
-      //   this.attachRotator(obstacle, context);
-      // }
-      // if (physics.canMove) {
-      //   this.attachDrifter(obstacle, context, boundary);
-      // }
+
+      // Check for transformers in obstacle if they are added in the future
+      // For now we keep existing logic
+      
       if (physics.hasGravity) {
         this.attachGravity(obstacle, context);
       }
@@ -161,7 +159,15 @@ export class WorldAssemblerService {
     if (physics.hasCollision) {
       this.wireCollision(avatar, context);
     }
-    this.attachAvatarController(avatar, context);
+
+    if (avatar.transformers && avatar.transformers.length > 0) {
+      avatar.transformers.forEach(t => {
+        if (t.Type === 'UserController') {
+          this.attachAvatarController(avatar, context, t.Params);
+        }
+      });
+    }
+
     if (physics.hasGravity) {
       this.attachGravity(avatar, context);
     }
@@ -173,7 +179,8 @@ export class WorldAssemblerService {
 
   private attachAvatarController(
     avatar: Avatar,
-    context: WorldContext
+    context: WorldContext,
+    params?: UserControllerParams
   ): void {
     const defaultParams: UserControllerParams = {
       linearAccel: 2.5,
@@ -188,7 +195,7 @@ export class WorldAssemblerService {
     const controller = new KeyboardController(
       this.ticker,
       avatar,
-      avatar.controllerParams ?? defaultParams
+      params ?? defaultParams
     );
     context.setAvatarController(controller);
   }

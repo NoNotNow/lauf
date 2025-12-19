@@ -1,0 +1,53 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="140 170 224 180">
+    <g fill="none" stroke-linecap="round" stroke-linejoin="round">
+
+        <!-- head -->
+        <circle cx="190" cy="210" r="28" fill="#7cff00"/>
+
+        <!-- ears -->
+        <circle cx="158" cy="206" r="14" fill="#00ff9c"/>
+        <circle cx="222" cy="206" r="14" fill="#00ff9c"/>
+
+        <!-- muzzle -->
+        <ellipse cx="190" cy="224" rx="18" ry="14" fill="#ffe600"/>
+
+        <!-- monkey mouth -->
+        <path d="M182 228 C188 234, 192 234, 198 228"
+              stroke="#ff6a00" stroke-width="3"/>
+
+
+
+
+        <!-- eyes -->
+        <circle cx="180" cy="208" r="6" fill="#00e5ff"/>
+        <circle cx="200" cy="208" r="6" fill="#00e5ff"/>
+        <circle cx="182" cy="210" r="2" fill="#fff200"/>
+        <circle cx="202" cy="210" r="2" fill="#fff200"/>
+
+        <!-- body -->
+        <ellipse cx="260" cy="255" rx="52" ry="28" fill="#9b5cff"/>
+
+        <!-- front legs -->
+        <path d="M230 265 C220 300, 220 320, 230 340"
+              stroke="#7cff00" stroke-width="8"/>
+        <path d="M260 265 C250 300, 250 320, 260 340"
+              stroke="#7cff00" stroke-width="8"/>
+
+        <!-- back legs -->
+        <path d="M290 265 C300 300, 300 320, 290 340"
+              stroke="#00b3ff" stroke-width="8"/>
+        <path d="M320 265 C330 300, 330 320, 320 340"
+              stroke="#00b3ff" stroke-width="8"/>
+
+        <!-- higher spiral tail -->
+        <path
+                d="M310 230
+         m 0 -18
+         a 14 14 0 1 1 0 28
+         a 30 30 0 1 1 0 -60
+         a 46 46 0 1 1 0 92"
+                stroke="#ffe600"
+                stroke-width="6"/>
+
+    </g>
+</svg>
