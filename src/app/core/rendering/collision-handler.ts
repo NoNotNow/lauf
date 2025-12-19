@@ -17,7 +17,7 @@ export class CollisionHandler {
   private items: StageItem[] = [];
   private _restitutionDefault = 1.0;
   private _frictionDefault = 0.8;
-  private _iterations = 8; // sequential impulse iterations per tick
+  private _iterations = 10; // sequential impulse iterations per tick
   public readonly events$ = new Subject<CollisionEvent>();
 
   // Pre-allocated arrays to avoid allocation per frame
@@ -160,36 +160,36 @@ export class CollisionHandler {
       }
     }
 
-    // Positional correction: fully separate overlapping objects immediately
-    // This prevents objects from getting stuck together or entangled
-    for (const c of contacts) {
-      const aPose = c.a.Pose as any;
-      const bPose = c.b.Pose as any;
-      aPose.Position = aPose.Position ?? { x: 0, y: 0 };
-      bPose.Position = bPose.Position ?? { x: 0, y: 0 };
+    // Positional correction: resolve overlaps using Baumgarte stabilization
+    // This prevents objects from getting stuck together while avoiding jerky over-correction
+    const slop = 0.01;      // Allow 0.01 cells of overlap to prevent jitter
+    const percent = 0.4;    // Resolve 40% of the overlap per frame
+    const gap = 0.01;       // Small extra gap to maintain separation
 
+    for (const c of contacts) {
       const sa = StageItemPhysics.get(c.a);
       const sb = StageItemPhysics.get(c.b);
-      const invMassA = 1 / Math.max(1e-6, sa.mass);
-      const invMassB = 1 / Math.max(1e-6, sb.mass);
+
+      const invMassA = sa.mass >= 1e6 ? 0 : 1 / Math.max(1e-6, sa.mass);
+      const invMassB = sb.mass >= 1e6 ? 0 : 1 / Math.max(1e-6, sb.mass);
       const sum = invMassA + invMassB;
-      const wA = sum > 0 ? invMassA / sum : 0.5;
-      const wB = sum > 0 ? invMassB / sum : 0.5;
+      if (sum <= 0) continue;
 
-      // Use the full MTV to completely separate objects, plus a small gap
-      const separationGap = 0.02; // Add 0.02 cells gap to prevent immediate re-collision
       const mtvMagnitude = Math.hypot(c.mtv.x, c.mtv.y);
-      const totalSeparation = mtvMagnitude + separationGap;
+      const correctionMagnitude = (Math.max(mtvMagnitude - slop, 0) / sum) * percent;
 
-      if (totalSeparation > 0) {
-        const correctionX = c.normal.x * totalSeparation;
-        const correctionY = c.normal.y * totalSeparation;
+      const correctionX = (c.normal.x * correctionMagnitude) + (c.normal.x * gap / sum);
+      const correctionY = (c.normal.y * correctionMagnitude) + (c.normal.y * gap / sum);
 
-        // Push objects apart based on mass ratio
-        aPose.Position.x -= correctionX * wA;
-        aPose.Position.y -= correctionY * wA;
-        bPose.Position.x += correctionX * wB;
-        bPose.Position.y += correctionY * wB;
+      const aPose = c.a.Pose as any;
+      const bPose = c.b.Pose as any;
+      if (aPose.Position) {
+        aPose.Position.x -= correctionX * invMassA;
+        aPose.Position.y -= correctionY * invMassA;
+      }
+      if (bPose.Position) {
+        bPose.Position.x += correctionX * invMassB;
+        bPose.Position.y += correctionY * invMassB;
       }
     }
   }

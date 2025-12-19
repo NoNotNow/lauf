@@ -41,12 +41,12 @@ export function applyItemItemCollisionImpulse(
 
   const sa = StageItemPhysics.get(a);
   const sb = StageItemPhysics.get(b);
-  const invMassA = 1 / Math.max(1e-6, sa.mass);
-  const invMassB = 1 / Math.max(1e-6, sb.mass);
+  const invMassA = sa.mass >= 1e6 ? 0 : 1 / Math.max(1e-6, sa.mass);
+  const invMassB = sb.mass >= 1e6 ? 0 : 1 / Math.max(1e-6, sb.mass);
   const IA = StageItemPhysics.momentOfInertia(a);
   const IB = StageItemPhysics.momentOfInertia(b);
-  const invIA = 1 / IA;
-  const invIB = 1 / IB;
+  const invIA = sa.mass >= 1e6 ? 0 : 1 / IA;
+  const invIB = sb.mass >= 1e6 ? 0 : 1 / IB;
 
   // Contact point and lever arms
   const c = estimateContactPoint(aObb, bObb);

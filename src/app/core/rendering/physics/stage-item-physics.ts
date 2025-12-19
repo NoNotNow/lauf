@@ -65,14 +65,16 @@ export class StageItemPhysics {
         return StageItemPhysics.set(item, {omega: Number(omega) || 0});
     }
 
-    // --- Helpers (pure, derived) ---
     // Moment of inertia for a rectangle about its center: I = (1/12) * m * (w^2 + h^2)
     // Units: m in arbitrary mass, w/h in cells, I in mass * cells^2
     static momentOfInertia(item: StageItem): number {
         const s = StageItemPhysics.get(item);
         const w = Math.max(0, Number(item?.Pose?.Size?.x ?? 0));
         const h = Math.max(0, Number(item?.Pose?.Size?.y ?? 0));
-        const I = (s.mass * (w * w + h * h)) / 12;
+        // Use a high but finite mass for inertia if mass is "infinite" (1e6)
+        // to avoid NaN/Infinity issues while still making it very hard to rotate
+        const effectiveMass = Math.min(s.mass, 1e6);
+        const I = (effectiveMass * (w * w + h * h)) / 12;
         return Math.max(1e-6, I);
     }
 
