@@ -1,4 +1,4 @@
-import {Design} from "../design";
+import {Design} from "../design/design";
 import { Pose } from "../pose";
 
 export class StageItem {
@@ -41,9 +41,9 @@ export class StageItem {
         const design = this.Design ? {
             Color: this.Design.Color,
             Border: this.Design.Border,
-            BorderColor: this.Design.BorderColor,
-            BorderWidth: this.Design.BorderWidth,
-            BorderRadius: this.Design.BorderRadius,
+            BorderColor: this.Design.Border.Color,
+            BorderWidth: this.Design.Border.Width,
+            CornerRadius: this.Design.CornerRadius,
             Image: this.Design.Image
         } : undefined;
         return {

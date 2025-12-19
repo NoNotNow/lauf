@@ -124,7 +124,7 @@ export class StageItemBitmap {
       d.Border,
       d.BorderColor,
       d.BorderWidth,
-      d.BorderRadius,
+      d.CornerRadius,
       d.Image
     ].join("|");
 

@@ -132,6 +132,7 @@ export class MapComponent implements AfterViewInit, OnDestroy, MapLoader {
     }
 
     // Accepts a Map object and applies it to the grid, obstacles, and game items layers
+    protected gridBackgroundColor: string = 'transparent';
     loadMap(m: GameMap): void {
         console.log('Loaded map:', m);
         if (!m) return;
@@ -142,9 +143,10 @@ export class MapComponent implements AfterViewInit, OnDestroy, MapLoader {
         }
 
         if(m.design) {
-            if(m.design.BorderWidth) this.gridLineWidth = m.design?.BorderWidth
-            if(m.design.BorderColor) this.gridColor = m.design?.BorderColor;
-            if(m.design.Border) this.gridBorder = m.design?.Border;
+            if(m.design.Border.Width) this.gridLineWidth = m.design?.Border.Width
+            if(m.design.Border.Color) this.gridColor = m.design?.Border.Color;
+            if(m.design.Border.Style) this.gridBorder = m.design?.Border.Style;
+            if(m.design.Color) this.gridBackgroundColor = m.design?.Color;
         }
 
         // Provide map to animator (obstacles drawn via canvas layer per tick)

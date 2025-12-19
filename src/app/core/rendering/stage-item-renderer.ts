@@ -45,11 +45,11 @@ export class StageItemRenderer {
 
         // Resolve design properties
         const fill = item.Design?.Color ?? 'rgba(200,0,0,0.6)';
-        const bwCells = Math.max(0, Number(item.Design?.BorderWidth ?? 0));
+        const bwCells = Math.max(0, Number(item.Design?.Border?.Width ?? 0));
         const bw = bwCells * Math.min(geom.cellW, geom.cellH);
-        const borderStyle = (item.Design?.Border ?? '').toLowerCase(); // none | solid | dashed
-        const borderColor = item.Design?.BorderColor ?? '#000000';
-        const radiusCells = Math.max(0, Number(item.Design?.BorderRadius ?? 0));
+        const borderStyle = (item.Design?.Border?.Style ?? '').toLowerCase(); // none | solid | dashed
+        const borderColor = item.Design?.Border?.Color ?? '#000000';
+        const radiusCells = Math.max(0, Number(item.Design?.CornerRadius ?? 0));
         const radius = radiusCells * Math.min(geom.cellW, geom.cellH);
         const imageUrl = item.Design?.Image ?? '';
 

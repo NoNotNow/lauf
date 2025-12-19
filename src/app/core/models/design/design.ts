@@ -1,9 +1,9 @@
+import { Border } from "./border";
+
 export class Design {
     public Color : string;
-    public Border: string;
-    public BorderColor : string;
-    public BorderWidth : number;
-    public BorderRadius : number;
+    public Border: Border;
+    public CornerRadius : number;
     public Image : string;
 
     // Fills current instance from a plain JSON/object without replacing it
@@ -12,10 +12,11 @@ export class Design {
         // accept both camelCase and PascalCase keys
         const g = (k: string, alt?: string) => data[k] ?? (alt ? data[alt] : undefined);
         if (g('Color','color') !== undefined) this.Color = g('Color','color');
-        if (g('Border','border') !== undefined) this.Border = g('Border','border');
-        if (g('BorderColor','borderColor') !== undefined) this.BorderColor = g('BorderColor','borderColor');
-        if (g('BorderWidth','borderWidth') !== undefined) this.BorderWidth = Number(g('BorderWidth','borderWidth'));
-        if (g('BorderRadius','borderRadius') !== undefined) this.BorderRadius = Number(g('BorderRadius','borderRadius'));
+        if(g('Border') !== undefined) {
+            if (!this.Border) this.Border = new Border();
+            this.Border.FromJson(g('Border'));
+        }
+        if (g('CornerRadius','CornerRadius') !== undefined) this.CornerRadius = Number(g('CornerRadius','CornerRadius'));
         if (g('Image','image') !== undefined) this.Image = g('Image','image');
         return this;
     }

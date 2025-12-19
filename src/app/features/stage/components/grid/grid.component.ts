@@ -21,6 +21,7 @@ export class GridComponent implements OnChanges {
   @Input() color: string = '#cccccc';
   @Input() lineWidth: number = 0.02;
   @Input() gridBorder!: string;
+  @Input() backgroundColor: string = 'transparent';
 
   @Input() camera?: Camera;
 
@@ -71,7 +72,10 @@ export class GridComponent implements OnChanges {
     const unit = Math.min(cellW, cellH);
     const lw = Math.max(1, Math.round((this.lineWidth ?? 0) * unit));
     const offset = (lw % 2 === 1) ? 0.5 : 0.0;
-
+    if( this.backgroundColor !== 'transparent' ) {
+        ctx.fillStyle = this.backgroundColor;
+        ctx.fillRect(0, 0, w, h);
+    }
     ctx.strokeStyle = this.color;
     ctx.lineWidth = lw;
 

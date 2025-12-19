@@ -1,5 +1,5 @@
 import {Avatar, Obstacle, Target} from "./game-items/stage-items";
-import {Design} from "./design";
+import {Design} from "./design/design";
 import {Point} from "./point";
 
 export class Map{

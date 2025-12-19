@@ -3,10 +3,7 @@
   "Size": { "X": 10, "Y": 10 },
   "Design": {
     "Color": "#118800",
-    "Border": "solid",
-    "BorderColor": "#FF0000",
-    "BorderWidth": 0.005,
-    "BorderRadius": 0,
+    "Border": {"Style": "dashed", "Color": "#FF00FF", "Width": "0.002"},
     "Image": ""
   },
   "Obstacles": [
@@ -14,10 +11,8 @@
       "Pose": { "Position": { "X": 2, "Y": 2 }, "Size": { "X": 0.2, "Y": 0.2 } },
       "Design": {
         "Color": "#ff33ff",
-        "BorderRadius": 0,
-        "BorderWidth": 0.003,
-        "Border": "solid",
-        "BorderColor": "#990099",
+        "CornerRadius": 0,
+        "Border": {"Color":"#990099","Style": "Solid", "Width": "0.003"},
         "Image": "assets/shapes.svg"
       }
     },
@@ -25,10 +20,8 @@
       "Pose": { "Position": { "X": 1, "Y": 8 }, "Size": { "X": 0.14, "Y": 0.14 } },
       "Design": {
         "Color": "transparent",
-        "Border": "none",
-        "BorderColor": "#000000",
-        "BorderWidth": 0,
-        "BorderRadius": 0,
+        "Border": {"Style": "none", "Color": "#000000", "Width": 0},
+        "CornerRadius": 0,
         "Image": "assets/monster.svg"
       }
     },
@@ -36,10 +29,8 @@
       "Pose": { "Position": { "X": 4, "Y": 1 }, "Size": { "X": 0.4, "Y": 0.4 } },
       "Design": {
         "Color": "transparent",
-        "Border": "none",
-        "BorderColor": "#000000",
-        "BorderWidth": 0,
-        "BorderRadius": 0,
+        "Border": {"Style": "none", "Color": "#000000", "Width": 0},
+        "CornerRadius": 0,
         "Image": "assets/monster.svg"
       }
     },
@@ -47,7 +38,7 @@
       "Pose": { "Position": { "X": 9, "Y": 5 }, "Size": { "X": 0.9, "Y": 0.9 } },
       "Design": {
         "Color": "transparent",
-        "BorderRadius": 2,
+        "CornerRadius": 2,
         "Image": "assets/spiral.svg"
       }
     },
@@ -55,10 +46,8 @@
       "Pose": { "Position": { "X": 3, "Y": 5 }, "Size": { "X": 0.6, "Y": 0.2 } },
       "Design": {
         "Color": "transparent",
-        "BorderRadius": 0.2,
-        "BorderWidth": 0.01,
-        "border": "dashed",
-        "BorderColor": "#ff9900",
+        "CornerRadius": 0.2,
+        "Border": {"Style": "dashed", "Color": "#ff9900", "Width": 0.01},
         "Image": "assets/shapes.svg"
       }
     },
@@ -66,10 +55,8 @@
       "Pose": { "Position": { "X": 6, "Y": 6 }, "Size": { "X": 0.8, "Y": 0.8 } },
       "Design": {
         "Color": "transparent",
-        "Border": "solid",
-        "BorderColor": "#cc6600",
-        "BorderWidth": 0.012,
-        "BorderRadius": 0,
+        "Border": {"Style": "solid", "Color": "#cc6600", "Width": 0.012},
+        "CornerRadius": 0,
         "Image": "assets/ufo.svg"
       }
     },
@@ -77,10 +64,8 @@
       "Pose": { "Position": { "X": 8, "Y": 0 }, "Size": { "X": 0.8, "Y": 0.8 } },
       "Design": {
         "Color": "transparent",
-        "Border": "dashed",
-        "BorderColor": "#0056b3",
-        "BorderWidth": 0.012,
-        "BorderRadius": 0.03,
+        "Border": {"Style": "dashed", "Color": "#0056b3", "Width": 0.012},
+        "CornerRadius": 0.03,
         "Image": "assets/shapes.svg"
       }
     },
@@ -88,17 +73,15 @@
       "Pose": { "Position": { "X": 7, "Y": 4 }, "Size": { "X": 0.2, "Y": 0.6 } },
       "Design": {
         "Color": "#66cc99",
-        "Border": "none"
+        "Border": {"Style": "none"}
       }
     },
     {
       "Pose": { "Position": { "X": 0, "Y": 7 }, "Size": { "X": 0.04, "Y": 2 } },
       "Design": {
         "Color": "#ffd6e7",
-        "Border": "solid",
-        "BorderColor": "#b30059",
-        "BorderWidth": 0.018,
-        "BorderRadius": 0.06
+        "Border": {"Style": "solid", "Color": "#b30059", "Width": 0.018},
+        "CornerRadius": 0.06
       }
     }
   ],
@@ -112,7 +95,7 @@
     "Pose": { "Position": { "X": 5, "Y": 5 }, "Size": { "X": 0.26, "Y": 0.36 } },
     "Design": {
       "Color": "transparent",
-      "Border": "none",
+      "Border": {"Style": "none"},
       "Image": "assets/hero.svg"
     },
     "restitution": 0.7

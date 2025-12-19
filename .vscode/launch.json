@@ -1,0 +1,28 @@
+{
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "name": "Angular: Chrome",
+            "type": "chrome",
+            "request": "launch",
+            "url": "http://localhost:4200",
+            "webRoot": "${workspaceFolder}",
+            "sourceMaps": true,
+            "sourceMapPathOverrides": {
+                "webpack:/*": "${webRoot}/src/*",
+                "/./*": "${webRoot}/*",
+                "/src/*": "${webRoot}/src/*"
+            }
+        }
+    ],
+    "compounds": [
+        {
+            "name": "Angular: Debug",
+            "configurations": [
+                "Angular: Chrome"
+            ],
+            "preLaunchTask": "npm start",
+            "preLaunchTaskTimeout": 120000
+        }
+    ]
+}
