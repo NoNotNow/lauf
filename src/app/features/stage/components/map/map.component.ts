@@ -6,15 +6,9 @@ import {StartupService, MapLoader} from '../../../../core/services/startup.servi
 import { CanvasLayerComponent } from '../../../../shared/components/common/canvas-layer/canvas-layer.component';
 import {AnimatorService} from '../../../../core/rendering/animator.service';
 import {TickService} from '../../../../core/services/tick.service';
-import {Rotator} from '../../../../core/rendering/transformers/rotator';
-import {Wobbler} from '../../../../core/rendering/transformers/wobbler';
-import {Drifter} from '../../../../core/rendering/transformers/drifter';
-import {Gravity} from '../../../../core/rendering/transformers/gravity';
-import {KeyboardController} from '../../../../core/rendering/transformers/keyboard-controller';
-import {CollisionHandler} from '../../../../core/rendering/collision-handler';
-import {AxisAlignedBoundingBox} from '../../../../core/rendering/collision';
-import {PhysicsIntegrator} from '../../../../core/rendering/physics/physics-integrator';
 import {Camera} from '../../../../core/rendering/camera';
+import {WorldAssemblerService} from '../../../../core/services/world-assembler.service';
+import {WorldContext} from '../../../../core/models/world-context';
 
 @Component({
     selector: 'app-map',
@@ -56,34 +50,16 @@ export class MapComponent implements AfterViewInit, OnDestroy, MapLoader {
     };
 
     private tickSub?: any;
-    private rotators: Rotator[] = [];
-    private wobblers: Wobbler[] = [];
-    private drifters: Drifter[] = [];
-    private gravities: Gravity[] = [];
-    private avatarController?: KeyboardController;
-    private collisions?: CollisionHandler;
-    private integrator?: PhysicsIntegrator;
+    private worldContext?: WorldContext;
     enableItemCollisions = true;
     private currentMap?: GameMap;
 
-    // Helper to compute current grid boundary in cell coordinates
-    private getGridBoundary(): AxisAlignedBoundingBox | undefined {
-        return this.gridSize
-            ? { minX: 0, minY: 0, maxX: this.gridSize.x, maxY: this.gridSize.y }
-            : undefined;
-    }
-
     constructor(
-    private startup: StartupService,
-    private animator: AnimatorService,
-    private ticker: TickService
-  ) {
-    if (this.enableItemCollisions) {
-      this.collisions = new CollisionHandler(this.ticker);
-      // Ensure perfectly elastic item–item collisions by default
-      this.collisions.setRestitutionDefault(1.0);
-    }
-  }
+        private startup: StartupService,
+        private animator: AnimatorService,
+        private ticker: TickService,
+        private worldAssembler: WorldAssemblerService
+    ) {}
 
     ngAfterViewInit(): void {
         // Trigger startup to load and provide the Map to this component
@@ -113,22 +89,13 @@ export class MapComponent implements AfterViewInit, OnDestroy, MapLoader {
                 this.camera.clearDirty();
             }
         });
-        if (this.enableItemCollisions) {
-            this.collisions?.start();
-        }
     }
 
     ngOnDestroy(): void {
         this.tickSub?.unsubscribe?.();
         this.ticker.stop();
-        this.rotators.forEach(r => r.stop());
-        this.wobblers.forEach(w => w.stop());
-        this.drifters.forEach(d => d.stop());
-        this.gravities.forEach(g => g.stop());
-        this.avatarController?.stop();
+        this.worldContext?.cleanup();
         this.animator.destroy();
-        this.collisions?.stop();
-        this.integrator?.stop();
     }
 
     // Accepts a Map object and applies it to the grid, obstacles, and game items layers
@@ -137,103 +104,45 @@ export class MapComponent implements AfterViewInit, OnDestroy, MapLoader {
         console.log('Loaded map:', m);
         if (!m) return;
         this.currentMap = m;
+
         // Update grid size from map
         if (m.size) {
             this.gridSize = new Point(m.size.x, m.size.y);
         }
 
-        if(m.design) {
-            if(m.design.Border.Width) this.gridLineWidth = m.design?.Border.Width
-            if(m.design.Border.Color) this.gridColor = m.design?.Border.Color;
-            if(m.design.Border.Style) this.gridBorder = m.design?.Border.Style;
-            if(m.design.Color) this.gridBackgroundColor = m.design?.Color;
-        }
+        // Apply visual design configuration
+        this.applyDesignConfiguration(m);
 
         // Provide map to animator (obstacles drawn via canvas layer per tick)
         this.animator.setMap(m);
 
-        // Stop existing transformers if reloading a map
-        this.rotators.forEach(r => r.stop());
-        this.wobblers.forEach(w => w.stop());
-        this.drifters.forEach(d => d.stop());
-        this.gravities.forEach(g => g.stop());
-        this.rotators = [];
-        this.wobblers = [];
-        this.drifters = [];
-        this.gravities = [];
-        this.avatarController?.stop();
-        this.avatarController = undefined;
-        this.collisions?.clear();
-        this.integrator?.stop();
-        this.integrator = new PhysicsIntegrator(this.ticker);
+        // Cleanup previous world if reloading
+        this.worldContext?.cleanup();
 
-        // Give every obstacle its own rotator and drifter with random parameters
-        const obstacles = m.obstacles ?? [];
-        const boundary: AxisAlignedBoundingBox | undefined = this.getGridBoundary();
-        this.integrator.setBoundary(boundary, true);
-        for (const obstacle of obstacles) {
-            // register obstacle into collision handler first (obstacles only)
-            if (this.enableItemCollisions) {
-                this.collisions?.add(obstacle);
-            }
-            // Random rotation parameters
-            const speed = 5 + Math.random() * 25; // 5..30 deg/s
-            const dir: 1 | -1 = Math.random() < 0.5 ? -1 : 1;
-            const rot = new Rotator(this.ticker, obstacle, speed, dir);
-            rot.start();
-            this.rotators.push(rot);
-            {
-                // Drifter: slow random drift with bouncing inside grid bounds
-                const maxSpeed = 0.02 + Math.random() * 15; // 0.02..~2.02 cells/s
-                const angle = Math.random() * Math.PI * 2;
-                const speed = Math.random() * maxSpeed/2; // random magnitude up to max
-                const vx = Math.cos(angle) * speed;
-                const vy = Math.sin(angle) * speed;
-                const drift = new Drifter(this.ticker, obstacle, maxSpeed, boundary, true);
-                drift.setVelocity(vx, vy);
-                drift.start();
-                this.drifters.push(drift);
-            }
-            {
-                // Gravity: apply constant downward acceleration
-                const grav = new Gravity(this.ticker, obstacle, .5);
-                grav.start();
-                this.gravities.push(grav);
-            }
-            // Integrate obstacle pose from physics
-            this.integrator.add(obstacle);
+        // Assemble the game world with all systems
+        this.worldContext = this.worldAssembler.buildWorld(m, {
+            enableCollisions: this.enableItemCollisions,
+            gridSize: this.gridSize,
+        });
+
+        // Start all game systems
+        this.worldContext.start();
+    }
+
+    private applyDesignConfiguration(map: GameMap): void {
+        if (!map.design) return;
+
+        if (map.design.Border.Width) {
+            this.gridLineWidth = map.design.Border.Width;
         }
-        this.integrator.start();
-
-
-        // Load avatar: keyboard-controlled movement + physics; rendering handled by avatarsCanvas draw callback
-        if (m.avatar) {
-            // Give the avatar its own movement and physics similar to obstacles
-            const boundary: AxisAlignedBoundingBox | undefined = this.getGridBoundary();
-            if (this.enableItemCollisions) {
-                this.collisions?.add(m.avatar);
-            }
-            // Keyboard controller: arrow keys/WASD control avatar velocities
-            this.avatarController = new KeyboardController(this.ticker, m.avatar, {
-                linearAccel: 2.5,
-                linearBrake: 2.0,
-                linearDamping: .2,
-                maxSpeed: 8.0,
-                angularAccel: 600,
-                angularDamping: 600,
-                maxOmega: 240,
-            });
-            this.avatarController.start();
-            
-            {
-                // Gravity for avatar
-                const grav = new Gravity(this.ticker, m.avatar, .5);
-                grav.start();
-                this.gravities.push(grav);
-            }
-
-            // Integrate avatar pose from physics
-            this.integrator?.add(m.avatar);
+        if (map.design.Border.Color) {
+            this.gridColor = map.design.Border.Color;
+        }
+        if (map.design.Border.Style) {
+            this.gridBorder = map.design.Border.Style;
+        }
+        if (map.design.Color) {
+            this.gridBackgroundColor = map.design.Color;
         }
     }
 }
