@@ -90,11 +90,10 @@ export class Drifter {
     // Keep StageItemPhysics in sync with our desired velocity and clamped limits
     const it = this._item;
     if (!it) return;
-    const phys = StageItemPhysics.get(it);
-    // If someone externally changed physics velocity, adopt it but clamp to max
-    this._vx = toNumber(phys.vx ?? this._vx, this._vx);
-    this._vy = toNumber(phys.vy ?? this._vy, this._vy);
-    this.clampVelocityToMax();
+    
+    // We should NOT adopt externally changed velocities if they are caused by damping
+    // because that would lead to a feedback loop where we eventually stop.
+    // Instead, we just ensure the physics state has our desired velocity.
     StageItemPhysics.setVelocity(it, this._vx, this._vy);
   }
 }

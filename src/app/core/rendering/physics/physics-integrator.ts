@@ -60,17 +60,30 @@ export class PhysicsIntegrator {
     if (dtSec === 0) return;
 
     for (const it of this.items) {
-      const pose: any = it?.Pose;
+      const pose = it?.Pose;
       if (!pose) continue;
 
-      pose.Position = pose.Position ?? { x: 0, y: 0 };
-      const pos = pose.Position as { x: number; y: number };
+      const pos = pose.Position;
+      if (!pos) continue;
 
       // Read velocities
       const phys = StageItemPhysics.get(it);
-      const vx = toNumber(phys.vx, 0);
-      const vy = toNumber(phys.vy, 0);
-      const omega = toNumber(phys.omega, 0); // deg/s
+      let vx = toNumber(phys.vx, 0);
+      let vy = toNumber(phys.vy, 0);
+      let omega = toNumber(phys.omega, 0); // deg/s
+
+      // Apply damping
+      if (phys.linearDamping > 0) {
+        const factor = Math.max(0, 1 - phys.linearDamping * dtSec);
+        vx *= factor;
+        vy *= factor;
+        StageItemPhysics.setVelocity(it, vx, vy);
+      }
+      if (phys.angularDamping > 0) {
+        const factor = Math.max(0, 1 - phys.angularDamping * dtSec);
+        omega *= factor;
+        StageItemPhysics.setAngular(it, omega);
+      }
 
       // Integrate linear
       let x = toNumber(pos.x, 0) + vx * dtSec;

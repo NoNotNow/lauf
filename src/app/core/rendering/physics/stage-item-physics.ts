@@ -6,6 +6,8 @@ export interface PhysicsState {
     omega: number;        // angular velocity (deg/s)
     mass: number;         // mass (arbitrary units, >0)
     restitution: number;  // 0..1 bounciness
+    linearDamping: number; // damping factor
+    angularDamping: number;
 }
 
 const DEFAULT_STATE: PhysicsState = {
@@ -14,12 +16,16 @@ const DEFAULT_STATE: PhysicsState = {
     omega: 0,
     mass: 1,
     restitution: 1.0,
+    linearDamping: 0,
+    angularDamping: 0,
 };
 
 // Hidden storage for per-item physics state without touching serialization
 const store = new WeakMap<StageItem, PhysicsState>();
 
 function massFromItem(item: StageItem): number {
+    if (item.Physics?.canMove === false) return 1e6; // Treat as infinite mass (static)
+    if (item.Physics?.mass !== undefined) return item.Physics.mass;
     const sx = Number(item?.Pose?.Size?.x ?? 1);
     const sy = Number(item?.Pose?.Size?.y ?? 1);
     return Math.max(1e-6, sx * sy);
@@ -29,10 +35,13 @@ export class StageItemPhysics {
     static get(item: StageItem): PhysicsState {
         let s = store.get(item);
         if (!s) {
+            const p = item.Physics;
             s = {
                 ...DEFAULT_STATE,
                 mass: massFromItem(item),
-                restitution: item.restitution !== undefined ? item.restitution : DEFAULT_STATE.restitution
+                restitution: p?.restitution ?? item.restitution ?? DEFAULT_STATE.restitution,
+                linearDamping: p?.damping ?? DEFAULT_STATE.linearDamping,
+                angularDamping: p?.damping ?? DEFAULT_STATE.angularDamping,
             };
             store.set(item, s);
         }

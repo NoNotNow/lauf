@@ -93,9 +93,11 @@ export class MapComponent implements AfterViewInit, OnDestroy, MapLoader {
         const cameraDirty = this.worldContext?.isCameraDirty() ?? false;
 
         if (cameraDirty) {
-            this.redrawStaticLayers();
+            this.grid?.requestRedraw();
         }
 
+        // Obstacles and avatars are dynamic now, redraw every frame
+        this.animLayer?.requestRedraw();
         this.avatarsCanvas?.requestRedraw();
 
         if (cameraDirty) {
@@ -103,10 +105,6 @@ export class MapComponent implements AfterViewInit, OnDestroy, MapLoader {
         }
     }
 
-    private redrawStaticLayers(): void {
-        this.grid?.requestRedraw();
-        this.animLayer?.requestRedraw();
-    }
 
     private updateGridFromMap(map: GameMap): void {
         if (map.size) {

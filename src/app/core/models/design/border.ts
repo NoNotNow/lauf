@@ -1,7 +1,7 @@
 export class Border {
-    public Color : string;
-    public Width : number;
-    public Style : string;
+    public Color: string = '#000000';
+    public Width: number = 0;
+    public Style: string = 'none';
 
     public FromJson(data: any): this {
         if (!data) return this;

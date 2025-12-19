@@ -6,6 +6,7 @@ import { KeyboardController } from '../rendering/transformers/keyboard-controlle
 import { CollisionHandler } from '../rendering/collision-handler';
 import { PhysicsIntegrator } from '../rendering/physics/physics-integrator';
 import { Camera } from '../rendering/camera';
+import { Avatar } from './game-items/stage-items';
 
 /**
  * Container for all game systems assembled by WorldAssembler.
@@ -20,7 +21,7 @@ export class WorldContext {
   private integrator?: PhysicsIntegrator;
   private collisions?: CollisionHandler;
   private camera?: Camera;
-  private avatar?: any;
+  private avatar?: Avatar;
 
   addRotator(rotator: Rotator): void {
     this.rotators.push(rotator);
@@ -66,7 +67,7 @@ export class WorldContext {
     return this.integrator;
   }
 
-  setAvatar(avatar: any): void {
+  setAvatar(avatar: Avatar): void {
     this.avatar = avatar;
   }
 

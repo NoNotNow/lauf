@@ -1,10 +1,12 @@
 import {Design} from "../design/design";
 import { Pose } from "../pose";
+import {PhysicsConfiguration} from "./physics-configuration";
 
 export class StageItem {
 
-    public Pose:Pose;
-    public Design: Design;
+    public Pose: Pose = new Pose();
+    public Design: Design = new Design();
+    public Physics: PhysicsConfiguration = new PhysicsConfiguration();
     public restitution?: number;
 
     // Fills current instance from a plain JSON/object without replacing it
@@ -13,14 +15,17 @@ export class StageItem {
         const g = (k: string, alt?: string) => data[k] ?? (alt ? data[alt] : undefined);
 
         // Prefer nested Pose if present; otherwise accept Position/Size at root for backward-compat
-        const poseData = g('Pose','pose') ?? data;
-        if (!this.Pose) this.Pose = new Pose();
+        const poseData = g('Pose', 'pose') ?? data;
         this.Pose.FromJson(poseData);
 
-        const design = g('Design','design');
+        const design = g('Design', 'design');
         if (design) {
-            if (!this.Design) this.Design = new Design();
             this.Design.FromJson(design);
+        }
+
+        const physics = g('PhysicsConfiguration', 'physicsConfiguration') ?? g('Physics', 'physics');
+        if (physics) {
+            this.Physics.FromJson(physics);
         }
 
         const restitution = g('restitution', 'Restitution');
@@ -49,6 +54,7 @@ export class StageItem {
         return {
             Pose: pose,
             Design: design,
+            PhysicsConfiguration: this.Physics.ToJson(),
             restitution: this.restitution
         };
     }

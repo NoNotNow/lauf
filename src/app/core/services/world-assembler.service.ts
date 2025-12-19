@@ -9,7 +9,7 @@ import { Rotator } from '../rendering/transformers/rotator';
 import { Drifter } from '../rendering/transformers/drifter';
 import { Gravity } from '../rendering/transformers/gravity';
 import { KeyboardController } from '../rendering/transformers/keyboard-controller';
-import { Obstacle } from '../models/game-items/stage-items';
+import { Obstacle, Avatar } from '../models/game-items/stage-items';
 import { Point } from '../models/point';
 import { Camera } from '../rendering/camera';
 
@@ -41,8 +41,19 @@ export class WorldAssemblerService {
     const context = new WorldContext();
     const boundary = this.createBoundary(config.gridSize);
 
+    // Assemble avatar first to potentially use its position for camera setup
+    if (map.avatar) {
+      this.assembleAvatar(
+        map.avatar,
+        context,
+        boundary,
+        config.avatarControllerParams
+      );
+      context.setAvatar(map.avatar);
+    }
+
     // Setup camera
-    const camera = this.createCamera(config);
+    const camera = this.createCamera(config, map);
     context.setCamera(camera);
 
     // Setup collision handler
@@ -58,17 +69,6 @@ export class WorldAssemblerService {
     // Assemble obstacles with their transformers
     this.assembleObstacles(map.obstacles ?? [], context, boundary);
 
-    // Assemble avatar with controller
-    if (map.avatar) {
-      this.assembleAvatar(
-        map.avatar,
-        context,
-        boundary,
-        config.avatarControllerParams
-      );
-      context.setAvatar(map.avatar);
-    }
-
     return context;
   }
 
@@ -77,9 +77,10 @@ export class WorldAssemblerService {
     return { minX: 0, minY: 0, maxX: gridSize.x, maxY: gridSize.y };
   }
 
-  private createCamera(config: WorldAssemblerConfig): Camera {
-    const initialPosition = config.cameraInitialPosition ?? new Point(5, 5);
-    const visibleCells = config.cameraVisibleCells ?? 15;
+  private createCamera(config: WorldAssemblerConfig, map: GameMap): Camera {
+    const avatarPos = map.avatar?.Pose?.Position;
+    const initialPosition = config.cameraInitialPosition ?? avatarPos ?? new Point(5, 5);
+    const visibleCells = config.cameraVisibleCells ?? 50;
     return new Camera(initialPosition, visibleCells);
   }
 
@@ -105,11 +106,22 @@ export class WorldAssemblerService {
     boundary?: AxisAlignedBoundingBox
   ): void {
     obstacles.forEach(obstacle => {
-      this.wireObstacleCollision(obstacle, context);
-      this.attachRotator(obstacle, context);
-      this.attachDrifter(obstacle, context, boundary);
-      this.attachGravity(obstacle, context);
-      this.registerWithIntegrator(obstacle, context);
+      const physics = obstacle.Physics;
+      if (physics.hasCollision) {
+        this.wireObstacleCollision(obstacle, context);
+      }
+      if (physics.canRotate) {
+        this.attachRotator(obstacle, context);
+      }
+      if (physics.canMove) {
+        this.attachDrifter(obstacle, context, boundary);
+      }
+      if (physics.hasGravity) {
+        this.attachGravity(obstacle, context);
+      }
+      if (physics.canMove || physics.canRotate) {
+        this.registerWithIntegrator(obstacle, context);
+      }
     });
   }
 
@@ -120,6 +132,7 @@ export class WorldAssemblerService {
   private attachRotator(obstacle: Obstacle, context: WorldContext): void {
     const speed = this.randomRotationSpeed();
     const direction = this.randomDirection();
+
     const rotator = new Rotator(this.ticker, obstacle, speed, direction);
     context.addRotator(rotator);
   }
@@ -130,7 +143,9 @@ export class WorldAssemblerService {
     boundary?: AxisAlignedBoundingBox
   ): void {
     const maxSpeed = this.randomDriftSpeed();
-    const { vx, vy } = this.randomVelocity(maxSpeed);
+    const vel = this.randomVelocity(maxSpeed);
+    const vx = vel.vx;
+    const vy = vel.vy;
 
     const drifter = new Drifter(this.ticker, obstacle, maxSpeed, boundary, true);
     drifter.setVelocity(vx, vy);
@@ -147,23 +162,30 @@ export class WorldAssemblerService {
   }
 
   private assembleAvatar(
-    avatar: any,
+    avatar: Avatar,
     context: WorldContext,
     boundary?: AxisAlignedBoundingBox,
     controllerParams?: any
   ): void {
-    this.wireAvatarCollision(avatar, context);
+    const physics = avatar.Physics;
+    if (physics.hasCollision) {
+      this.wireAvatarCollision(avatar, context);
+    }
     this.attachAvatarController(avatar, context, controllerParams);
-    this.attachGravity(avatar, context);
-    this.registerWithIntegrator(avatar, context);
+    if (physics.hasGravity) {
+      this.attachGravity(avatar, context);
+    }
+    if (physics.canMove || physics.canRotate) {
+      this.registerWithIntegrator(avatar, context);
+    }
   }
 
-  private wireAvatarCollision(avatar: any, context: WorldContext): void {
+  private wireAvatarCollision(avatar: Avatar, context: WorldContext): void {
     context.getCollisionHandler()?.add(avatar);
   }
 
   private attachAvatarController(
-    avatar: any,
+    avatar: Avatar,
     context: WorldContext,
     params?: any
   ): void {

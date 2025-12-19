@@ -72,9 +72,9 @@ export class Rotator {
 
   private onTick(): void {
     if (!this._item) return;
-    // Keep StageItemPhysics omega aligned with configured speed and direction
+    // Keep StageItemPhysics omega aligned with configured speed and direction.
+    // We do NOT adopt externally changed omega to avoid losing speed to damping feedback.
     const desired = this._direction * this._speedDegPerSec;
-    const cur = StageItemPhysics.get(this._item).omega;
-    if (cur !== desired) StageItemPhysics.setAngular(this._item, desired);
+    StageItemPhysics.setAngular(this._item, desired);
   }
 }

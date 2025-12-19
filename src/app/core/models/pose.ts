@@ -1,13 +1,14 @@
 import {Point} from "./point";
 
 export class Pose {
-    public Position:Point;
-    public Size:Point;
-    public Rotation:number;
-    public constructor(position?:Point,size?:Point,rotation?:number){
-        this.Position=position;
-        this.Size=size;
-        this.Rotation=rotation;
+    public Position: Point = new Point();
+    public Size: Point = new Point(1, 1);
+    public Rotation: number = 0;
+
+    public constructor(position?: Point, size?: Point, rotation?: number) {
+        if (position) this.Position = position;
+        if (size) this.Size = size;
+        if (rotation !== undefined) this.Rotation = rotation;
     }
 
     // Fills current instance from a plain JSON/object without replacing it
