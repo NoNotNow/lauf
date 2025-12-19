@@ -2,7 +2,7 @@ import { Subscription, Subject } from 'rxjs';
 import { StageItem } from '../models/game-items/stage-item';
 import { TickService } from '../services/tick.service';
 import { orientedBoundingBoxFromPose, orientedBoundingBoxIntersectsOrientedBoundingBox, resetOBBPool } from './collision';
-import { StageItemPhysics } from './physics/stage-item-physics';
+import { StageItemPhysics, PhysicsState } from './physics/stage-item-physics';
 import { applyItemItemCollisionImpulse } from './physics/impulses';
 
 export interface CollisionEvent {
@@ -22,7 +22,8 @@ export class CollisionHandler {
 
   // Pre-allocated arrays to avoid allocation per frame
   private obbCache: (ReturnType<typeof orientedBoundingBoxFromPose> | null)[] = [];
-  private contacts: { a: StageItem; b: StageItem; normal: { x: number; y: number }; aobb: any; bobb: any }[] = [];
+  private physicsCache: PhysicsState[] = [];
+  private contacts: { a: StageItem; b: StageItem; normal: { x: number; y: number }; mtv: { x: number; y: number }; aobb: any; bobb: any }[] = [];
 
   // Pre-allocated event object to avoid allocation per collision
   private collisionEvent: CollisionEvent = {
@@ -78,13 +79,17 @@ export class CollisionHandler {
     // Reset OBB object pool at frame start to avoid allocations
     resetOBBPool();
 
-    // Cache OBBs to avoid re-calculating them in the inner loop
-    // Reuse pre-allocated array to avoid allocation
+    // Cache OBBs and physics to avoid re-calculating them in the inner loop
+    // Reuse pre-allocated arrays to avoid allocation
     const obbs = this.obbCache;
+    const physics = this.physicsCache;
     obbs.length = n;
+    physics.length = n;
     for (let i = 0; i < n; i++) {
-      const p = this.items[i]?.Pose;
+      const item = this.items[i];
+      const p = item?.Pose;
       obbs[i] = p ? orientedBoundingBoxFromPose(p) : null;
+      physics[i] = StageItemPhysics.get(item);
     }
 
     // Build contact list once per tick - reuse pre-allocated array
@@ -94,22 +99,31 @@ export class CollisionHandler {
       const ai = this.items[i];
       const aobb = obbs[i];
       if (!aobb) continue;
-      
+      const physA = physics[i];
+
       for (let j = i + 1; j < n; j++) {
         const bj = this.items[j];
         const bobb = obbs[j];
         if (!bobb) continue;
+        const physB = physics[j];
 
-        // Broad-phase pruning: check distance between centers first (approximate circular check)
+        // Broad-phase pruning: check distance between centers first
         const dx = bobb.center.x - aobb.center.x;
         const dy = bobb.center.y - aobb.center.y;
         const distSq = dx * dx + dy * dy;
         const radiusSum = Math.max(aobb.half.x, aobb.half.y) + Math.max(bobb.half.x, bobb.half.y);
-        if (distSq > radiusSum * radiusSum) continue;
+
+        // Expand radius check based on relative velocity to catch fast-moving objects (CCD approximation)
+        const relVx = (physA.vx ?? 0) - (physB.vx ?? 0);
+        const relVy = (physA.vy ?? 0) - (physB.vy ?? 0);
+        const relSpeedSq = relVx * relVx + relVy * relVy;
+        const velocityExpansion = Math.sqrt(relSpeedSq) * 0.016; // assume ~16ms frame time
+        const expandedRadiusSum = radiusSum + velocityExpansion;
+        if (distSq > expandedRadiusSum * expandedRadiusSum) continue;
 
         const res = orientedBoundingBoxIntersectsOrientedBoundingBox(aobb, bobb);
         if (!res.overlaps) continue;
-        contacts.push({ a: ai, b: bj, normal: res.normal, aobb, bobb });
+        contacts.push({ a: ai, b: bj, normal: res.normal, mtv: res.minimalTranslationVector, aobb, bobb });
 
         // Only emit events if there are subscribers to avoid allocation
         if (this.events$.observed) {
@@ -146,13 +160,14 @@ export class CollisionHandler {
       }
     }
 
-    // Small non-energetic positional correction (split impulse style)
-    const slop = 0.001;
+    // Positional correction: fully separate overlapping objects immediately
+    // This prevents objects from getting stuck together or entangled
     for (const c of contacts) {
       const aPose = c.a.Pose as any;
       const bPose = c.b.Pose as any;
       aPose.Position = aPose.Position ?? { x: 0, y: 0 };
       bPose.Position = bPose.Position ?? { x: 0, y: 0 };
+
       const sa = StageItemPhysics.get(c.a);
       const sb = StageItemPhysics.get(c.b);
       const invMassA = 1 / Math.max(1e-6, sa.mass);
@@ -160,10 +175,22 @@ export class CollisionHandler {
       const sum = invMassA + invMassB;
       const wA = sum > 0 ? invMassA / sum : 0.5;
       const wB = sum > 0 ? invMassB / sum : 0.5;
-      aPose.Position.x -= c.normal.x * slop * wA;
-      aPose.Position.y -= c.normal.y * slop * wA;
-      bPose.Position.x += c.normal.x * slop * wB;
-      bPose.Position.y += c.normal.y * slop * wB;
+
+      // Use the full MTV to completely separate objects, plus a small gap
+      const separationGap = 0.02; // Add 0.02 cells gap to prevent immediate re-collision
+      const mtvMagnitude = Math.hypot(c.mtv.x, c.mtv.y);
+      const totalSeparation = mtvMagnitude + separationGap;
+
+      if (totalSeparation > 0) {
+        const correctionX = c.normal.x * totalSeparation;
+        const correctionY = c.normal.y * totalSeparation;
+
+        // Push objects apart based on mass ratio
+        aPose.Position.x -= correctionX * wA;
+        aPose.Position.y -= correctionY * wA;
+        bPose.Position.x += correctionX * wB;
+        bPose.Position.y += correctionY * wB;
+      }
     }
   }
 }
