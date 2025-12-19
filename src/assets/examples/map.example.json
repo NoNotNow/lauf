@@ -1,6 +1,7 @@
 {
   "Name": "Sample Level 1",
   "Size": { "X": 10, "Y": 10 },
+  "Camera": { "Position": { "X": 5, "Y": 5 }, "Zoom": 5.0 },
   "Design": {
     "Color": "#118800",
     "Border": {"Style": "dashed", "Color": "#FF00FF", "Width": "0.002"},
@@ -85,6 +86,9 @@
         "Color": "#ffd6e7",
         "Border": {"Style": "solid", "Color": "#b30059", "Width": 0.018},
         "CornerRadius": 0.06
+      },
+      "PhysicsConfiguration": {
+        "restitution": 0.5
       }
     },
     {

@@ -64,8 +64,9 @@ export class Map{
         if (camera) {
             const pos = camera.position ?? camera.Position ?? camera.center ?? camera.Center;
             const initialPos = pos ? new Point(pos.x ?? pos.X, pos.y ?? pos.Y) : undefined;
-            const visibleCells = camera.visibleCells ?? camera.VisibleCells ?? 50;
-            this.camera = new Camera(initialPos, visibleCells);
+            const visibleCells = camera.visibleCells ?? camera.VisibleCells ?? 10;
+            const zoom = camera.zoom ?? camera.Zoom ?? 1.0;
+            this.camera = new Camera(initialPos, visibleCells, zoom);
         }
 
         return this;

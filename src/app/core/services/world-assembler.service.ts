@@ -72,7 +72,8 @@ export class WorldAssemblerService {
     const avatarPos = map.avatar?.Pose?.Position;
     const initialPosition = avatarPos ?? new Point(5, 5);
     const visibleCells = 50;
-    return new Camera(initialPosition, visibleCells);
+    const zoom = 1.0;
+    return new Camera(initialPosition, visibleCells, zoom);
   }
 
   private createCollisionHandler(): CollisionHandler {

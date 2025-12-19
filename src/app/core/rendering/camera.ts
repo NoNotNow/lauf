@@ -19,12 +19,14 @@ export class Camera {
 
   private _dirty = true;
 
-  constructor(initialCenter?: Point, initialVisibleCells: number = 10) {
+  constructor(initialCenter?: Point, initialVisibleCells: number = 10, initialZoom: number = 1.0) {
     if (initialCenter) {
       this.center = new Point(initialCenter.x, initialCenter.y);
       this.targetCenter = new Point(initialCenter.x, initialCenter.y);
     }
     this.visibleCells = initialVisibleCells;
+    this.zoom = initialZoom;
+    this.targetZoom = initialZoom;
   }
 
   get isDirty(): boolean {

@@ -24,7 +24,7 @@ export class CollisionHandler {
   // Pre-allocated arrays to avoid allocation per frame
   private obbCache: (ReturnType<typeof orientedBoundingBoxFromPose> | null)[] = [];
   private physicsCache: PhysicsState[] = [];
-  private contacts: { a: StageItem; b: StageItem; normal: { x: number; y: number }; mtv: { x: number; y: number }; aobb: any; bobb: any }[] = [];
+  private contacts: { a: StageItem; b: StageItem; normal: { x: number; y: number }; mtv: { x: number; y: number }; aobb: any; bobb: any; isCCD?: boolean }[] = [];
 
   // Pre-allocated event object to avoid allocation per collision
   private collisionEvent: CollisionEvent = {
