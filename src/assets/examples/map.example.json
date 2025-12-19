@@ -103,7 +103,7 @@
         "hasGravity": true,
         "restitution": 0.2,
         "damping": 2,
-        "mass": 10000,
+        "mass": 3000,
         "boundingBox": {"minX": 0.4, "minY": 0.3, "maxX": 0.45, "maxY": 1}
       }
     }
