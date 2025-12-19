@@ -1,6 +1,7 @@
 import {StageItem} from "../models/game-items/stage-item";
 import {GridGeometry} from "../models/canvas-geometry";
 import {ImageCache} from "./image-cache";
+import {applyDashStyle, pathRoundedRect} from "./render-utils";
 
 export class StageItemRenderer {
     constructor(private imageCache: ImageCache = new ImageCache()) {
@@ -9,34 +10,6 @@ export class StageItemRenderer {
     // Draws a StageItem using provided canvas context and grid geometry
     draw(item: StageItem, ctx: CanvasRenderingContext2D, geom: GridGeometry): void {
         if (!item) return;
-
-        // Build rounded-rect path helper
-        const pathRoundedRect = (
-            ctx2: CanvasRenderingContext2D,
-            rx: number,
-            ry: number,
-            rw: number,
-            rh: number,
-            r: number
-        ) => {
-            const rr = Math.max(0, Math.min(r, Math.min(rw, rh) / 2));
-            if (rr <= 0) {
-                ctx2.beginPath();
-                ctx2.rect(rx, ry, rw, rh);
-                return;
-            }
-            const r2 = rr;
-            ctx2.beginPath();
-            ctx2.moveTo(rx + r2, ry);
-            ctx2.lineTo(rx + rw - r2, ry);
-            ctx2.quadraticCurveTo(rx + rw, ry, rx + rw, ry + r2);
-            ctx2.lineTo(rx + rw, ry + rh - r2);
-            ctx2.quadraticCurveTo(rx + rw, ry + rh, rx + rw - r2, ry + rh);
-            ctx2.lineTo(rx + r2, ry + rh);
-            ctx2.quadraticCurveTo(rx, ry + rh, rx, ry + rh - r2);
-            ctx2.lineTo(rx, ry + r2);
-            ctx2.quadraticCurveTo(rx, ry, rx + r2, ry);
-        };
 
         const posX = item.Pose?.Position?.x ?? 0;
         const posY = item.Pose?.Position?.y ?? 0;
@@ -98,13 +71,7 @@ export class StageItemRenderer {
             ctx.strokeStyle = borderColor;
             ctx.lineJoin = 'round';
             ctx.lineCap = 'round';
-            if (borderStyle === 'dashed') {
-                const dash = Math.max(2, effectiveBw * 2);
-                const gap = Math.max(2, Math.round(effectiveBw * 1.5));
-                ctx.setLineDash([dash, gap]);
-            } else {
-                ctx.setLineDash([]);
-            }
+            applyDashStyle(ctx, borderStyle, effectiveBw);
             pathRoundedRect(ctx, x, y, w, h, radius);
             ctx.stroke();
         }

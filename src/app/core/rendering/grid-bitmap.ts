@@ -1,4 +1,5 @@
 import { GridGeometry } from "../models/canvas-geometry";
+import { applyDashStyle } from "./render-utils";
 
 export class GridBitmap {
   private pattern: CanvasPattern | null = null;
@@ -63,13 +64,7 @@ export class GridBitmap {
     targetCtx.strokeStyle = color;
     targetCtx.lineWidth = lw;
     const borderStyle = border.toLowerCase();
-      if (borderStyle === 'dashed') {
-          const dash = Math.max(2, lineWidth * 2);
-          const gap = Math.max(2, Math.round(lineWidth * 1.5));
-          targetCtx.setLineDash([dash, gap]);
-      } else {
-          targetCtx.setLineDash([]);
-      }
+    applyDashStyle(targetCtx, borderStyle, lineWidth);
     
     // For crisp outer borders, we should align them to half-pixels if lw is odd
     const offset = (lw % 2 === 1) ? 0.5 : 0;

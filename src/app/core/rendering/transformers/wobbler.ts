@@ -46,7 +46,7 @@ export class Wobbler {
 
   start(): void {
     if (this.sub) return;
-    this.sub = this.ticker.ticks$.subscribe(({ time }) => this.onTick(time));
+    this.sub = this.ticker.ticks$.subscribe(({ dtSec }) => this.onTick(dtSec));
   }
 
   stop(): void {
@@ -54,9 +54,11 @@ export class Wobbler {
     this.sub = undefined;
   }
 
-  private onTick(timeMs: number): void {
+  private elapsed = 0;
+  private onTick(dtSec: number): void {
     if (!this._item) return;
-    const t = Math.max(0, timeMs) / 1000; // seconds
+    this.elapsed += dtSec;
+    const t = this.elapsed;
     const omega = 2 * Math.PI * this._frequencyHz;
     const it = this._item;
     // Ensure Pose and Position exist

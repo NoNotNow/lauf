@@ -39,7 +39,7 @@ export class StageItemPhysics {
             s = {
                 ...DEFAULT_STATE,
                 mass: massFromItem(item),
-                restitution: p?.restitution ?? item.Physics.restitution ?? DEFAULT_STATE.restitution,
+                restitution: p?.restitution ?? DEFAULT_STATE.restitution,
                 linearDamping: p?.damping ?? DEFAULT_STATE.linearDamping,
                 angularDamping: p?.damping ?? DEFAULT_STATE.angularDamping,
             };

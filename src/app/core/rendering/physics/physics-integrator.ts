@@ -12,7 +12,6 @@ const TINY_NUDGE = 1e-6;
 // Transformers (Drifter, Rotator, future KeyboardController) should only set velocities/omega.
 export class PhysicsIntegrator {
   private sub?: Subscription;
-  private lastTime?: number;
   private items: StageItem[] = [];
   private boundary?: AxisAlignedBoundingBox;
   private bounce: boolean = true;
@@ -44,20 +43,15 @@ export class PhysicsIntegrator {
 
   start(): void {
     if (this.sub) return;
-    this.lastTime = undefined;
-    this.sub = this.ticker.ticks$.subscribe(({ time }) => this.onTick(time));
+    this.sub = this.ticker.ticks$.subscribe(({ dtSec }) => this.onTick(dtSec));
   }
 
   stop(): void {
     this.sub?.unsubscribe();
     this.sub = undefined;
-    this.lastTime = undefined;
   }
 
-  private onTick(time: number): void {
-    const prev = this.lastTime ?? time;
-    this.lastTime = time;
-    const dtSec = Math.max(0, (time - prev) / 1000);
+  private onTick(dtSec: number): void {
     if (dtSec === 0) return;
 
     for (const it of this.items) {

@@ -15,7 +15,6 @@ export interface CollisionEvent {
 export class CollisionHandler {
   private sub?: Subscription;
   private items: StageItem[] = [];
-  private lastTime?: number;
   private _restitutionDefault = 0.85;
   private _frictionDefault = 0.8;
   private _iterations = 10; // sequential impulse iterations per tick
@@ -65,7 +64,7 @@ export class CollisionHandler {
 
   start(): void {
     if (this.sub) return;
-    this.sub = this.ticker.ticks$.subscribe(({ time }) => this.onTick(time));
+    this.sub = this.ticker.ticks$.subscribe(({ dtSec }) => this.onTick(dtSec));
   }
 
   stop(): void {
@@ -73,13 +72,10 @@ export class CollisionHandler {
     this.sub = undefined;
   }
 
-  private onTick(time: number): void {
+  private onTick(dt: number): void {
     const n = this.items.length;
     if (n < 2) return;
 
-    const prev = this.lastTime ?? time;
-    this.lastTime = time;
-    const dt = Math.max(0, (time - prev) / 1000);
     // If dt is 0, we can still run with a tiny epsilon or skip, 
     // but usually it's better to use a default for the first frame
     const effectiveDt = dt || 0.016;

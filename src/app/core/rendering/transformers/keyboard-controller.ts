@@ -22,7 +22,6 @@ export interface KeyboardControllerOptions {
 // Uses reasonable defaults so it works out-of-the-box.
 export class KeyboardController {
   private sub?: Subscription;
-  private lastTime?: number;
   private _item?: StageItem;
   private keys = new Set<string>();
   private opts: Required<KeyboardControllerOptions>;
@@ -44,8 +43,8 @@ export class KeyboardController {
 
   start(): void {
     if (this.sub) return;
-    // Subscribe to ticks to update velocities using dt
-    this.sub = this.ticker.ticks$.subscribe(({ time }) => this.onTick(time));
+    // Subscribe to ticks to update velocities using dtSec
+    this.sub = this.ticker.ticks$.subscribe(({ dtSec }) => this.onTick(dtSec));
     // Listen to keyboard
     window.addEventListener('keydown', this.onKeyDown, { passive: false });
     window.addEventListener('keyup', this.onKeyUp, { passive: false });
@@ -54,7 +53,6 @@ export class KeyboardController {
   stop(): void {
     this.sub?.unsubscribe();
     this.sub = undefined;
-    this.lastTime = undefined;
     window.removeEventListener('keydown', this.onKeyDown);
     window.removeEventListener('keyup', this.onKeyUp);
   }
@@ -70,12 +68,9 @@ export class KeyboardController {
     if (k) this.keys.delete(k);
   };
 
-  private onTick(time: number): void {
+  private onTick(dt: number): void {
     const item = this._item;
     if (!item) return;
-    const prev = this.lastTime ?? time;
-    this.lastTime = time;
-    const dt = Math.max(0, (time - prev) / 1000);
     if (dt === 0) return;
 
     const phys = StageItemPhysics.get(item);

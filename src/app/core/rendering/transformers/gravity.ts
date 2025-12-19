@@ -31,22 +31,16 @@ export class Gravity {
 
   start(): void {
     if (this.sub) return;
-    this.sub = this.ticker.ticks$.subscribe(({ time }) => this.onTick(time));
+    this.sub = this.ticker.ticks$.subscribe(({ dtSec }) => this.onTick(dtSec));
   }
 
   stop(): void {
     this.sub?.unsubscribe();
     this.sub = undefined;
-    this.lastTime = undefined;
   }
 
-  private lastTime?: number;
-  private onTick(time: number): void {
+  private onTick(dtSec: number): void {
     if (!this._item) return;
-
-    const prev = this.lastTime ?? time;
-    this.lastTime = time;
-    const dtSec = Math.max(0, (time - prev) / 1000);
     if (dtSec === 0) return;
     
     // dtSec is in seconds
