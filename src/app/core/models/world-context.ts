@@ -2,6 +2,7 @@ import { Rotator } from '../rendering/transformers/rotator';
 import { Wobbler } from '../rendering/transformers/wobbler';
 import { Drifter } from '../rendering/transformers/drifter';
 import { Gravity } from '../rendering/transformers/gravity';
+import { FollowItem } from '../rendering/transformers/follow-item';
 import { KeyboardController } from '../rendering/transformers/keyboard-controller';
 import { CollisionHandler } from '../rendering/collision-handler';
 import { PhysicsIntegrator } from '../rendering/physics/physics-integrator';
@@ -17,6 +18,7 @@ export class WorldContext {
   private wobblers: Wobbler[] = [];
   private drifters: Drifter[] = [];
   private gravities: Gravity[] = [];
+  private followers: FollowItem[] = [];
   private avatarController?: KeyboardController;
   private integrator?: PhysicsIntegrator;
   private collisions?: CollisionHandler;
@@ -37,6 +39,10 @@ export class WorldContext {
 
   addGravity(gravity: Gravity): void {
     this.gravities.push(gravity);
+  }
+
+  addFollower(follower: FollowItem): void {
+    this.followers.push(follower);
   }
 
   setAvatarController(controller: KeyboardController): void {
@@ -71,6 +77,10 @@ export class WorldContext {
     this.avatar = avatar;
   }
 
+  getAvatar(): Avatar | undefined {
+    return this.avatar;
+  }
+
   updateCamera(): void {
     if (this.camera && this.avatar) {
       this.camera.setTarget(this.avatar.Pose.Position, this.camera.getZoom());
@@ -91,6 +101,7 @@ export class WorldContext {
     this.wobblers.forEach(w => w.start());
     this.drifters.forEach(d => d.start());
     this.gravities.forEach(g => g.start());
+    this.followers.forEach(f => f.start());
     this.avatarController?.start();
     this.collisions?.start();
     this.integrator?.start();
@@ -101,6 +112,7 @@ export class WorldContext {
     this.wobblers.forEach(w => w.stop());
     this.drifters.forEach(d => d.stop());
     this.gravities.forEach(g => g.stop());
+    this.followers.forEach(f => f.stop());
     this.avatarController?.stop();
     this.integrator?.stop();
     this.collisions?.stop();
@@ -112,6 +124,7 @@ export class WorldContext {
     this.wobblers = [];
     this.drifters = [];
     this.gravities = [];
+    this.followers = [];
     this.avatarController = undefined;
     this.collisions?.clear();
     this.integrator = undefined;

@@ -2,11 +2,17 @@ import {Design} from "../design/design";
 import { Pose } from "../pose";
 import {PhysicsConfiguration} from "./physics-configuration";
 
+export interface Transformer {
+    Type: string;
+    Params: any;
+}
+
 export class StageItem {
 
     public Pose: Pose = new Pose();
     public Design: Design = new Design();
     public Physics: PhysicsConfiguration = new PhysicsConfiguration();
+    public transformers: Transformer[] = [];
 
     // Fills current instance from a plain JSON/object without replacing it
     public FromJson(data: any): this {
@@ -30,6 +36,14 @@ export class StageItem {
         const restitution = g('restitution', 'Restitution');
         if (restitution !== undefined) {
             this.Physics.restitution = Number(restitution);
+        }
+
+        const transformers = g('Transformers', 'transformers');
+        if (Array.isArray(transformers)) {
+            this.transformers = transformers.map(t => ({
+                Type: t.Type ?? t.type,
+                Params: t.Params ?? t.params
+            }));
         }
 
         return this;

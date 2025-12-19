@@ -8,9 +8,10 @@ import { AxisAlignedBoundingBox } from '../rendering/collision';
 import { Rotator } from '../rendering/transformers/rotator';
 import { Drifter } from '../rendering/transformers/drifter';
 import { Gravity } from '../rendering/transformers/gravity';
+import { FollowItem } from '../rendering/transformers/follow-item';
 import { KeyboardController } from '../rendering/transformers/keyboard-controller';
-import { Avatar, Obstacle, Target, Transformer } from '../models/game-items/stage-items';
-import { StageItem } from '../models/game-items/stage-item';
+import { Avatar, Obstacle, Target } from '../models/game-items/stage-items';
+import { StageItem, Transformer } from '../models/game-items/stage-item';
 import { Point } from '../models/point';
 import { Camera } from '../rendering/camera';
 import { UserControllerParams } from '../models/user-controller-params';
@@ -102,8 +103,13 @@ export class WorldAssemblerService {
         this.wireCollision(obstacle, context);
       }
 
-      // Check for transformers in obstacle if they are added in the future
-      // For now we keep existing logic
+      if (obstacle.transformers && obstacle.transformers.length > 0) {
+        obstacle.transformers.forEach(t => {
+          if (t.Type === 'FollowItem') {
+            this.attachFollowItem(obstacle, context, t.Params);
+          }
+        });
+      }
       
       if (physics.hasGravity) {
         this.attachGravity(obstacle, context);
@@ -164,6 +170,8 @@ export class WorldAssemblerService {
       avatar.transformers.forEach(t => {
         if (t.Type === 'UserController') {
           this.attachAvatarController(avatar, context, t.Params);
+        } else if (t.Type === 'FollowItem') {
+          this.attachFollowItem(avatar, context, t.Params);
         }
       });
     }
@@ -198,6 +206,29 @@ export class WorldAssemblerService {
       params ?? defaultParams
     );
     context.setAvatarController(controller);
+  }
+
+  private attachFollowItem(
+    item: StageItem,
+    context: WorldContext,
+    params: any
+  ): void {
+    if (!params || !params.TargetId) return;
+
+    let target: StageItem | undefined;
+    if (params.TargetId === 'Avatar') {
+      target = context.getAvatar();
+    }
+
+    if (target) {
+      const follower = new FollowItem(this.ticker, item, {
+        target: target,
+        distance: params.Distance,
+        maxSpeed: params.maxSpeed ?? params.MaxSpeed,
+        direction: params.direction
+      });
+      context.addFollower(follower);
+    }
   }
 
   // Random generation helpers

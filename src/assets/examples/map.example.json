@@ -25,21 +25,34 @@
       "Pose": {
         "Position": {
           "X": 6,
-          "Y": 2
+          "Y": 8
         },
         "Size": {
-          "X": 1,
-          "Y": 0.7
+          "X": 0.3,
+          "Y": 0.2
         }
       },
       "Design": {
-        "Color": "#0000ff",
-        "CornerRadius": 0,
+        "Color": "transparent",
         "Image": "assets/monkey.svg"
       },
       "PhysicsConfiguration": {
-        "damping": 0.5
-      }
+        "damping": 0.5,
+        "hasCollision": true,
+        "mass": 100,
+        "hasGravity": true
+      },
+      "Transformers": [
+        {
+          "Type": "FollowItem",
+          "Params": {
+            "TargetId": "Avatar",
+            "Distance": 0.2,
+            "maxSpeed": 0.5,
+            "direction": "horizontal"
+          }
+        }
+      ]
     },
     {
       "Pose": {
@@ -284,6 +297,7 @@
     }
   ],
   "Avatar": {
+    "Id": "Avatar",
     "Pose": {
       "Position": {
         "X": 5,
