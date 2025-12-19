@@ -29,6 +29,7 @@ export class MapComponent implements AfterViewInit, OnDestroy, MapLoader {
     gridColor = '#cccccc';
     gridLineWidth = 0.01; // in cell units (1.0 == one cell)
     gridSize: Point = new Point(10, 10);
+    gridBorder = "solid";
 
     camera = new Camera(new Point(5, 5), 15);
 
@@ -138,6 +139,12 @@ export class MapComponent implements AfterViewInit, OnDestroy, MapLoader {
         // Update grid size from map
         if (m.size) {
             this.gridSize = new Point(m.size.x, m.size.y);
+        }
+
+        if(m.design) {
+            if(m.design.BorderWidth) this.gridLineWidth = m.design?.BorderWidth
+            if(m.design.BorderColor) this.gridColor = m.design?.BorderColor;
+            if(m.design.Border) this.gridBorder = m.design?.Border;
         }
 
         // Provide map to animator (obstacles drawn via canvas layer per tick)

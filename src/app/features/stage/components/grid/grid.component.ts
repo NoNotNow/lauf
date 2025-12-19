@@ -20,6 +20,7 @@ export class GridComponent implements OnChanges {
   // Grid line color and width (width in cell units; 1.0 == one cell thickness)
   @Input() color: string = '#cccccc';
   @Input() lineWidth: number = 0.02;
+  @Input() gridBorder!: string;
 
   @Input() camera?: Camera;
 
@@ -56,7 +57,7 @@ export class GridComponent implements OnChanges {
         return;
     }
 
-    this.bitmap.draw(ctx, canvas.width, canvas.height, geom, this.color, this.lineWidth);
+    this.bitmap.draw(ctx, canvas.width, canvas.height, geom, this.color, this.lineWidth, this.gridBorder);
   };
 
   private drawLegacy(ctx: CanvasRenderingContext2D, canvas: HTMLCanvasElement) {

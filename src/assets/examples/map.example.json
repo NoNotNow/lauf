@@ -2,10 +2,10 @@
   "Name": "Sample Level 1",
   "Size": { "X": 10, "Y": 10 },
   "Design": {
-    "Color": "#f8f9fa",
+    "Color": "#118800",
     "Border": "solid",
-    "BorderColor": "#cccccc",
-    "BorderWidth": 0.08,
+    "BorderColor": "#FF0000",
+    "BorderWidth": 0.005,
     "BorderRadius": 0,
     "Image": ""
   },

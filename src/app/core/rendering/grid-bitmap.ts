@@ -15,7 +15,8 @@ export class GridBitmap {
     canvasH: number,
     geom: GridGeometry,
     color: string,
-    lineWidth: number
+    lineWidth: number,
+    border: string
   ): void {
     const key = `${geom.cellW}x${geom.cellH}-${color}-${lineWidth}`;
 
@@ -61,6 +62,14 @@ export class GridBitmap {
     const lw = Math.max(1, Math.round(lineWidth * Math.min(geom.cellW, geom.cellH)));
     targetCtx.strokeStyle = color;
     targetCtx.lineWidth = lw;
+    const borderStyle = border.toLowerCase();
+      if (borderStyle === 'dashed') {
+          const dash = Math.max(2, lineWidth * 2);
+          const gap = Math.max(2, Math.round(lineWidth * 1.5));
+          targetCtx.setLineDash([dash, gap]);
+      } else {
+          targetCtx.setLineDash([]);
+      }
     
     // For crisp outer borders, we should align them to half-pixels if lw is odd
     const offset = (lw % 2 === 1) ? 0.5 : 0;
