@@ -7,7 +7,6 @@ export class StageItem {
     public Pose: Pose = new Pose();
     public Design: Design = new Design();
     public Physics: PhysicsConfiguration = new PhysicsConfiguration();
-    public restitution?: number;
 
     // Fills current instance from a plain JSON/object without replacing it
     public FromJson(data: any): this {
@@ -30,7 +29,7 @@ export class StageItem {
 
         const restitution = g('restitution', 'Restitution');
         if (restitution !== undefined) {
-            this.restitution = Number(restitution);
+            this.Physics.restitution = Number(restitution);
         }
 
         return this;
@@ -55,7 +54,7 @@ export class StageItem {
             Pose: pose,
             Design: design,
             PhysicsConfiguration: this.Physics.ToJson(),
-            restitution: this.restitution
+            restitution: this.Physics.restitution
         };
     }
 }

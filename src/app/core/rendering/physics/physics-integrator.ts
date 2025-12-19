@@ -2,10 +2,11 @@ import { Subscription } from 'rxjs';
 import { TickService } from '../../services/tick.service';
 import { StageItem } from '../../models/game-items/stage-item';
 import { StageItemPhysics } from './stage-item-physics';
-import { AxisAlignedBoundingBox, poseContainmentAgainstAxisAlignedBoundingBox } from '../collision';
-import { reflectVelocity, TINY_NUDGE } from './bounce';
-import { applyAngularToLinearAtBoundary } from './coupling';
+import { AxisAlignedBoundingBox, orientedBoundingBoxFromPose, poseContainmentAgainstAxisAlignedBoundingBox } from '../collision';
+import { applyBoundaryCollisionImpulse } from './impulses';
 import { toNumber } from '../../utils/number-utils';
+
+const TINY_NUDGE = 1e-6;
 
 // Integrates poses (position + rotation) from StageItemPhysics velocities each tick.
 // Transformers (Drifter, Rotator, future KeyboardController) should only set velocities/omega.
@@ -104,27 +105,50 @@ export class PhysicsIntegrator {
         testPose.Rotation = r;
         const res = poseContainmentAgainstAxisAlignedBoundingBox(testPose, this.boundary);
         if (res.overlaps) {
-          // Correct position by MTV
-          x += res.minimalTranslationVector.x;
-          y += res.minimalTranslationVector.y;
-          if (this.bounce) {
-            const restitution = phys.restitution ?? 1.0;
-            // For resting boundary contact (low velocity), zero out restitution to prevent jitter/gain
-            const relV = vx * res.normal.x + vy * res.normal.y;
-            const actualE = (-relV < 0.5) ? 0 : restitution;
+          // Correct position by MTV - capped to avoid enormous jumps
+          const mtvX = res.minimalTranslationVector.x;
+          const mtvY = res.minimalTranslationVector.y;
+          const dist = Math.hypot(mtvX, mtvY);
+          const maxCorrection = 0.5;
+          const scale = dist > maxCorrection ? maxCorrection / dist : 1.0;
 
-            const v = reflectVelocity({ x: vx, y: vy }, res.normal, actualE);
-            StageItemPhysics.setVelocity(it, v.x, v.y);
+          x += mtvX * scale;
+          y += mtvY * scale;
+
+          if (this.bounce) {
+            const obb = orientedBoundingBoxFromPose(pose);
+            applyBoundaryCollisionImpulse(
+              it,
+              obb,
+              this.boundary,
+              res.normal,
+              { restitution: phys.restitution ?? 1.0, friction: 0.8 } // Default friction
+            );
+
             x += res.normal.x * TINY_NUDGE;
             y += res.normal.y * TINY_NUDGE;
-            // Transfer some spin into linear along the tangent; also damps omega
-            applyAngularToLinearAtBoundary(it, pose as any, res.normal, 0.35, actualE);
+
+            // Re-read after impulse
+            const updated = StageItemPhysics.get(it);
+            vx = updated.vx;
+            vy = updated.vy;
+            omega = updated.omega;
           } else {
             // clamp inside (legacy behavior)
             x = Math.max(this.boundary.minX, Math.min(this.boundary.maxX, x));
             y = Math.max(this.boundary.minY, Math.min(this.boundary.maxY, y));
           }
         }
+      }
+
+      // Final velocity clamping to prevent system blow-up
+      const maxVel = 200; // cells/s
+      const speedSq = vx * vx + vy * vy;
+      if (speedSq > maxVel * maxVel) {
+        const speed = Math.sqrt(speedSq);
+        vx = (vx / speed) * maxVel;
+        vy = (vy / speed) * maxVel;
+        StageItemPhysics.setVelocity(it, vx, vy);
       }
 
       // Commit new pose

@@ -18,10 +18,164 @@ export interface ItemItemImpulseParams {
   friction: number;        // >=0, typical 0.2..1
 }
 
-// Estimate a reasonable contact point between two OBBs using their centers midpoint.
-// This is a simplification that still produces angular effects for off-center hits.
-export function estimateContactPoint(a: OrientedBoundingBox, b: OrientedBoundingBox): { x: number; y: number } {
-  return { x: (a.center.x + b.center.x) * 0.5, y: (a.center.y + b.center.y) * 0.5 };
+// Estimate a reasonable contact point between two OBBs using support point clipping.
+// This prevents objects from rotating "out of nowhere" when resting on a large flat surface.
+export function estimateContactPoint(
+  a: OrientedBoundingBox,
+  b: OrientedBoundingBox,
+  normal: { x: number; y: number }
+): { x: number; y: number } {
+  const n = normal;
+  const t = { x: -n.y, y: n.x };
+
+  const getSeg = (obb: OrientedBoundingBox, norm: { x: number; y: number }) => {
+    let min = Infinity;
+    let max = -Infinity;
+    let bestDist = -Infinity;
+    const eps = 1e-4;
+    for (const p of obb.corners) {
+      const d = p.x * norm.x + p.y * norm.y;
+      if (d > bestDist + eps) {
+        bestDist = d;
+        min = max = p.x * t.x + p.y * t.y;
+      } else if (d > bestDist - eps) {
+        const proj = p.x * t.x + p.y * t.y;
+        if (proj < min) min = proj;
+        if (proj > max) max = proj;
+      }
+    }
+    return { min, max, dist: bestDist };
+  };
+
+  const segA = getSeg(a, n);
+  const segB = getSeg(b, { x: -n.x, y: -n.y });
+
+  const overlapMin = Math.max(segA.min, segB.min);
+  const overlapMax = Math.min(segA.max, segB.max);
+  // If there's no overlap in projection (shouldn't happen if OBBs intersect), 
+  // fall back to a simple average of face centers.
+  const mid = (overlapMin <= overlapMax) ? (overlapMin + overlapMax) * 0.5 : (segA.min + segA.max + segB.min + segB.max) * 0.25;
+  const interfaceDist = (segA.dist - segB.dist) * 0.5;
+
+  return {
+    x: n.x * interfaceDist + t.x * mid,
+    y: n.y * interfaceDist + t.y * mid
+  };
+}
+
+// Estimate a reasonable contact point between an OBB and a boundary (AABB).
+// Strategy: average the corners of the OBB that are outside the AABB.
+export function estimateBoundaryContactPoint(
+  obb: OrientedBoundingBox,
+  boundary: { minX: number; minY: number; maxX: number; maxY: number },
+  normal: { x: number; y: number }
+): { x: number; y: number } {
+  let count = 0;
+  let cx = 0;
+  let cy = 0;
+
+  // Small epsilon to catch points exactly on or slightly outside the boundary
+  const eps = 1e-4;
+
+  for (const p of obb.corners) {
+    let outside = false;
+    // Normal points INWARD to the boundary box
+    if (normal.x > 0.9 && p.x < boundary.minX + eps) outside = true;
+    else if (normal.x < -0.9 && p.x > boundary.maxX - eps) outside = true;
+    else if (normal.y > 0.9 && p.y < boundary.minY + eps) outside = true;
+    else if (normal.y < -0.9 && p.y > boundary.maxY - eps) outside = true;
+
+    if (outside) {
+      cx += p.x;
+      cy += p.y;
+      count++;
+    }
+  }
+
+  if (count > 0) {
+    return { x: cx / count, y: cy / count };
+  }
+
+  // Fallback: if no corners are clearly outside, use the point on the OBB surface 
+  // in the direction of the normal relative to the center.
+  // This is a simplification.
+  return {
+    x: obb.center.x - normal.x * Math.max(obb.half.x, obb.half.y),
+    y: obb.center.y - normal.y * Math.max(obb.half.x, obb.half.y)
+  };
+}
+
+// Resolve collision impulse between an item and a static boundary along normal and tangent.
+export function applyBoundaryCollisionImpulse(
+  item: StageItem,
+  obb: OrientedBoundingBox,
+  boundary: { minX: number; minY: number; maxX: number; maxY: number },
+  normal: { x: number; y: number },
+  params: ItemItemImpulseParams
+): void {
+  const e = Math.min(1, Math.max(0, Number(params?.restitution ?? 1)));
+  const mu = Math.max(0, Number(params?.friction ?? 0));
+
+  const s = StageItemPhysics.get(item);
+  const invMass = s.mass >= 1e6 ? 0 : 1 / Math.max(1e-6, s.mass);
+  if (invMass === 0) return;
+
+  const I = StageItemPhysics.momentOfInertia(item);
+  const invI = s.mass >= 1e6 ? 0 : 1 / I;
+
+  // Contact point and lever arm
+  const cp = estimateBoundaryContactPoint(obb, boundary, normal);
+  const r = { x: cp.x - obb.center.x, y: cp.y - obb.center.y };
+
+  // Velocity at contact
+  const omegaRad = StageItemPhysics.omegaDegToRadPerSec(s.omega);
+  const vAtC = { x: s.vx + (-omegaRad * r.y), y: s.vy + (omegaRad * r.x) };
+
+  // Velocity along normal (inward normal, so v·n < 0 is approaching)
+  const vRelN = dot(vAtC.x, vAtC.y, normal.x, normal.y);
+  if (vRelN > 0) return; // Separating
+
+  const velThreshold = 0.5;
+  const actualE = (-vRelN < velThreshold) ? 0 : e;
+
+  // Effective mass along normal
+  const rXn = cross2(r, normal);
+  const kN = invMass + (rXn * rXn) * invI;
+  const jn = -(1 + actualE) * vRelN / (kN || 1);
+
+  // Apply normal impulse
+  const Jn = { x: jn * normal.x, y: jn * normal.y };
+  s.vx += Jn.x * invMass;
+  s.vy += Jn.y * invMass;
+  const tau = cross2(r, Jn);
+  const newOmegaRad = omegaRad + tau * invI;
+
+  // Friction/Tangent
+  const vRelT_vec = { x: vAtC.x - vRelN * normal.x, y: vAtC.y - vRelN * normal.y };
+  const tLen = len(vRelT_vec.x, vRelT_vec.y);
+  if (tLen > 1e-6) {
+    const t = { x: -vRelT_vec.x / tLen, y: -vRelT_vec.y / tLen };
+    const vRelT = dot(vAtC.x, vAtC.y, t.x, t.y);
+    const rXt = cross2(r, t);
+    const kT = invMass + (rXt * rXt) * invI;
+    let jt = -(1 + actualE) * vRelT / (kT || 1); // Using restitution for friction too might be too much, but let's try
+    // Actually, simple friction usually doesn't use restitution
+    jt = -vRelT / (kT || 1);
+    
+    const maxFric = mu * jn;
+    if (jt > maxFric) jt = maxFric;
+    if (jt < -maxFric) jt = -maxFric;
+
+    const Jt = { x: jt * t.x, y: jt * t.y };
+    s.vx += Jt.x * invMass;
+    s.vy += Jt.y * invMass;
+    const tauF = cross2(r, Jt);
+    s.omega = StageItemPhysics.omegaRadToDegPerSec(newOmegaRad + tauF * invI);
+  } else {
+    s.omega = StageItemPhysics.omegaRadToDegPerSec(newOmegaRad);
+  }
+
+  StageItemPhysics.set(item, s);
 }
 
 // Resolve collision impulse between two items along normal and tangent, including angular effects.
@@ -49,7 +203,7 @@ export function applyItemItemCollisionImpulse(
   const invIB = sb.mass >= 1e6 ? 0 : 1 / IB;
 
   // Contact point and lever arms
-  const c = estimateContactPoint(aObb, bObb);
+  const c = estimateContactPoint(aObb, bObb, normal);
   const ra = { x: c.x - aObb.center.x, y: c.y - aObb.center.y };
   const rb = { x: c.x - bObb.center.x, y: c.y - bObb.center.y };
 

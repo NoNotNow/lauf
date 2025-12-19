@@ -113,7 +113,8 @@
       "Border": {"Style": "none"},
       "Image": "assets/hero.svg"
     },
-    "restitution": 0.7,
+    "Physics": { "canMove": true, "canRotate": true, "hasGravity": false, "restitution": 0.7
+    },
     "ControllerParams": {
       "linearAccel": 3.0,
       "linearBrake": 2.5,

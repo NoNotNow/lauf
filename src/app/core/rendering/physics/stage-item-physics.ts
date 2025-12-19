@@ -17,7 +17,7 @@ const DEFAULT_STATE: PhysicsState = {
     mass: 1,
     restitution: 1.0,
     linearDamping: 0,
-    angularDamping: 0,
+    angularDamping: 0.1,
 };
 
 // Hidden storage for per-item physics state without touching serialization
@@ -39,7 +39,7 @@ export class StageItemPhysics {
             s = {
                 ...DEFAULT_STATE,
                 mass: massFromItem(item),
-                restitution: p?.restitution ?? item.restitution ?? DEFAULT_STATE.restitution,
+                restitution: p?.restitution ?? item.Physics.restitution ?? DEFAULT_STATE.restitution,
                 linearDamping: p?.damping ?? DEFAULT_STATE.linearDamping,
                 angularDamping: p?.damping ?? DEFAULT_STATE.angularDamping,
             };

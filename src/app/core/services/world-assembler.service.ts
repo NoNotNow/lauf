@@ -101,12 +101,12 @@ export class WorldAssemblerService {
       if (physics.hasCollision) {
         this.wireCollision(obstacle, context);
       }
-      if (physics.canRotate) {
-        this.attachRotator(obstacle, context);
-      }
-      if (physics.canMove) {
-        this.attachDrifter(obstacle, context, boundary);
-      }
+      // if (physics.canRotate) {
+      //   this.attachRotator(obstacle, context);
+      // }
+      // if (physics.canMove) {
+      //   this.attachDrifter(obstacle, context, boundary);
+      // }
       if (physics.hasGravity) {
         this.attachGravity(obstacle, context);
       }

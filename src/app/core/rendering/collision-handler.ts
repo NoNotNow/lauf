@@ -129,7 +129,7 @@ export class CollisionHandler {
         const expandedRadiusSum = radiusSum + velocityExpansion;
         if (distSq > expandedRadiusSum * expandedRadiusSum) continue;
 
-        let res = orientedBoundingBoxIntersectsOrientedBoundingBox(aobb, bobb);
+        let res = orientedBoundingBoxIntersectsOrientedBoundingBox(aobb, bobb) as any;
 
         // If not currently overlapping, try CCD look-ahead if they are moving fast
         if (!res.overlaps && relSpeedSq > 0) {
@@ -152,6 +152,7 @@ export class CollisionHandler {
               if (predRes.overlaps) {
                 res = {
                   overlaps: true,
+                  isCCD: true,
                   normal: { x: predRes.normal.x, y: predRes.normal.y },
                   minimalTranslationVector: { x: predRes.minimalTranslationVector.x, y: predRes.minimalTranslationVector.y }
                 } as any;
@@ -170,7 +171,8 @@ export class CollisionHandler {
           normal: { x: res.normal.x, y: res.normal.y }, 
           mtv: { x: res.minimalTranslationVector.x, y: res.minimalTranslationVector.y }, 
           aobb, 
-          bobb 
+          bobb,
+          isCCD: !!res.isCCD
         });
 
         // Only emit events if there are subscribers to avoid allocation
@@ -214,6 +216,8 @@ export class CollisionHandler {
     const percent = 0.4;    // Resolve 40% of the overlap per frame
 
     for (const c of contacts) {
+      if (c.isCCD) continue; // Skip positional correction for predictive CCD hits
+
       const sa = StageItemPhysics.get(c.a);
       const sb = StageItemPhysics.get(c.b);
 
@@ -223,7 +227,9 @@ export class CollisionHandler {
       if (sum <= 0) continue;
 
       const mtvMagnitude = Math.hypot(c.mtv.x, c.mtv.y);
-      const correctionMagnitude = (Math.max(mtvMagnitude - slop, 0) / sum) * percent;
+      // Cap maximum correction to avoid enormous jumps that upset the system
+      const maxCorrection = 0.5; // max 0.5 cells per frame
+      const correctionMagnitude = (Math.min(maxCorrection, Math.max(mtvMagnitude - slop, 0)) / sum) * percent;
 
       const correctionX = c.normal.x * correctionMagnitude;
       const correctionY = c.normal.y * correctionMagnitude;
