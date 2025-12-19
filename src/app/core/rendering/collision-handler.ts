@@ -1,7 +1,7 @@
 import { Subscription, Subject } from 'rxjs';
 import { StageItem } from '../models/game-items/stage-item';
 import { TickService } from '../services/tick.service';
-import { orientedBoundingBoxFromPose, orientedBoundingBoxIntersectsOrientedBoundingBox } from './collision';
+import { orientedBoundingBoxFromPose, orientedBoundingBoxIntersectsOrientedBoundingBox, resetOBBPool } from './collision';
 import { StageItemPhysics } from './physics/stage-item-physics';
 import { applyItemItemCollisionImpulse } from './physics/impulses';
 
@@ -19,6 +19,18 @@ export class CollisionHandler {
   private _frictionDefault = 0.8;
   private _iterations = 8; // sequential impulse iterations per tick
   public readonly events$ = new Subject<CollisionEvent>();
+
+  // Pre-allocated arrays to avoid allocation per frame
+  private obbCache: (ReturnType<typeof orientedBoundingBoxFromPose> | null)[] = [];
+  private contacts: { a: StageItem; b: StageItem; normal: { x: number; y: number }; aobb: any; bobb: any }[] = [];
+
+  // Pre-allocated event object to avoid allocation per collision
+  private collisionEvent: CollisionEvent = {
+    a: null as any,
+    b: null as any,
+    normal: { x: 0, y: 0 },
+    minimalTranslationVector: { x: 0, y: 0 }
+  };
 
   constructor(private ticker: TickService) {}
 
@@ -63,14 +75,21 @@ export class CollisionHandler {
     const n = this.items.length;
     if (n < 2) return;
 
-    // Cache OBBs to avoid re-calculating them in the inner loop
-    const obbs = this.items.map(item => {
-      const p = item?.Pose;
-      return p ? orientedBoundingBoxFromPose(p) : null;
-    });
+    // Reset OBB object pool at frame start to avoid allocations
+    resetOBBPool();
 
-    // Build contact list once per tick
-    const contacts: { a: StageItem; b: StageItem; normal: { x: number; y: number }; aobb: any; bobb: any }[] = [];
+    // Cache OBBs to avoid re-calculating them in the inner loop
+    // Reuse pre-allocated array to avoid allocation
+    const obbs = this.obbCache;
+    obbs.length = n;
+    for (let i = 0; i < n; i++) {
+      const p = this.items[i]?.Pose;
+      obbs[i] = p ? orientedBoundingBoxFromPose(p) : null;
+    }
+
+    // Build contact list once per tick - reuse pre-allocated array
+    const contacts = this.contacts;
+    contacts.length = 0;
     for (let i = 0; i < n - 1; i++) {
       const ai = this.items[i];
       const aobb = obbs[i];
@@ -91,7 +110,18 @@ export class CollisionHandler {
         const res = orientedBoundingBoxIntersectsOrientedBoundingBox(aobb, bobb);
         if (!res.overlaps) continue;
         contacts.push({ a: ai, b: bj, normal: res.normal, aobb, bobb });
-        this.events$.next({ a: ai, b: bj, normal: res.normal, minimalTranslationVector: res.minimalTranslationVector });
+
+        // Only emit events if there are subscribers to avoid allocation
+        if (this.events$.observed) {
+          const evt = this.collisionEvent;
+          evt.a = ai;
+          evt.b = bj;
+          evt.normal.x = res.normal.x;
+          evt.normal.y = res.normal.y;
+          evt.minimalTranslationVector.x = res.minimalTranslationVector.x;
+          evt.minimalTranslationVector.y = res.minimalTranslationVector.y;
+          this.events$.next(evt);
+        }
       }
     }
 

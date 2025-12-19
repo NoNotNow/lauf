@@ -16,6 +16,9 @@ export class PhysicsIntegrator {
   private boundary?: AxisAlignedBoundingBox;
   private bounce: boolean = true;
 
+  // Pre-allocated objects to avoid allocation per frame
+  private testPose: any = { Position: { x: 0, y: 0 }, Size: { x: 0, y: 0 }, Rotation: 0 };
+
   constructor(private ticker: TickService) {}
 
   setBoundary(boundary?: AxisAlignedBoundingBox, bounce: boolean = true): void {
@@ -79,11 +82,13 @@ export class PhysicsIntegrator {
 
       // Boundary containment and bounce (affects x,y and may reflect velocity)
       if (this.boundary) {
-        const testPose = {
-          Position: { x, y },
-          Size: { x: toNumber(pose.Size?.x, 0), y: toNumber(pose.Size?.y, 0) },
-          Rotation: r
-        } as any;
+        // Reuse pre-allocated testPose object to avoid allocation
+        const testPose = this.testPose;
+        testPose.Position.x = x;
+        testPose.Position.y = y;
+        testPose.Size.x = toNumber(pose.Size?.x, 0);
+        testPose.Size.y = toNumber(pose.Size?.y, 0);
+        testPose.Rotation = r;
         const res = poseContainmentAgainstAxisAlignedBoundingBox(testPose, this.boundary);
         if (res.overlaps) {
           // Correct position by MTV

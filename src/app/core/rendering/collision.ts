@@ -14,17 +14,63 @@ export interface OrientedBoundingBox {
   corners: Vec2[];     // 4 corners in world coordinates, CCW starting from top-left
 }
 
+// Object pool for OBB allocations to reduce GC pressure
+class OBBPool {
+  private pool: OrientedBoundingBox[] = [];
+  private index = 0;
+
+  get(): OrientedBoundingBox {
+    if (this.index >= this.pool.length) {
+      this.pool.push({
+        center: { x: 0, y: 0 },
+        half: { x: 0, y: 0 },
+        rotationDeg: 0,
+        corners: [{ x: 0, y: 0 }, { x: 0, y: 0 }, { x: 0, y: 0 }, { x: 0, y: 0 }]
+      });
+    }
+    return this.pool[this.index++];
+  }
+
+  reset(): void {
+    this.index = 0;
+  }
+}
+
+const obbPool = new OBBPool();
+
+// Pre-allocated arrays for SAT test to avoid allocations per collision check
+const satAxesCache: Vec2[] = [
+  { x: 0, y: 0 }, { x: 0, y: 0 }, { x: 0, y: 0 }, { x: 0, y: 0 }
+];
+const projectionCache = { min: 0, max: 0 };
+
+// Pre-allocated result objects to avoid allocations
+const overlapResultCache: OverlapResult = {
+  overlaps: false,
+  minimalTranslationVector: { x: 0, y: 0 },
+  normal: { x: 0, y: 0 }
+};
+
+const intersectionResultCache: OrientedBoundingBoxIntersectionResult = {
+  overlaps: false,
+  minimalTranslationVector: { x: 0, y: 0 },
+  normal: { x: 0, y: 0 }
+};
+
 export interface OverlapResult {
   overlaps: boolean;  // true if shape violates the boundary interior (i.e., not fully contained)
   minimalTranslationVector: Vec2;          // minimal translation vector to bring OrientedBoundingBox fully inside AxisAlignedBoundingBox (0,0 if none)
   normal: Vec2;       // collision normal (unit vector) pointing inward (same direction as minimalTranslationVector), or {0,0}
 }
 
+export interface OrientedBoundingBoxIntersectionResult { overlaps: boolean; minimalTranslationVector: Vec2; normal: Vec2 }
+
 export function degToRad(deg: number): number { return (deg || 0) * Math.PI / 180; }
 
 // Builds an OrientedBoundingBox from a Pose. Convention:
 // - Pose.Position is top-left cell of the axis-aligned bounding rect when rotation=0.
 // - Rotation is around the rectangle center.
+// Uses object pooling to avoid allocations - pool must be reset at frame start
 export function orientedBoundingBoxFromPose(pose: Pose | undefined): OrientedBoundingBox {
   const p = pose?.Position;
   const s = pose?.Size;
@@ -47,33 +93,52 @@ export function orientedBoundingBoxFromPose(pose: Pose | undefined): OrientedBou
   const hWs = halfW * s_rad;
   const hHc = halfH * c;
   const hHs = halfH * s_rad;
-  
+
   // Corners: (-halfW, -halfH), (halfW, -halfH), (halfW, halfH), (-halfW, halfH)
   // x' = x*c - y*s
   // y' = x*s + y*c
-  
-  return { 
-    center: { x: cx, y: cy }, 
-    half: { x: halfW, y: halfH }, 
-    rotationDeg: rot, 
-    corners: [
-      { x: cx - hWc + hHs, y: cy - hWs - hHc },
-      { x: cx + hWc + hHs, y: cy + hWs - hHc },
-      { x: cx + hWc - hHs, y: cy + hWs + hHc },
-      { x: cx - hWc - hHs, y: cy - hWs + hHc }
-    ] 
-  };
+
+  // Get pooled OBB and mutate it instead of allocating
+  const obb = obbPool.get();
+  obb.center.x = cx;
+  obb.center.y = cy;
+  obb.half.x = halfW;
+  obb.half.y = halfH;
+  obb.rotationDeg = rot;
+  obb.corners[0].x = cx - hWc + hHs;
+  obb.corners[0].y = cy - hWs - hHc;
+  obb.corners[1].x = cx + hWc + hHs;
+  obb.corners[1].y = cy + hWs - hHc;
+  obb.corners[2].x = cx + hWc - hHs;
+  obb.corners[2].y = cy + hWs + hHc;
+  obb.corners[3].x = cx - hWc - hHs;
+  obb.corners[3].y = cy - hWs + hHc;
+
+  return obb;
+}
+
+// Reset the OBB pool at the start of each frame
+export function resetOBBPool(): void {
+  obbPool.reset();
 }
 
 // Compute if OrientedBoundingBox is fully contained in AxisAlignedBoundingBox. If not, return minimal translation vector to move it inside.
 // Strategy: compare OrientedBoundingBox extrema along world X and Y axes to AxisAlignedBoundingBox limits and choose the smallest correction.
 export function containmentAgainstAxisAlignedBoundingBox(orientedBoundingBox: OrientedBoundingBox, axisAlignedBoundingBox: AxisAlignedBoundingBox): OverlapResult {
-  const xs = orientedBoundingBox.corners.map(p => p.x);
-  const ys = orientedBoundingBox.corners.map(p => p.y);
-  const minX = Math.min(...xs);
-  const maxX = Math.max(...xs);
-  const minY = Math.min(...ys);
-  const maxY = Math.max(...ys);
+  // Avoid array allocation via map() - manually find min/max
+  const corners = orientedBoundingBox.corners;
+  let minX = corners[0].x;
+  let maxX = minX;
+  let minY = corners[0].y;
+  let maxY = minY;
+  for (let i = 1; i < corners.length; i++) {
+    const x = corners[i].x;
+    const y = corners[i].y;
+    if (x < minX) minX = x;
+    else if (x > maxX) maxX = x;
+    if (y < minY) minY = y;
+    else if (y > maxY) maxY = y;
+  }
 
   // Positive values mean the OrientedBoundingBox leaks outside in that direction
   const leakLeft = Math.max(0, axisAlignedBoundingBox.minX - minX);
@@ -82,26 +147,51 @@ export function containmentAgainstAxisAlignedBoundingBox(orientedBoundingBox: Or
   const leakBottom = Math.max(0, maxY - axisAlignedBoundingBox.maxY);
 
   const anyLeak = (leakLeft + leakRight + leakTop + leakBottom) > 0;
-  if (!anyLeak) return { overlaps: false, minimalTranslationVector: { x: 0, y: 0 }, normal: { x: 0, y: 0 } };
+  const result = overlapResultCache;
+  if (!anyLeak) {
+    result.overlaps = false;
+    result.minimalTranslationVector.x = 0;
+    result.minimalTranslationVector.y = 0;
+    result.normal.x = 0;
+    result.normal.y = 0;
+    return result;
+  }
 
   // Choose the smallest magnitude correction; direction pushes inward
-  let mtv: Vec2;
-  let normal: Vec2;
+  // Find smallest leak without allocating candidate arrays
+  let smallestMag = Infinity;
+  let mtvX = 0;
+  let mtvY = 0;
 
-  // Candidate corrections along x
-  const corrLeft = leakLeft > 0 ? { x: leakLeft, y: 0 } : undefined;   // move +x
-  const corrRight = leakRight > 0 ? { x: -leakRight, y: 0 } : undefined; // move -x
-  // along y
-  const corrTop = leakTop > 0 ? { x: 0, y: leakTop } : undefined;      // move +y
-  const corrBottom = leakBottom > 0 ? { x: 0, y: -leakBottom } : undefined; // move -y
+  if (leakLeft > 0 && leakLeft < smallestMag) {
+    smallestMag = leakLeft;
+    mtvX = leakLeft;
+    mtvY = 0;
+  }
+  if (leakRight > 0 && leakRight < smallestMag) {
+    smallestMag = leakRight;
+    mtvX = -leakRight;
+    mtvY = 0;
+  }
+  if (leakTop > 0 && leakTop < smallestMag) {
+    smallestMag = leakTop;
+    mtvX = 0;
+    mtvY = leakTop;
+  }
+  if (leakBottom > 0 && leakBottom < smallestMag) {
+    smallestMag = leakBottom;
+    mtvX = 0;
+    mtvY = -leakBottom;
+  }
 
-  const candidates = [corrLeft, corrRight, corrTop, corrBottom].filter(Boolean) as Vec2[];
-  candidates.sort((a, b) => (a.x * a.x + a.y * a.y) - (b.x * b.x + b.y * b.y));
-  mtv = candidates[0];
-  const len = Math.hypot(mtv.x, mtv.y) || 1;
-  normal = { x: mtv.x / len, y: mtv.y / len };
+  const len = Math.hypot(mtvX, mtvY) || 1;
+  result.overlaps = true;
+  result.minimalTranslationVector.x = mtvX;
+  result.minimalTranslationVector.y = mtvY;
+  result.normal.x = mtvX / len;
+  result.normal.y = mtvY / len;
 
-  return { overlaps: true, minimalTranslationVector: mtv, normal };
+  return result;
 }
 
 // Convenience: from a Pose and AxisAlignedBoundingBox
@@ -118,24 +208,25 @@ function len(v: Vec2): number { return Math.hypot(v.x, v.y); }
 function normalize(v: Vec2): Vec2 { const l = len(v) || 1; return { x: v.x / l, y: v.y / l }; }
 
 // Build 4 edge normals (axes) for an OrientedBoundingBox (two unique directions suffice)
-function orientedBoundingBoxAxes(obb: OrientedBoundingBox): Vec2[] {
+// Mutates provided result array to avoid allocation
+function orientedBoundingBoxAxes(obb: OrientedBoundingBox, result: Vec2[], startIdx: number): void {
   const c = obb.corners;
   const dx0 = c[1].x - c[0].x;
   const dy0 = c[1].y - c[0].y;
   const dx1 = c[3].x - c[0].x;
   const dy1 = c[3].y - c[0].y;
-  
+
   const l0 = Math.hypot(dx0, dy0) || 1;
   const l1 = Math.hypot(dx1, dy1) || 1;
 
-  // Use their normals as separating axes
-  return [
-    { x: -dy0 / l0, y: dx0 / l0 },
-    { x: -dy1 / l1, y: dx1 / l1 }
-  ];
+  // Use their normals as separating axes - mutate result array
+  result[startIdx].x = -dy0 / l0;
+  result[startIdx].y = dx0 / l0;
+  result[startIdx + 1].x = -dy1 / l1;
+  result[startIdx + 1].y = dx1 / l1;
 }
 
-function projectOntoAxis(points: Vec2[], axis: Vec2): { min: number; max: number } {
+function projectOntoAxis(points: Vec2[], axis: Vec2, result: { min: number; max: number }): void {
   let min = points[0].x * axis.x + points[0].y * axis.y;
   let max = min;
   for (let i = 1; i < points.length; i++) {
@@ -143,16 +234,17 @@ function projectOntoAxis(points: Vec2[], axis: Vec2): { min: number; max: number
     if (v < min) min = v;
     else if (v > max) max = v;
   }
-  return { min, max };
+  result.min = min;
+  result.max = max;
 }
-
-export interface OrientedBoundingBoxIntersectionResult { overlaps: boolean; minimalTranslationVector: Vec2; normal: Vec2 }
 
 // SAT overlap test between two OBBs; returns MTV to push A out of B
 export function orientedBoundingBoxIntersectsOrientedBoundingBox(a: OrientedBoundingBox, b: OrientedBoundingBox): OrientedBoundingBoxIntersectionResult {
-  const axesA = orientedBoundingBoxAxes(a);
-  const axesB = orientedBoundingBoxAxes(b);
-  
+  // Use pre-allocated arrays to avoid allocations
+  const axes = satAxesCache;
+  orientedBoundingBoxAxes(a, axes, 0);
+  orientedBoundingBoxAxes(b, axes, 2);
+
   let smallestOverlap = Infinity;
   let mtvAxisX = 0;
   let mtvAxisY = 0;
@@ -160,16 +252,29 @@ export function orientedBoundingBoxIntersectsOrientedBoundingBox(a: OrientedBoun
   const cdx = b.center.x - a.center.x;
   const cdy = b.center.y - a.center.y;
 
+  const projResult = projectionCache;
+
   for (let i = 0; i < 4; i++) {
-    const axis = i < 2 ? axesA[i] : axesB[i - 2];
-    const pa = projectOntoAxis(a.corners, axis);
-    const pb = projectOntoAxis(b.corners, axis);
-    
-    const overlap = Math.min(pa.max, pb.max) - Math.max(pa.min, pb.min);
+    const axis = axes[i];
+    projectOntoAxis(a.corners, axis, projResult);
+    const paMin = projResult.min;
+    const paMax = projResult.max;
+
+    projectOntoAxis(b.corners, axis, projResult);
+    const pbMin = projResult.min;
+    const pbMax = projResult.max;
+
+    const overlap = Math.min(paMax, pbMax) - Math.max(paMin, pbMin);
     if (overlap <= 0) {
-      return { overlaps: false, minimalTranslationVector: { x: 0, y: 0 }, normal: { x: 0, y: 0 } };
+      const result = intersectionResultCache;
+      result.overlaps = false;
+      result.minimalTranslationVector.x = 0;
+      result.minimalTranslationVector.y = 0;
+      result.normal.x = 0;
+      result.normal.y = 0;
+      return result;
     }
-    
+
     if (overlap < smallestOverlap) {
       smallestOverlap = overlap;
       // determine axis direction to push A away from B
@@ -186,10 +291,13 @@ export function orientedBoundingBoxIntersectsOrientedBoundingBox(a: OrientedBoun
   const l = Math.hypot(mtvAxisX, mtvAxisY) || 1;
   const nx = mtvAxisX / l;
   const ny = mtvAxisY / l;
-  
-  return { 
-    overlaps: true, 
-    minimalTranslationVector: { x: nx * smallestOverlap, y: ny * smallestOverlap }, 
-    normal: { x: nx, y: ny } 
-  };
+
+  const result = intersectionResultCache;
+  result.overlaps = true;
+  result.minimalTranslationVector.x = nx * smallestOverlap;
+  result.minimalTranslationVector.y = ny * smallestOverlap;
+  result.normal.x = nx;
+  result.normal.y = ny;
+
+  return result;
 }

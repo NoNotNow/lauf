@@ -10,6 +10,7 @@ export class TickService {
   private sub?: Subscription;
   private _ticks$ = new Subject<{ time: number; frame: number }>();
   private frame = 0;
+  private tickObject = { time: 0, frame: 0 }; // Reusable object to avoid allocation per frame
 
   constructor(private zone: NgZone) {}
 
@@ -44,6 +45,8 @@ export class TickService {
 
   private emit(time?: number): void {
     this.frame++;
-    this._ticks$.next({ time: time ?? performance.now(), frame: this.frame });
+    this.tickObject.time = time ?? performance.now();
+    this.tickObject.frame = this.frame;
+    this._ticks$.next(this.tickObject);
   }
 }
