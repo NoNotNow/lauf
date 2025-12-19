@@ -91,8 +91,8 @@ export class WorldContext {
     this.drifters.forEach(d => d.start());
     this.gravities.forEach(g => g.start());
     this.avatarController?.start();
-    this.integrator?.start();
     this.collisions?.start();
+    this.integrator?.start();
   }
 
   stop(): void {

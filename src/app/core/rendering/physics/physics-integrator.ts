@@ -96,12 +96,16 @@ export class PhysicsIntegrator {
           y += res.minimalTranslationVector.y;
           if (this.bounce) {
             const restitution = phys.restitution ?? 1.0;
-            const v = reflectVelocity({ x: vx, y: vy }, res.normal, restitution);
+            // For resting boundary contact (low velocity), zero out restitution to prevent jitter/gain
+            const relV = vx * res.normal.x + vy * res.normal.y;
+            const actualE = (-relV < 0.5) ? 0 : restitution;
+
+            const v = reflectVelocity({ x: vx, y: vy }, res.normal, actualE);
             StageItemPhysics.setVelocity(it, v.x, v.y);
             x += res.normal.x * TINY_NUDGE;
             y += res.normal.y * TINY_NUDGE;
             // Transfer some spin into linear along the tangent; also damps omega
-            applyAngularToLinearAtBoundary(it, pose as any, res.normal, 0.35, restitution);
+            applyAngularToLinearAtBoundary(it, pose as any, res.normal, 0.35, actualE);
           } else {
             // clamp inside (legacy behavior)
             x = Math.max(this.boundary.minX, Math.min(this.boundary.maxX, x));

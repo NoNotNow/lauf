@@ -66,11 +66,16 @@ export function applyItemItemCollisionImpulse(
   const vRelN = dot(vRel.x, vRel.y, normal.x, normal.y);
   if (vRelN > 0) return;
 
+  // Velocity threshold for resting contact: zero restitution for low-speed impacts
+  // to prevent jitter and energy gain from micro-bounces.
+  const velThreshold = 0.5; // cells/s
+  const actualE = (-vRelN < velThreshold) ? 0 : e;
+
   // Effective mass along normal (includes rotational terms)
   const raXn = cross2(ra, normal);
   const rbXn = cross2(rb, normal);
   const kN = invMassA + invMassB + (raXn * raXn) * invIA + (rbXn * rbXn) * invIB;
-  const jn = -(1 + e) * vRelN / (kN || 1);
+  const jn = -(1 + actualE) * vRelN / (kN || 1);
 
   // Apply normal impulse
   const Jn = { x: jn * normal.x, y: jn * normal.y };

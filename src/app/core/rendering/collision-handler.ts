@@ -15,6 +15,7 @@ export interface CollisionEvent {
 export class CollisionHandler {
   private sub?: Subscription;
   private items: StageItem[] = [];
+  private lastTime?: number;
   private _restitutionDefault = 1.0;
   private _frictionDefault = 0.8;
   private _iterations = 10; // sequential impulse iterations per tick
@@ -72,9 +73,16 @@ export class CollisionHandler {
     this.sub = undefined;
   }
 
-  private onTick(_time: number): void {
+  private onTick(time: number): void {
     const n = this.items.length;
     if (n < 2) return;
+
+    const prev = this.lastTime ?? time;
+    this.lastTime = time;
+    const dt = Math.max(0, (time - prev) / 1000);
+    // If dt is 0, we can still run with a tiny epsilon or skip, 
+    // but usually it's better to use a default for the first frame
+    const effectiveDt = dt || 0.016;
 
     // Reset OBB object pool at frame start to avoid allocations
     resetOBBPool();
@@ -117,13 +125,53 @@ export class CollisionHandler {
         const relVx = (physA.vx ?? 0) - (physB.vx ?? 0);
         const relVy = (physA.vy ?? 0) - (physB.vy ?? 0);
         const relSpeedSq = relVx * relVx + relVy * relVy;
-        const velocityExpansion = Math.sqrt(relSpeedSq) * 0.016; // assume ~16ms frame time
+        const velocityExpansion = Math.sqrt(relSpeedSq) * effectiveDt;
         const expandedRadiusSum = radiusSum + velocityExpansion;
         if (distSq > expandedRadiusSum * expandedRadiusSum) continue;
 
-        const res = orientedBoundingBoxIntersectsOrientedBoundingBox(aobb, bobb);
+        let res = orientedBoundingBoxIntersectsOrientedBoundingBox(aobb, bobb);
+
+        // If not currently overlapping, try CCD look-ahead if they are moving fast
+        if (!res.overlaps && relSpeedSq > 0) {
+          const relSpeed = Math.sqrt(relSpeedSq);
+          const minSize = Math.min(aobb.half.x, aobb.half.y, bobb.half.x, bobb.half.y) * 2;
+          // If relative movement in this frame is more than half of the smallest dimension, sub-sample
+          if (relSpeed * effectiveDt > minSize * 0.5) {
+            const steps = Math.min(10, Math.ceil((relSpeed * effectiveDt) / (minSize * 0.5)));
+            for (let s = 1; s <= steps; s++) {
+              const t = s / steps;
+              // Simple prediction: linear move. Rotation prediction is omitted for performance/simplicity
+              const posA = { x: (ai.Pose?.Position?.x ?? 0) + (physA.vx ?? 0) * t * effectiveDt, y: (ai.Pose?.Position?.y ?? 0) + (physA.vy ?? 0) * t * effectiveDt };
+              const posB = { x: (bj.Pose?.Position?.x ?? 0) + (physB.vx ?? 0) * t * effectiveDt, y: (bj.Pose?.Position?.y ?? 0) + (physB.vy ?? 0) * t * effectiveDt };
+              
+              // We need temporary OBBs for the predicted positions.
+              // orientedBoundingBoxFromPose uses a pool, so this is safe as long as we don't exceed pool size too much.
+              const predA = orientedBoundingBoxFromPose({ ...ai.Pose, Position: posA } as any);
+              const predB = orientedBoundingBoxFromPose({ ...bj.Pose, Position: posB } as any);
+              const predRes = orientedBoundingBoxIntersectsOrientedBoundingBox(predA, predB);
+              if (predRes.overlaps) {
+                res = {
+                  overlaps: true,
+                  normal: { x: predRes.normal.x, y: predRes.normal.y },
+                  minimalTranslationVector: { x: predRes.minimalTranslationVector.x, y: predRes.minimalTranslationVector.y }
+                } as any;
+                break;
+              }
+            }
+          }
+        }
+
         if (!res.overlaps) continue;
-        contacts.push({ a: ai, b: bj, normal: res.normal, mtv: res.minimalTranslationVector, aobb, bobb });
+        
+        // Push a copy of the normal and MTV because the result object is from a singleton cache
+        contacts.push({ 
+          a: ai, 
+          b: bj, 
+          normal: { x: res.normal.x, y: res.normal.y }, 
+          mtv: { x: res.minimalTranslationVector.x, y: res.minimalTranslationVector.y }, 
+          aobb, 
+          bobb 
+        });
 
         // Only emit events if there are subscribers to avoid allocation
         if (this.events$.observed) {
@@ -164,7 +212,6 @@ export class CollisionHandler {
     // This prevents objects from getting stuck together while avoiding jerky over-correction
     const slop = 0.01;      // Allow 0.01 cells of overlap to prevent jitter
     const percent = 0.4;    // Resolve 40% of the overlap per frame
-    const gap = 0.01;       // Small extra gap to maintain separation
 
     for (const c of contacts) {
       const sa = StageItemPhysics.get(c.a);
@@ -178,8 +225,8 @@ export class CollisionHandler {
       const mtvMagnitude = Math.hypot(c.mtv.x, c.mtv.y);
       const correctionMagnitude = (Math.max(mtvMagnitude - slop, 0) / sum) * percent;
 
-      const correctionX = (c.normal.x * correctionMagnitude) + (c.normal.x * gap / sum);
-      const correctionY = (c.normal.y * correctionMagnitude) + (c.normal.y * gap / sum);
+      const correctionX = c.normal.x * correctionMagnitude;
+      const correctionY = c.normal.y * correctionMagnitude;
 
       const aPose = c.a.Pose as any;
       const bPose = c.b.Pose as any;
