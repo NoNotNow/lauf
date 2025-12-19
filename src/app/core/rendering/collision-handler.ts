@@ -16,7 +16,7 @@ export class CollisionHandler {
   private sub?: Subscription;
   private items: StageItem[] = [];
   private lastTime?: number;
-  private _restitutionDefault = 1.0;
+  private _restitutionDefault = 0.85;
   private _frictionDefault = 0.8;
   private _iterations = 10; // sequential impulse iterations per tick
   public readonly events$ = new Subject<CollisionEvent>();
@@ -37,7 +37,7 @@ export class CollisionHandler {
   constructor(private ticker: TickService) {}
 
   setRestitutionDefault(r: number): void {
-    this._restitutionDefault = Math.min(1, Math.max(0, Number(r) || 1.0));
+    this._restitutionDefault = Math.min(1, Math.max(0, Number(r) || 0.85));
   }
 
   setFrictionDefault(mu: number): void {

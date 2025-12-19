@@ -15,7 +15,7 @@ const DEFAULT_STATE: PhysicsState = {
     vy: 0,
     omega: 0,
     mass: 1,
-    restitution: 1.0,
+    restitution: 0.85,
     linearDamping: 0,
     angularDamping: 0.1,
 };
@@ -52,7 +52,7 @@ export class StageItemPhysics {
         const s = {...StageItemPhysics.get(item), ...partial} as PhysicsState;
         // ensure sane values
         s.mass = Math.max(1e-6, Number(s.mass) ?? 1);
-        s.restitution = Math.min(1, Math.max(0, s.restitution ?? 1.0));
+        s.restitution = Math.min(1, Math.max(0, s.restitution ?? 0.85));
         store.set(item, s);
         return s;
     }

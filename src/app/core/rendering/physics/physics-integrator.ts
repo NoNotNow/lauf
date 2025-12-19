@@ -122,7 +122,7 @@ export class PhysicsIntegrator {
               obb,
               this.boundary,
               res.normal,
-              { restitution: phys.restitution ?? 1.0, friction: 0.8 } // Default friction
+              { restitution: phys.restitution ?? 0.85, friction: 0.8 } // Default friction
             );
 
             x += res.normal.x * TINY_NUDGE;

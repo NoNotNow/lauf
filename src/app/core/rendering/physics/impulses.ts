@@ -113,7 +113,7 @@ export function applyBoundaryCollisionImpulse(
   normal: { x: number; y: number },
   params: ItemItemImpulseParams
 ): void {
-  const e = Math.min(1, Math.max(0, Number(params?.restitution ?? 1)));
+  const e = Math.min(1, Math.max(0, Number(params?.restitution ?? 0.85)));
   const mu = Math.max(0, Number(params?.friction ?? 0));
 
   const s = StageItemPhysics.get(item);
@@ -190,7 +190,7 @@ export function applyItemItemCollisionImpulse(
   normal: { x: number; y: number },
   params: ItemItemImpulseParams
 ): void {
-  const e = Math.min(1, Math.max(0, Number(params?.restitution ?? 1)));
+  const e = Math.min(1, Math.max(0, Number(params?.restitution ?? 0.85)));
   const mu = Math.max(0, Number(params?.friction ?? 0));
 
   const sa = StageItemPhysics.get(a);

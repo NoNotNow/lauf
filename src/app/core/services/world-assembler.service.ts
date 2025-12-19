@@ -77,7 +77,7 @@ export class WorldAssemblerService {
 
   private createCollisionHandler(): CollisionHandler {
     const handler = new CollisionHandler(this.ticker);
-    handler.setRestitutionDefault(1.0); // Perfectly elastic collisions
+    handler.setRestitutionDefault(0.85);
     return handler;
   }
 
