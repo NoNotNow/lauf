@@ -108,13 +108,6 @@ export class PhysicsIntegrator {
             y = Math.max(this.boundary.minY, Math.min(this.boundary.maxY, y));
           }
         }
-
-        // Hard clamp to prevent objects from escaping bounds even at extreme velocities
-        const halfW = testPose.Size.x / 2;
-        const halfH = testPose.Size.y / 2;
-        const margin = Math.max(halfW, halfH); // conservative margin accounting for rotation
-        x = Math.max(this.boundary.minX + margin, Math.min(this.boundary.maxX - margin, x));
-        y = Math.max(this.boundary.minY + margin, Math.min(this.boundary.maxY - margin, y));
       }
 
       // Commit new pose
