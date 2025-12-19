@@ -71,14 +71,23 @@ export function degToRad(deg: number): number { return (deg || 0) * Math.PI / 18
 // - Pose.Position is top-left cell of the axis-aligned bounding rect when rotation=0.
 // - Rotation is around the rectangle center.
 // Uses object pooling to avoid allocations - pool must be reset at frame start
-export function orientedBoundingBoxFromPose(pose: Pose | undefined): OrientedBoundingBox {
+export function orientedBoundingBoxFromPose(pose: Pose | undefined, boundingBox?: { minX: number, minY: number, maxX: number, maxY: number }): OrientedBoundingBox {
   const p = pose?.Position;
   const s = pose?.Size;
-  const px = p ? p.x : 0;
-  const py = p ? p.y : 0;
-  const w = s ? s.x : 0;
-  const h = s ? s.y : 0;
+  let px = p ? p.x : 0;
+  let py = p ? p.y : 0;
+  let w = s ? s.x : 0;
+  let h = s ? s.y : 0;
   const rot = pose ? pose.Rotation : 0;
+
+  if (boundingBox) {
+    const bbW = boundingBox.maxX - boundingBox.minX;
+    const bbH = boundingBox.maxY - boundingBox.minY;
+    px += boundingBox.minX * w;
+    py += boundingBox.minY * h;
+    w *= bbW;
+    h *= bbH;
+  }
 
   const halfW = w * 0.5;
   const halfH = h * 0.5;
@@ -102,6 +111,7 @@ export function orientedBoundingBoxFromPose(pose: Pose | undefined): OrientedBou
   const obb = obbPool.get();
   obb.center.x = cx;
   obb.center.y = cy;
+  // If we have a boundingBox, the half-extents are already adjusted by w and h above
   obb.half.x = halfW;
   obb.half.y = halfH;
   obb.rotationDeg = rot;
@@ -195,8 +205,8 @@ export function containmentAgainstAxisAlignedBoundingBox(orientedBoundingBox: Or
 }
 
 // Convenience: from a Pose and AxisAlignedBoundingBox
-export function poseContainmentAgainstAxisAlignedBoundingBox(pose: Pose | undefined, axisAlignedBoundingBox: AxisAlignedBoundingBox): OverlapResult {
-  const obb = orientedBoundingBoxFromPose(pose);
+export function poseContainmentAgainstAxisAlignedBoundingBox(pose: Pose | undefined, axisAlignedBoundingBox: AxisAlignedBoundingBox, boundingBox?: { minX: number, minY: number, maxX: number, maxY: number }): OverlapResult {
+  const obb = orientedBoundingBoxFromPose(pose, boundingBox);
   return containmentAgainstAxisAlignedBoundingBox(obb, axisAlignedBoundingBox);
 }
 

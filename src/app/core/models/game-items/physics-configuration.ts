@@ -6,6 +6,7 @@ export class PhysicsConfiguration {
     public canMove: boolean = true;
     public hasGravity: boolean = true;
     public canRotate: boolean = true;
+    public boundingBox?: { minX: number, minY: number, maxX: number, maxY: number };
 
     public FromJson(data: any): this {
         if (!data) return this;
@@ -18,6 +19,7 @@ export class PhysicsConfiguration {
         if (g('canMove', 'CanMove') !== undefined) this.canMove = !!g('canMove', 'CanMove');
         if (g('hasGravity', 'HasGravity') !== undefined) this.hasGravity = !!g('hasGravity', 'HasGravity');
         if (g('canRotate', 'CanRotate') !== undefined) this.canRotate = !!g('canRotate', 'CanRotate');
+        if (g('boundingBox', 'BoundingBox') !== undefined) this.boundingBox = g('boundingBox', 'BoundingBox');
 
         return this;
     }
@@ -30,7 +32,8 @@ export class PhysicsConfiguration {
             hasCollision: this.hasCollision,
             canMove: this.canMove,
             hasGravity: this.hasGravity,
-            canRotate: this.canRotate
+            canRotate: this.canRotate,
+            boundingBox: this.boundingBox
         };
     }
 }

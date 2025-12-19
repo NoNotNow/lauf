@@ -103,7 +103,7 @@ export class PhysicsIntegrator {
         testPose.Size.x = toNumber(pose.Size?.x, 0);
         testPose.Size.y = toNumber(pose.Size?.y, 0);
         testPose.Rotation = r;
-        const res = poseContainmentAgainstAxisAlignedBoundingBox(testPose, this.boundary);
+        const res = poseContainmentAgainstAxisAlignedBoundingBox(testPose, this.boundary, it.Physics.boundingBox);
         if (res.overlaps) {
           // Correct position by MTV - capped to avoid enormous jumps
           const mtvX = res.minimalTranslationVector.x;
@@ -116,7 +116,7 @@ export class PhysicsIntegrator {
           y += mtvY * scale;
 
           if (this.bounce) {
-            const obb = orientedBoundingBoxFromPose(pose);
+            const obb = orientedBoundingBoxFromPose(pose, it.Physics.boundingBox);
             applyBoundaryCollisionImpulse(
               it,
               obb,

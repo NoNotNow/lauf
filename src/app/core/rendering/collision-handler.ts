@@ -96,7 +96,7 @@ export class CollisionHandler {
     for (let i = 0; i < n; i++) {
       const item = this.items[i];
       const p = item?.Pose;
-      obbs[i] = p ? orientedBoundingBoxFromPose(p) : null;
+      obbs[i] = p ? orientedBoundingBoxFromPose(p, item.Physics.boundingBox) : null;
       physics[i] = StageItemPhysics.get(item);
     }
 
@@ -146,8 +146,8 @@ export class CollisionHandler {
               
               // We need temporary OBBs for the predicted positions.
               // orientedBoundingBoxFromPose uses a pool, so this is safe as long as we don't exceed pool size too much.
-              const predA = orientedBoundingBoxFromPose({ ...ai.Pose, Position: posA } as any);
-              const predB = orientedBoundingBoxFromPose({ ...bj.Pose, Position: posB } as any);
+              const predA = orientedBoundingBoxFromPose({ ...ai.Pose, Position: posA } as any, ai.Physics.boundingBox);
+              const predB = orientedBoundingBoxFromPose({ ...bj.Pose, Position: posB } as any, bj.Physics.boundingBox);
               const predRes = orientedBoundingBoxIntersectsOrientedBoundingBox(predA, predB);
               if (predRes.overlaps) {
                 res = {
