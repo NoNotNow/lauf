@@ -142,28 +142,29 @@ export class Glider {
       const minDist = Math.min(distToLeft, distToRight, distToTop, distToBottom);
       
       // Calculate urgency based on distance (closer = higher urgency)
-      const avoidanceThreshold = this._minDistanceToBoundary * 1.5;
-      if (minDist < avoidanceThreshold) {
+      // Start avoiding as soon as we're within minDistanceToBoundary
+      if (minDist < this._minDistanceToBoundary) {
         // Urgency increases as distance decreases
-        // At minDistanceToBoundary, urgency = 1.0 (maximum)
-        // At avoidanceThreshold, urgency = 0.0 (minimum)
-        urgency = Math.max(0, Math.min(1, 1 - (minDist - this._minDistanceToBoundary) / (avoidanceThreshold - this._minDistanceToBoundary)));
+        // At 0 distance, urgency = 1.0 (maximum)
+        // At minDistanceToBoundary, urgency = 0.0 (minimum - but still triggers avoidance)
+        urgency = Math.max(0, Math.min(1, 1 - (minDist / this._minDistanceToBoundary)));
       }
       
       // Decisive steering: prioritize the most urgent direction
-      // Check walls more proactively - not just when heading toward them
-      const avoidanceThreshold2 = this._minDistanceToBoundary * 1.5;
+      // Start avoiding when within minDistanceToBoundary (not 1.5x)
+      const avoidanceThreshold = this._minDistanceToBoundary;
       let steerX = 0;
       let steerY = 0;
       let maxUrgency = 0;
       
-      // Check each wall - be more proactive about avoiding walls
-      // Left wall: check if too close (heading toward it OR just close)
-      if (distToLeft < avoidanceThreshold2) {
-        const wallUrgency = 1 - (distToLeft - this._minDistanceToBoundary) / (avoidanceThreshold2 - this._minDistanceToBoundary);
+      // Check each wall - start avoiding when within minDistanceToBoundary
+      // Left wall: check if too close
+      if (distToLeft < avoidanceThreshold) {
+        // Urgency: 1.0 at distance 0, 0.0 at minDistanceToBoundary
+        const wallUrgency = 1 - (distToLeft / this._minDistanceToBoundary);
         // Increase urgency if heading toward the wall
-        const headingUrgency = vx < -0.1 ? 1.2 : 1.0;
-        const totalUrgency = wallUrgency * headingUrgency;
+        const headingUrgency = vx < -0.1 ? 1.3 : 1.0;
+        const totalUrgency = Math.min(1, wallUrgency * headingUrgency);
         if (totalUrgency > maxUrgency) {
           maxUrgency = totalUrgency;
           steerX = 1; // Steer right
@@ -172,10 +173,10 @@ export class Glider {
       }
       
       // Right wall: check if too close
-      if (distToRight < avoidanceThreshold2) {
-        const wallUrgency = 1 - (distToRight - this._minDistanceToBoundary) / (avoidanceThreshold2 - this._minDistanceToBoundary);
-        const headingUrgency = vx > 0.1 ? 1.2 : 1.0;
-        const totalUrgency = wallUrgency * headingUrgency;
+      if (distToRight < avoidanceThreshold) {
+        const wallUrgency = 1 - (distToRight / this._minDistanceToBoundary);
+        const headingUrgency = vx > 0.1 ? 1.3 : 1.0;
+        const totalUrgency = Math.min(1, wallUrgency * headingUrgency);
         if (totalUrgency > maxUrgency) {
           maxUrgency = totalUrgency;
           steerX = -1; // Steer left
@@ -184,10 +185,10 @@ export class Glider {
       }
       
       // Top wall: check if too close
-      if (distToTop < avoidanceThreshold2) {
-        const wallUrgency = 1 - (distToTop - this._minDistanceToBoundary) / (avoidanceThreshold2 - this._minDistanceToBoundary);
-        const headingUrgency = vy < -0.1 ? 1.2 : 1.0;
-        const totalUrgency = wallUrgency * headingUrgency;
+      if (distToTop < avoidanceThreshold) {
+        const wallUrgency = 1 - (distToTop / this._minDistanceToBoundary);
+        const headingUrgency = vy < -0.1 ? 1.3 : 1.0;
+        const totalUrgency = Math.min(1, wallUrgency * headingUrgency);
         if (totalUrgency > maxUrgency) {
           maxUrgency = totalUrgency;
           steerX = 0; // Clear X to avoid conflict
@@ -196,10 +197,10 @@ export class Glider {
       }
       
       // Bottom wall: check if too close
-      if (distToBottom < avoidanceThreshold2) {
-        const wallUrgency = 1 - (distToBottom - this._minDistanceToBoundary) / (avoidanceThreshold2 - this._minDistanceToBoundary);
-        const headingUrgency = vy > 0.1 ? 1.2 : 1.0;
-        const totalUrgency = wallUrgency * headingUrgency;
+      if (distToBottom < avoidanceThreshold) {
+        const wallUrgency = 1 - (distToBottom / this._minDistanceToBoundary);
+        const headingUrgency = vy > 0.1 ? 1.3 : 1.0;
+        const totalUrgency = Math.min(1, wallUrgency * headingUrgency);
         if (totalUrgency > maxUrgency) {
           maxUrgency = totalUrgency;
           steerX = 0; // Clear X to avoid conflict

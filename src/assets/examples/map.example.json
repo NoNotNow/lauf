@@ -300,7 +300,7 @@
             "maxClimbRate": 4.0,
             "minDistanceToBoundary": 2,
 
-            "boundaryAvoidanceStrength": 3.0,
+            "boundaryAvoidanceStrength": 10.0,
             "lookAheadDistance": 2.5,
             "lookAheadTime": 0.6,
             "collisionAvoidanceStrength": 4.0
