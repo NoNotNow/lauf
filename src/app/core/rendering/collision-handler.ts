@@ -61,6 +61,57 @@ export class CollisionHandler {
   }
 
   clear(): void { this.items = []; }
+  
+  /**
+   * Checks if a given pose would collide with any items in the collision handler
+   * (excluding the item itself if provided)
+   * Note: This method uses the OBB pool, so it should be called carefully to avoid pool exhaustion
+   * Note: This does NOT check boundaries - boundaries should be checked separately
+   */
+  wouldCollideAt(pose: any, excludeItem?: StageItem): boolean {
+    if (this.items.length === 0) return false;
+    
+    // Reset pool to ensure we have available OBBs
+    resetOBBPool();
+    
+    const testOBB = orientedBoundingBoxFromPose(pose, excludeItem?.Physics.collisionBox);
+    
+    for (const item of this.items) {
+      if (item === excludeItem) continue;
+      if (!item.Physics.hasCollision) continue;
+      
+      const itemOBB = orientedBoundingBoxFromPose(item.Pose, item.Physics.collisionBox);
+      const result = orientedBoundingBoxIntersectsOrientedBoundingBox(testOBB, itemOBB);
+      if (result.overlaps) {
+        return true;
+      }
+    }
+    
+    return false;
+  }
+  
+  /**
+   * Checks if a given pose would collide with boundaries
+   * Returns true if the pose would be outside or overlapping the boundary
+   */
+  wouldCollideWithBoundary(pose: any, boundary: { minX: number; minY: number; maxX: number; maxY: number }): boolean {
+    if (!pose || !pose.Position || !pose.Size) return false;
+    
+    const pos = pose.Position;
+    const size = pose.Size;
+    const halfW = (size.x ?? 0) * 0.5;
+    const halfH = (size.y ?? 0) * 0.5;
+    const centerX = pos.x + halfW;
+    const centerY = pos.y + halfH;
+    
+    // Check if center + half extents would be outside boundary
+    const wouldHitLeft = (centerX - halfW) < boundary.minX;
+    const wouldHitRight = (centerX + halfW) > boundary.maxX;
+    const wouldHitTop = (centerY - halfH) < boundary.minY;
+    const wouldHitBottom = (centerY + halfH) > boundary.maxY;
+    
+    return wouldHitLeft || wouldHitRight || wouldHitTop || wouldHitBottom;
+  }
 
   start(): void {
     if (this.sub) return;

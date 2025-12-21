@@ -273,7 +273,7 @@
       "Pose": {
         "Position": {
           "X": 5,
-          "Y": 6
+          "Y": 2
         },
         "Size": {
           "X": 0.5,
@@ -286,7 +286,9 @@
       },
       "PhysicsConfiguration": {
         "hasGravity": true,
-        "canMove": true
+        "canMove": true,
+        "mass": 100,
+        "restitution": 0.5
       },
       "Transformers": [
         {
@@ -295,7 +297,13 @@
             "horizontalSpeed": 3.0,
             "glideEfficiency": 0.4,
             "minSpeedForLift": 1.5,
-            "maxClimbRate": 4.0
+            "maxClimbRate": 4.0,
+            "minDistanceToBoundary": 2,
+
+            "boundaryAvoidanceStrength": 3.0,
+            "lookAheadDistance": 2.5,
+            "lookAheadTime": 0.6,
+            "collisionAvoidanceStrength": 4.0
           }
         }
       ]

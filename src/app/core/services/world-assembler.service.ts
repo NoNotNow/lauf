@@ -117,7 +117,7 @@ export class WorldAssemblerService {
           } else if (t.Type === 'StayUpright') {
             this.attachStayUpright(obstacle, context, t.Params);
           } else if (t.Type === 'Glider') {
-            this.attachGlider(obstacle, context, t.Params);
+            this.attachGlider(obstacle, context, t.Params, boundary);
           }
         });
       }
@@ -163,18 +163,31 @@ export class WorldAssemblerService {
     context.addGravity(gravity);
   }
 
-  private attachGlider(item: StageItem, context: WorldContext, params?: any): void {
+  private attachGlider(item: StageItem, context: WorldContext, params?: any, boundary?: AxisAlignedBoundingBox): void {
     const horizontalSpeed = params?.horizontalSpeed ?? params?.horizontalAmplitude ?? 2.0;
     const glideEfficiency = params?.glideEfficiency ?? 0.3;
     const minSpeedForLift = params?.minSpeedForLift ?? 1.0;
     const maxClimbRate = params?.maxClimbRate ?? 3.0;
+    const minDistanceToBoundary = params?.minDistanceToBoundary ?? params?.minDistanceToBottom ?? 1.0;
+    const boundaryAvoidanceStrength = params?.boundaryAvoidanceStrength ?? 3.0;
+    const lookAheadDistance = params?.lookAheadDistance ?? 2.0;
+    const lookAheadTime = params?.lookAheadTime ?? 0.5;
+    const collisionAvoidanceStrength = params?.collisionAvoidanceStrength ?? 4.0;
+    
     const glider = new Glider(
       this.ticker, 
       item, 
       horizontalSpeed, 
       glideEfficiency, 
       minSpeedForLift, 
-      maxClimbRate
+      maxClimbRate,
+      boundary,
+      context.getCollisionHandler(),
+      minDistanceToBoundary,
+      boundaryAvoidanceStrength,
+      lookAheadDistance,
+      lookAheadTime,
+      collisionAvoidanceStrength
     );
     context.addGlider(glider);
   }
@@ -202,7 +215,7 @@ export class WorldAssemblerService {
         } else if (t.Type === 'StayUpright') {
           this.attachStayUpright(avatar, context, t.Params);
         } else if (t.Type === 'Glider') {
-          this.attachGlider(avatar, context, t.Params);
+          this.attachGlider(avatar, context, t.Params, boundary);
         }
       });
     }
