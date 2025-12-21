@@ -320,7 +320,7 @@
         "restitution": 0.2,
         "damping": 2,
         "mass": 300,
-        "boundingBox": {
+        "collisionBox": {
           "minX": 0.4,
           "minY": 0.3,
           "maxX": 0.45,

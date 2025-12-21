@@ -13,6 +13,8 @@ export class Sailor {
   private _horizontalFrequency = 0.1; // Hz (patrol speed)
   private elapsed = 0;
   private phase = 0;
+  private directionPhase = 0; // Phase for random direction changes
+  private baseDirectionAngle = Math.random() * Math.PI * 2; // Random initial direction
 
   constructor(
     private ticker: TickService,
@@ -48,12 +50,18 @@ export class Sailor {
     const t = this.elapsed;
     const pose = this._item.Pose;
 
+    // Update direction phase for random direction changes (slow variation)
+    const directionChangeFreq = 0.02; // How often direction changes (Hz)
+    this.directionPhase += dtSec * directionChangeFreq * Math.PI * 2;
+    const directionVariation = Math.sin(this.directionPhase) * 0.5; // ±0.5 radians variation
+    const currentDirectionAngle = this.baseDirectionAngle + directionVariation;
+
     // We calculate velocity based on the derivative of the desired position functions
     // x(t) = x0 + A * sin(omega * t + phase)
     // vx(t) = dx/dt = A * omega * cos(omega * t + phase)
     
     const hOmega = 2 * Math.PI * this._horizontalFrequency;
-    const vx = this._horizontalAmplitude * hOmega * Math.cos(hOmega * t + this.phase);
+    const baseVx = this._horizontalAmplitude * hOmega * Math.cos(hOmega * t + this.phase);
 
     // y(t) = y0 + verticalFlap(t) + verticalSailing(t)
     // dy/dt = v_flap * omega_flap * cos(omega_flap * t + phase) + v_sail * omega_sail * cos(omega_sail * t + phase)
@@ -66,8 +74,14 @@ export class Sailor {
     const vFlapOmega = 2 * Math.PI * vFlapFreq;
     const vSailOmega = 2 * Math.PI * vSailFreq;
 
-    const vy = vFlapAmp * vFlapOmega * Math.cos(vFlapOmega * t + this.phase) +
-               vSailAmp * vSailOmega * Math.cos(vSailOmega * t + this.phase * 0.7);
+    const baseVy = vFlapAmp * vFlapOmega * Math.cos(vFlapOmega * t + this.phase) +
+                   vSailAmp * vSailOmega * Math.cos(vSailOmega * t + this.phase * 0.7);
+
+    // Rotate the velocity vector by the random direction angle
+    const cosDir = Math.cos(currentDirectionAngle);
+    const sinDir = Math.sin(currentDirectionAngle);
+    const vx = baseVx * cosDir - baseVy * sinDir;
+    const vy = baseVx * sinDir + baseVy * cosDir;
 
     // Apply velocity to the physics state
     StageItemPhysics.setVelocity(this._item, vx, vy);

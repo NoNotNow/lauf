@@ -71,7 +71,8 @@ export function degToRad(deg: number): number { return (deg || 0) * Math.PI / 18
 // - Pose.Position is top-left cell of the axis-aligned bounding rect when rotation=0.
 // - Rotation is around the rectangle center.
 // Uses object pooling to avoid allocations - pool must be reset at frame start
-export function orientedBoundingBoxFromPose(pose: Pose | undefined, boundingBox?: { minX: number, minY: number, maxX: number, maxY: number }): OrientedBoundingBox {
+// collisionBox: Optional collision detection box (relative to Pose.Size) - only used for collision detection, not boundary containment
+export function orientedBoundingBoxFromPose(pose: Pose | undefined, collisionBox?: { minX: number, minY: number, maxX: number, maxY: number }): OrientedBoundingBox {
   const p = pose?.Position;
   const s = pose?.Size;
   let px = p ? p.x : 0;
@@ -80,11 +81,11 @@ export function orientedBoundingBoxFromPose(pose: Pose | undefined, boundingBox?
   let h = s ? s.y : 0;
   const rot = pose ? pose.Rotation : 0;
 
-  if (boundingBox) {
-    const bbW = boundingBox.maxX - boundingBox.minX;
-    const bbH = boundingBox.maxY - boundingBox.minY;
-    px += boundingBox.minX * w;
-    py += boundingBox.minY * h;
+  if (collisionBox) {
+    const bbW = collisionBox.maxX - collisionBox.minX;
+    const bbH = collisionBox.maxY - collisionBox.minY;
+    px += collisionBox.minX * w;
+    py += collisionBox.minY * h;
     w *= bbW;
     h *= bbH;
   }
@@ -111,7 +112,7 @@ export function orientedBoundingBoxFromPose(pose: Pose | undefined, boundingBox?
   const obb = obbPool.get();
   obb.center.x = cx;
   obb.center.y = cy;
-  // If we have a boundingBox, the half-extents are already adjusted by w and h above
+  // If we have a collisionBox, the half-extents are already adjusted by w and h above
   obb.half.x = halfW;
   obb.half.y = halfH;
   obb.rotationDeg = rot;
@@ -205,8 +206,11 @@ export function containmentAgainstAxisAlignedBoundingBox(orientedBoundingBox: Or
 }
 
 // Convenience: from a Pose and AxisAlignedBoundingBox
-export function poseContainmentAgainstAxisAlignedBoundingBox(pose: Pose | undefined, axisAlignedBoundingBox: AxisAlignedBoundingBox, boundingBox?: { minX: number, minY: number, maxX: number, maxY: number }): OverlapResult {
-  const obb = orientedBoundingBoxFromPose(pose, boundingBox);
+// Note: collisionBox is NOT used here - boundary containment should only use the pose size, not the collision detection box
+export function poseContainmentAgainstAxisAlignedBoundingBox(pose: Pose | undefined, axisAlignedBoundingBox: AxisAlignedBoundingBox, collisionBox?: { minX: number, minY: number, maxX: number, maxY: number }): OverlapResult {
+  // For boundary containment, we should NOT use collisionBox - only use the pose size
+  // This function signature keeps collisionBox for backward compatibility but ignores it
+  const obb = orientedBoundingBoxFromPose(pose, undefined);
   return containmentAgainstAxisAlignedBoundingBox(obb, axisAlignedBoundingBox);
 }
 

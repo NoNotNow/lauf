@@ -89,6 +89,7 @@ export class PhysicsIntegrator {
       let r = r0 + omega * dtSec;
 
       // Boundary containment and bounce (affects x,y and may reflect velocity)
+      // Note: collisionBox is NOT used for boundary containment - only for collision detection
       if (this.boundary) {
         // Reuse pre-allocated testPose object to avoid allocation
         const testPose = this.testPose;
@@ -97,7 +98,8 @@ export class PhysicsIntegrator {
         testPose.Size.x = toNumber(pose.Size?.x, 0);
         testPose.Size.y = toNumber(pose.Size?.y, 0);
         testPose.Rotation = r;
-        const res = poseContainmentAgainstAxisAlignedBoundingBox(testPose, this.boundary, it.Physics.boundingBox);
+        // Boundary containment uses only the pose size, NOT the collision detection box
+        const res = poseContainmentAgainstAxisAlignedBoundingBox(testPose, this.boundary, undefined);
         if (res.overlaps) {
           // Correct position by MTV - capped to avoid enormous jumps
           const mtvX = res.minimalTranslationVector.x;
@@ -110,7 +112,8 @@ export class PhysicsIntegrator {
           y += mtvY * scale;
 
           if (this.bounce) {
-            const obb = orientedBoundingBoxFromPose(pose, it.Physics.boundingBox);
+            // For collision impulse calculation, we DO use the collision box
+            const obb = orientedBoundingBoxFromPose(pose, it.Physics.collisionBox);
             applyBoundaryCollisionImpulse(
               it,
               obb,
