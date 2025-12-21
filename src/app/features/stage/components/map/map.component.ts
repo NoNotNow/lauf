@@ -120,6 +120,19 @@ export class MapComponent implements AfterViewInit, OnDestroy, MapLoader {
         this.worldContext.start();
     }
 
+    private currentZoom = 1.0;
+    toggleZoom(): void {
+        const camera = this.worldContext?.getCamera();
+        if (!camera) return;
+
+        // If the camera is currently at zoom 1.0, zoom to 5.0. Otherwise (e.g. at 5.0 or even 3.0 initial), zoom to 1.0.
+        // This makes it feel like a "toggle" back to overview.
+        this.currentZoom = camera.getTargetZoom() === 1.0 ? 5.0 : 1.0;
+        
+        // setTarget handles smoothing to the new zoom
+        camera.setTarget(camera.getTargetCenter(), this.currentZoom);
+    }
+
     private applyDesignConfiguration(map: GameMap): void {
         if (!map.design) return;
 

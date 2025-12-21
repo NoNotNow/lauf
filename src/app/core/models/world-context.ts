@@ -1,5 +1,6 @@
 import { Rotator } from '../rendering/transformers/rotator';
 import { Wobbler } from '../rendering/transformers/wobbler';
+import { Sailor } from '../rendering/transformers/sailor';
 import { Drifter } from '../rendering/transformers/drifter';
 import { Gravity } from '../rendering/transformers/gravity';
 import { FollowItem } from '../rendering/transformers/follow-item';
@@ -17,6 +18,7 @@ import { Avatar } from './game-items/stage-items';
 export class WorldContext {
   private rotators: Rotator[] = [];
   private wobblers: Wobbler[] = [];
+  private sailors: Sailor[] = [];
   private drifters: Drifter[] = [];
   private gravities: Gravity[] = [];
   private followers: FollowItem[] = [];
@@ -33,6 +35,10 @@ export class WorldContext {
 
   addWobbler(wobbler: Wobbler): void {
     this.wobblers.push(wobbler);
+  }
+
+  addSailor(sailor: Sailor): void {
+    this.sailors.push(sailor);
   }
 
   addDrifter(drifter: Drifter): void {
@@ -67,6 +73,10 @@ export class WorldContext {
     this.camera = camera;
   }
 
+  setCameraBounds(cols: number, rows: number): void {
+    this.camera?.setBounds(cols, rows);
+  }
+
   getCamera(): Camera | undefined {
     return this.camera;
   }
@@ -89,7 +99,7 @@ export class WorldContext {
 
   updateCamera(): void {
     if (this.camera && this.avatar) {
-      this.camera.setTarget(this.avatar.Pose.Position, this.camera.getZoom());
+      this.camera.setTarget(this.avatar.Pose.Position, this.camera.getTargetZoom());
       this.camera.update();
     }
   }
@@ -105,6 +115,7 @@ export class WorldContext {
   start(): void {
     this.rotators.forEach(r => r.start());
     this.wobblers.forEach(w => w.start());
+    this.sailors.forEach(s => s.start());
     this.drifters.forEach(d => d.start());
     this.gravities.forEach(g => g.start());
     this.followers.forEach(f => f.start());
@@ -117,6 +128,7 @@ export class WorldContext {
   stop(): void {
     this.rotators.forEach(r => r.stop());
     this.wobblers.forEach(w => w.stop());
+    this.sailors.forEach(s => s.stop());
     this.drifters.forEach(d => d.stop());
     this.gravities.forEach(g => g.stop());
     this.followers.forEach(f => f.stop());
@@ -130,6 +142,7 @@ export class WorldContext {
     this.stop();
     this.rotators = [];
     this.wobblers = [];
+    this.sailors = [];
     this.drifters = [];
     this.gravities = [];
     this.followers = [];

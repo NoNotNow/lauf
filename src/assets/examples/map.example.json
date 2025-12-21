@@ -258,6 +258,28 @@
       }
     },
     {
+      "Type": "Bird",
+      "Pose": {
+        "Position": {
+          "X": 5,
+          "Y": 6
+        },
+        "Size": {
+          "X": 0.5,
+          "Y": 0.5
+        }
+      },
+      "Physics": {
+        "hasGravity": false
+      },
+      "Transformers": [
+        {
+          "horizontalAmplitude": 5.0,
+          "horizontalFrequency": 0.04
+        }
+      ]
+    },
+    {
       "Pose": {
         "Position": {
           "X": 4,

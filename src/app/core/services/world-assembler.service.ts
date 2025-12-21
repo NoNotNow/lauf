@@ -6,12 +6,14 @@ import { CollisionHandler } from '../rendering/collision-handler';
 import { PhysicsIntegrator } from '../rendering/physics/physics-integrator';
 import { AxisAlignedBoundingBox } from '../rendering/collision';
 import { Rotator } from '../rendering/transformers/rotator';
+import { Wobbler } from '../rendering/transformers/wobbler';
+import { Sailor } from '../rendering/transformers/sailor';
 import { Drifter } from '../rendering/transformers/drifter';
 import { Gravity } from '../rendering/transformers/gravity';
 import { FollowItem } from '../rendering/transformers/follow-item';
 import { StayUpright } from '../rendering/transformers/stay-upright';
 import { KeyboardController } from '../rendering/transformers/keyboard-controller';
-import { Avatar, Obstacle, Target } from '../models/game-items/stage-items';
+import { Avatar, Obstacle, Bird, Target } from '../models/game-items/stage-items';
 import { StageItem, Transformer } from '../models/game-items/stage-item';
 import { Point } from '../models/point';
 import { Camera } from '../rendering/camera';
@@ -56,6 +58,10 @@ export class WorldAssemblerService {
     // Setup camera
     const camera = this.createCamera(map);
     context.setCamera(camera);
+
+    if (map.size) {
+      context.setCameraBounds(map.size.x, map.size.y);
+    }
 
     // Assemble obstacles with their transformers
     this.assembleObstacles(map.obstacles ?? [], context, boundary);
@@ -110,6 +116,8 @@ export class WorldAssemblerService {
             this.attachFollowItem(obstacle, context, t.Params);
           } else if (t.Type === 'StayUpright') {
             this.attachStayUpright(obstacle, context, t.Params);
+          } else if (t.Type === 'Sailor') {
+            this.attachSailor(obstacle, context, t.Params);
           }
         });
       }
@@ -155,6 +163,22 @@ export class WorldAssemblerService {
     context.addGravity(gravity);
   }
 
+  private attachSailor(item: StageItem, context: WorldContext, params?: any): void {
+    const amplitude = params?.amplitude ?? 0.5;
+    const frequency = params?.frequency ?? 2.0;
+    const horizontalAmplitude = params?.horizontalAmplitude;
+    const horizontalFrequency = params?.horizontalFrequency;
+    const sailor = new Sailor(
+      this.ticker, 
+      item, 
+      amplitude, 
+      frequency, 
+      horizontalAmplitude, 
+      horizontalFrequency
+    );
+    context.addSailor(sailor);
+  }
+
   private registerWithIntegrator(item: StageItem, context: WorldContext): void {
     context.getIntegrator()?.add(item);
   }
@@ -177,6 +201,8 @@ export class WorldAssemblerService {
           this.attachFollowItem(avatar, context, t.Params);
         } else if (t.Type === 'StayUpright') {
           this.attachStayUpright(avatar, context, t.Params);
+        } else if (t.Type === 'Sailor') {
+          this.attachSailor(avatar, context, t.Params);
         }
       });
     }

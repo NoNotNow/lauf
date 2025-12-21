@@ -40,10 +40,22 @@ export class StageItem {
 
         const transformers = g('Transformers', 'transformers');
         if (Array.isArray(transformers)) {
-            this.transformers = transformers.map(t => ({
-                Type: t.Type ?? t.type,
-                Params: t.Params ?? t.params
-            }));
+            this.transformers = transformers.map(t => {
+                const type = t.Type ?? t.type;
+                const params = t.Params ?? t.params;
+                
+                if (type) {
+                    return { Type: type, Params: params ?? t };
+                }
+
+                // If no type is provided, and it's a Bird, we assume Sailor.
+                // We use the constructor name to avoid circular dependency.
+                if (this.constructor.name === 'Bird') {
+                    return { Type: 'Sailor', Params: params ?? t };
+                }
+
+                return { Type: 'Unknown', Params: params ?? t };
+            });
         }
 
         return this;
