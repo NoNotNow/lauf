@@ -24,7 +24,7 @@
     {
       "Pose": {
         "Position": {
-          "X": 6,
+          "X": 1,
           "Y": 8
         },
         "Size": {
@@ -47,9 +47,18 @@
           "Type": "FollowItem",
           "Params": {
             "TargetId": "Avatar",
-            "Distance": 0.2,
-            "maxSpeed": 0.5,
+            "Distance": 0.4,
+            "maxSpeed": 0.2,
             "direction": "horizontal"
+          }
+        },
+        {
+          "Type": "StayUpright",
+          "Params": {
+            "latency": 2.0,
+            "maxAngle": 10.0,
+            "speed": 1.0,
+            "force": 1
           }
         }
       ]
@@ -333,6 +342,15 @@
           "angularAccel": 700,
           "angularDamping": 500,
           "maxOmega": 300
+        }
+      },
+      {
+        "Type": "StayUpright",
+        "Params": {
+          "latency": 2.0,
+          "maxAngle": 10.0,
+          "speed": 5.0,
+          "force": 4
         }
       }
     ]

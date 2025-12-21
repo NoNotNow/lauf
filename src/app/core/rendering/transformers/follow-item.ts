@@ -9,11 +9,12 @@ export interface FollowItemOptions {
   distance?: number;
   maxSpeed?: number;
   direction?: 'horizontal' | 'vertical' | 'both';
+  force?: number;
 }
 
 /**
  * FollowItem: makes a StageItem follow another StageItem.
- * Maintains a specified distance and moves up to a maximum speed.
+ * Maintains a specified distance by applying acceleration.
  */
 export class FollowItem {
   private sub?: Subscription;
@@ -22,6 +23,7 @@ export class FollowItem {
   private _distance: number;
   private _maxSpeed: number;
   private _direction: 'horizontal' | 'vertical' | 'both';
+  private _force: number;
 
   constructor(private ticker: TickService, item: StageItem | undefined, options: FollowItemOptions) {
     this._item = item;
@@ -29,6 +31,7 @@ export class FollowItem {
     this._distance = options.distance ?? 0.5;
     this._maxSpeed = options.maxSpeed ?? 0.05;
     this._direction = options.direction ?? 'both';
+    this._force = options.force ?? 1.0;
   }
 
   setItem(item: StageItem | undefined): void {
@@ -66,33 +69,58 @@ export class FollowItem {
       dist = Math.hypot(dx, dy);
     }
 
+    const phys = StageItemPhysics.get(item);
+    let vx = phys.vx;
+    let vy = phys.vy;
+
     if (dist <= this._distance) {
-      // Already close enough, stop moving on affected axes
-      const currentVx = this._direction === 'vertical' ? StageItemPhysics.get(item).vx : 0;
-      const currentVy = this._direction === 'horizontal' ? StageItemPhysics.get(item).vy : 0;
-      StageItemPhysics.setVelocity(item, currentVx, currentVy);
+      // Already close enough, apply damping to stop moving on affected axes
+      const damping = Math.pow(0.5, dt * 10); // Simple damping
+      if (this._direction === 'horizontal' || this._direction === 'both') {
+        vx *= damping;
+        if (Math.abs(vx) < 0.001) vx = 0;
+      }
+      if (this._direction === 'vertical' || this._direction === 'both') {
+        vy *= damping;
+        if (Math.abs(vy) < 0.001) vy = 0;
+      }
+      StageItemPhysics.setVelocity(item, vx, vy);
       return;
     }
 
-    // Calculate desired velocity
-    let vx = 0;
-    let vy = 0;
+    // Calculate desired acceleration direction
+    let ax = 0;
+    let ay = 0;
 
     if (this._direction === 'horizontal' || this._direction === 'both') {
       const nx = this._direction === 'horizontal' ? Math.sign(dx) : dx / dist;
-      vx = nx * this._maxSpeed;
+      ax = nx * this._force;
     }
     
     if (this._direction === 'vertical' || this._direction === 'both') {
       const ny = this._direction === 'vertical' ? Math.sign(dy) : dy / dist;
-      vy = ny * this._maxSpeed;
+      ay = ny * this._force;
     }
 
-    // Preserve existing velocity on unmanaged axes if needed
-    if (this._direction === 'horizontal') {
-        vy = StageItemPhysics.get(item).vy;
-    } else if (this._direction === 'vertical') {
-        vx = StageItemPhysics.get(item).vx;
+    // Apply acceleration
+    vx += ax * dt;
+    vy += ay * dt;
+
+    // Clamp speed if both or individual axes are managed
+    if (this._direction === 'both') {
+      const speed = Math.hypot(vx, vy);
+      if (speed > this._maxSpeed) {
+        const s = this._maxSpeed / speed;
+        vx *= s;
+        vy *= s;
+      }
+    } else {
+      if (this._direction === 'horizontal') {
+        if (Math.abs(vx) > this._maxSpeed) vx = Math.sign(vx) * this._maxSpeed;
+      }
+      if (this._direction === 'vertical') {
+        if (Math.abs(vy) > this._maxSpeed) vy = Math.sign(vy) * this._maxSpeed;
+      }
     }
 
     StageItemPhysics.setVelocity(item, vx, vy);

@@ -9,6 +9,7 @@ import { Rotator } from '../rendering/transformers/rotator';
 import { Drifter } from '../rendering/transformers/drifter';
 import { Gravity } from '../rendering/transformers/gravity';
 import { FollowItem } from '../rendering/transformers/follow-item';
+import { StayUpright } from '../rendering/transformers/stay-upright';
 import { KeyboardController } from '../rendering/transformers/keyboard-controller';
 import { Avatar, Obstacle, Target } from '../models/game-items/stage-items';
 import { StageItem, Transformer } from '../models/game-items/stage-item';
@@ -107,6 +108,8 @@ export class WorldAssemblerService {
         obstacle.transformers.forEach(t => {
           if (t.Type === 'FollowItem') {
             this.attachFollowItem(obstacle, context, t.Params);
+          } else if (t.Type === 'StayUpright') {
+            this.attachStayUpright(obstacle, context, t.Params);
           }
         });
       }
@@ -172,6 +175,8 @@ export class WorldAssemblerService {
           this.attachAvatarController(avatar, context, t.Params);
         } else if (t.Type === 'FollowItem') {
           this.attachFollowItem(avatar, context, t.Params);
+        } else if (t.Type === 'StayUpright') {
+          this.attachStayUpright(avatar, context, t.Params);
         }
       });
     }
@@ -225,10 +230,25 @@ export class WorldAssemblerService {
         target: target,
         distance: params.Distance,
         maxSpeed: params.maxSpeed ?? params.MaxSpeed,
-        direction: params.direction
+        direction: params.direction,
+        force: params.force ?? params.Force
       });
       context.addFollower(follower);
     }
+  }
+
+  private attachStayUpright(
+    item: StageItem,
+    context: WorldContext,
+    params: any
+  ): void {
+    const upright = new StayUpright(this.ticker, item, {
+      latency: params?.latency ?? params?.Latency,
+      maxAngle: params?.maxAngle ?? params?.MaxAngle,
+      speed: params?.speed ?? params?.Speed,
+      force: params?.force ?? params?.Force
+    });
+    context.addUpright(upright);
   }
 
   // Random generation helpers

@@ -3,6 +3,7 @@ import { Wobbler } from '../rendering/transformers/wobbler';
 import { Drifter } from '../rendering/transformers/drifter';
 import { Gravity } from '../rendering/transformers/gravity';
 import { FollowItem } from '../rendering/transformers/follow-item';
+import { StayUpright } from '../rendering/transformers/stay-upright';
 import { KeyboardController } from '../rendering/transformers/keyboard-controller';
 import { CollisionHandler } from '../rendering/collision-handler';
 import { PhysicsIntegrator } from '../rendering/physics/physics-integrator';
@@ -19,6 +20,7 @@ export class WorldContext {
   private drifters: Drifter[] = [];
   private gravities: Gravity[] = [];
   private followers: FollowItem[] = [];
+  private uprights: StayUpright[] = [];
   private avatarController?: KeyboardController;
   private integrator?: PhysicsIntegrator;
   private collisions?: CollisionHandler;
@@ -43,6 +45,10 @@ export class WorldContext {
 
   addFollower(follower: FollowItem): void {
     this.followers.push(follower);
+  }
+
+  addUpright(upright: StayUpright): void {
+    this.uprights.push(upright);
   }
 
   setAvatarController(controller: KeyboardController): void {
@@ -102,6 +108,7 @@ export class WorldContext {
     this.drifters.forEach(d => d.start());
     this.gravities.forEach(g => g.start());
     this.followers.forEach(f => f.start());
+    this.uprights.forEach(u => u.start());
     this.avatarController?.start();
     this.collisions?.start();
     this.integrator?.start();
@@ -113,6 +120,7 @@ export class WorldContext {
     this.drifters.forEach(d => d.stop());
     this.gravities.forEach(g => g.stop());
     this.followers.forEach(f => f.stop());
+    this.uprights.forEach(u => u.stop());
     this.avatarController?.stop();
     this.integrator?.stop();
     this.collisions?.stop();
@@ -125,6 +133,7 @@ export class WorldContext {
     this.drifters = [];
     this.gravities = [];
     this.followers = [];
+    this.uprights = [];
     this.avatarController = undefined;
     this.collisions?.clear();
     this.integrator = undefined;
