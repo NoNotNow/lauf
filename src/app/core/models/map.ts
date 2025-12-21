@@ -1,4 +1,4 @@
-import {Avatar, Obstacle, Bird, Target} from "./game-items/stage-items";
+import {Avatar, Obstacle, Target} from "./game-items/stage-items";
 import {Design} from "./design/design";
 import {Point} from "./point";
 import {Camera} from "../rendering/camera";
@@ -38,13 +38,7 @@ export class Map{
             // mutate in place to preserve array reference
             this.obstacles.length = 0;
             for (const item of obstacles) {
-                const type = item.type ?? item.Type;
-                let o: Obstacle;
-                if (type === 'Bird') {
-                    o = new Bird();
-                } else {
-                    o = new Obstacle();
-                }
+                const o = new Obstacle();
                 o.FromJson(item);
                 this.obstacles.push(o);
             }

@@ -13,7 +13,7 @@ import { Gravity } from '../rendering/transformers/gravity';
 import { FollowItem } from '../rendering/transformers/follow-item';
 import { StayUpright } from '../rendering/transformers/stay-upright';
 import { KeyboardController } from '../rendering/transformers/keyboard-controller';
-import { Avatar, Obstacle, Bird, Target } from '../models/game-items/stage-items';
+import { Avatar, Obstacle, Target } from '../models/game-items/stage-items';
 import { StageItem, Transformer } from '../models/game-items/stage-item';
 import { Point } from '../models/point';
 import { Camera } from '../rendering/camera';

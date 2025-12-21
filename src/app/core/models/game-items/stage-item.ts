@@ -48,12 +48,6 @@ export class StageItem {
                     return { Type: type, Params: params ?? t };
                 }
 
-                // If no type is provided, and it's a Bird, we assume Sailor.
-                // We use the constructor name to avoid circular dependency.
-                if (this.constructor.name === 'Bird') {
-                    return { Type: 'Sailor', Params: params ?? t };
-                }
-
                 return { Type: 'Unknown', Params: params ?? t };
             });
         }

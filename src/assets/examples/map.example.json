@@ -270,7 +270,6 @@
       }
     },
     {
-      "Type": "Bird",
       "Pose": {
         "Position": {
           "X": 5,
@@ -281,13 +280,21 @@
           "Y": 0.5
         }
       },
-      "Physics": {
-        "hasGravity": false
+      "Design": {
+        "Color": "transparent",
+        "Image": "assets/bird.svg"
+      },
+      "PhysicsConfiguration": {
+        "hasGravity": false,
+        "canMove": true
       },
       "Transformers": [
         {
-          "horizontalAmplitude": 5.0,
-          "horizontalFrequency": 0.04
+          "Type": "Sailor",
+          "Params": {
+            "horizontalAmplitude": 5.0,
+            "horizontalFrequency": 0.04
+          }
         }
       ]
     },
@@ -312,7 +319,7 @@
         "hasGravity": true,
         "restitution": 0.2,
         "damping": 2,
-        "mass": 3000,
+        "mass": 300,
         "boundingBox": {
           "minX": 0.4,
           "minY": 0.3,
@@ -381,7 +388,7 @@
       {
         "Type": "StayUpright",
         "Params": {
-          "latency": 2.0,
+          "latency": 20.0,
           "maxAngle": 10.0,
           "speed": 5.0,
           "force": 4
