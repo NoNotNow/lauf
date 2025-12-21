@@ -129,7 +129,19 @@
           "Width": 0
         },
         "CornerRadius": 0,
-        "Image": "assets/monster.svg"
+        "Image": "assets/monster.svg",
+        "Transformers": [
+          {
+            "Type": "StayUpright",
+            "Params": {
+              "latency": 2.0,
+              "maxAngle": 10.0,
+              "speed": 1.0,
+              "force": 3
+            }
+
+          }
+        ]
       }
     },
     {

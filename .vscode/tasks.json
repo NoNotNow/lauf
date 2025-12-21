@@ -26,6 +26,13 @@
                     "endsPattern": "^(.*)?✔.*Compiled successfully|Build complete"
                 }
             }
+        },
+        {
+            "type": "npm",
+            "script": "start",
+            "problemMatcher": [],
+            "label": "npm: start",
+            "detail": "ng serve"
         }
     ]
 }

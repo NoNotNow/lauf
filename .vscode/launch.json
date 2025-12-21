@@ -2,6 +2,15 @@
     "version": "0.2.0",
     "configurations": [
         {
+            "name": "Angular: npm start",
+            "type": "node",
+            "request": "launch",
+            "runtimeExecutable": "/usr/bin/npm",
+            "runtimeArgs": ["start"],
+            "console": "integratedTerminal",
+            "internalConsoleOptions": "neverOpen"
+        },
+        {
             "name": "Angular: Chrome",
             "type": "chrome",
             "request": "launch",
@@ -19,10 +28,10 @@
         {
             "name": "Angular: Debug",
             "configurations": [
+                "Angular: npm start",
                 "Angular: Chrome"
             ],
-            "preLaunchTask": "npm start",
-            "preLaunchTaskTimeout": 120000
+            "stopAll": true
         }
     ]
 }
