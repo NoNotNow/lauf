@@ -7,7 +7,7 @@ import { PhysicsIntegrator } from '../rendering/physics/physics-integrator';
 import { AxisAlignedBoundingBox } from '../rendering/collision';
 import { Rotator } from '../rendering/transformers/rotator';
 import { Wobbler } from '../rendering/transformers/wobbler';
-import { Sailor } from '../rendering/transformers/sailor';
+import { Glider } from '../rendering/transformers/glider';
 import { Drifter } from '../rendering/transformers/drifter';
 import { Gravity } from '../rendering/transformers/gravity';
 import { FollowItem } from '../rendering/transformers/follow-item';
@@ -116,8 +116,8 @@ export class WorldAssemblerService {
             this.attachFollowItem(obstacle, context, t.Params);
           } else if (t.Type === 'StayUpright') {
             this.attachStayUpright(obstacle, context, t.Params);
-          } else if (t.Type === 'Sailor') {
-            this.attachSailor(obstacle, context, t.Params);
+          } else if (t.Type === 'Glider') {
+            this.attachGlider(obstacle, context, t.Params);
           }
         });
       }
@@ -163,20 +163,20 @@ export class WorldAssemblerService {
     context.addGravity(gravity);
   }
 
-  private attachSailor(item: StageItem, context: WorldContext, params?: any): void {
-    const amplitude = params?.amplitude ?? 0.5;
-    const frequency = params?.frequency ?? 2.0;
-    const horizontalAmplitude = params?.horizontalAmplitude;
-    const horizontalFrequency = params?.horizontalFrequency;
-    const sailor = new Sailor(
+  private attachGlider(item: StageItem, context: WorldContext, params?: any): void {
+    const horizontalSpeed = params?.horizontalSpeed ?? params?.horizontalAmplitude ?? 2.0;
+    const glideEfficiency = params?.glideEfficiency ?? 0.3;
+    const minSpeedForLift = params?.minSpeedForLift ?? 1.0;
+    const maxClimbRate = params?.maxClimbRate ?? 3.0;
+    const glider = new Glider(
       this.ticker, 
       item, 
-      amplitude, 
-      frequency, 
-      horizontalAmplitude, 
-      horizontalFrequency
+      horizontalSpeed, 
+      glideEfficiency, 
+      minSpeedForLift, 
+      maxClimbRate
     );
-    context.addSailor(sailor);
+    context.addGlider(glider);
   }
 
   private registerWithIntegrator(item: StageItem, context: WorldContext): void {
@@ -201,8 +201,8 @@ export class WorldAssemblerService {
           this.attachFollowItem(avatar, context, t.Params);
         } else if (t.Type === 'StayUpright') {
           this.attachStayUpright(avatar, context, t.Params);
-        } else if (t.Type === 'Sailor') {
-          this.attachSailor(avatar, context, t.Params);
+        } else if (t.Type === 'Glider') {
+          this.attachGlider(avatar, context, t.Params);
         }
       });
     }

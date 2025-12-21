@@ -285,15 +285,17 @@
         "Image": "assets/bird.svg"
       },
       "PhysicsConfiguration": {
-        "hasGravity": false,
+        "hasGravity": true,
         "canMove": true
       },
       "Transformers": [
         {
-          "Type": "Sailor",
+          "Type": "Glider",
           "Params": {
-            "horizontalAmplitude": 5.0,
-            "horizontalFrequency": 0.04
+            "horizontalSpeed": 3.0,
+            "glideEfficiency": 0.4,
+            "minSpeedForLift": 1.5,
+            "maxClimbRate": 4.0
           }
         }
       ]

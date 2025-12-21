@@ -1,6 +1,6 @@
 import { Rotator } from '../rendering/transformers/rotator';
 import { Wobbler } from '../rendering/transformers/wobbler';
-import { Sailor } from '../rendering/transformers/sailor';
+import { Glider } from '../rendering/transformers/glider';
 import { Drifter } from '../rendering/transformers/drifter';
 import { Gravity } from '../rendering/transformers/gravity';
 import { FollowItem } from '../rendering/transformers/follow-item';
@@ -18,7 +18,7 @@ import { Avatar } from './game-items/stage-items';
 export class WorldContext {
   private rotators: Rotator[] = [];
   private wobblers: Wobbler[] = [];
-  private sailors: Sailor[] = [];
+  private gliders: Glider[] = [];
   private drifters: Drifter[] = [];
   private gravities: Gravity[] = [];
   private followers: FollowItem[] = [];
@@ -37,8 +37,8 @@ export class WorldContext {
     this.wobblers.push(wobbler);
   }
 
-  addSailor(sailor: Sailor): void {
-    this.sailors.push(sailor);
+  addGlider(glider: Glider): void {
+    this.gliders.push(glider);
   }
 
   addDrifter(drifter: Drifter): void {
@@ -115,7 +115,7 @@ export class WorldContext {
   start(): void {
     this.rotators.forEach(r => r.start());
     this.wobblers.forEach(w => w.start());
-    this.sailors.forEach(s => s.start());
+    this.gliders.forEach(g => g.start());
     this.drifters.forEach(d => d.start());
     this.gravities.forEach(g => g.start());
     this.followers.forEach(f => f.start());
@@ -128,7 +128,7 @@ export class WorldContext {
   stop(): void {
     this.rotators.forEach(r => r.stop());
     this.wobblers.forEach(w => w.stop());
-    this.sailors.forEach(s => s.stop());
+    this.gliders.forEach(g => g.stop());
     this.drifters.forEach(d => d.stop());
     this.gravities.forEach(g => g.stop());
     this.followers.forEach(f => f.stop());
@@ -142,7 +142,7 @@ export class WorldContext {
     this.stop();
     this.rotators = [];
     this.wobblers = [];
-    this.sailors = [];
+    this.gliders = [];
     this.drifters = [];
     this.gravities = [];
     this.followers = [];
