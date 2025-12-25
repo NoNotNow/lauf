@@ -103,232 +103,294 @@ export class Glider {
     
     const phys = StageItemPhysics.get(this._item);
     const pose = this._item.Pose;
+    const currentVelocity = { vx: phys.vx, vy: phys.vy };
+    const currentSpeed = Math.hypot(currentVelocity.vx, currentVelocity.vy);
+    const currentDirection = Math.atan2(currentVelocity.vy, currentVelocity.vx);
     
-    // Get current velocities (momentum)
-    let vx = phys.vx;
-    let vy = phys.vy;
-    const currentSpeed = Math.hypot(vx, vy);
-    const currentDirection = Math.atan2(vy, vx);
+    this.updateEvasionState(dtSec);
     
-    // Update or clear evasion state
+    const headingResult = this.determineDesiredHeading(currentVelocity, dtSec);
+    const { desiredHeading, urgency } = this.applyEvasionState(headingResult);
+    
+    const newVelocity = this.rotateMomentumTowardHeading(
+      currentDirection,
+      desiredHeading,
+      currentSpeed,
+      urgency,
+      dtSec
+    );
+    
+    this.applyGlidingPhysics(newVelocity);
+    this.maintainMinimumSpeed(newVelocity, currentSpeed, dtSec);
+    
+    StageItemPhysics.setVelocity(this._item, newVelocity.vx, newVelocity.vy);
+    this.updateRotation(pose, newVelocity);
+  }
+  
+  private updateEvasionState(dtSec: number): void {
     if (this._evasionState) {
       this._evasionState.timeRemaining -= dtSec;
       if (this._evasionState.timeRemaining <= 0) {
-        this._evasionState = null; // Evasion decision expired
+        this._evasionState = null;
       }
     }
-    
-    // Determine desired heading direction and urgency (how close to danger)
-    let desiredHeading = currentDirection;
-    let urgency = 0; // 0 = no urgency, 1 = maximum urgency (very close to wall/obstacle)
+  }
+  
+  private determineDesiredHeading(
+    currentVelocity: { vx: number; vy: number },
+    dtSec: number
+  ): { desiredHeading: number; urgency: number; newEvasionNeeded: boolean } {
+    let desiredHeading = Math.atan2(currentVelocity.vy, currentVelocity.vx);
+    let urgency = 0;
     let newEvasionNeeded = false;
     
-    // Check boundaries and adjust desired heading if needed (simple boat-like steering)
     if (this._boundary) {
-      const pos = pose.Position;
-      const size = pose.Size;
-      const halfW = (size?.x ?? 0) * 0.5;
-      const halfH = (size?.y ?? 0) * 0.5;
-      const centerX = pos.x + halfW;
-      const centerY = pos.y + halfH;
-      
-      // Calculate distances to boundaries
-      const distToLeft = centerX - this._boundary.minX;
-      const distToRight = this._boundary.maxX - centerX;
-      const distToTop = centerY - this._boundary.minY;
-      const distToBottom = this._boundary.maxY - centerY;
-      
-      // Find the closest boundary
-      const minDist = Math.min(distToLeft, distToRight, distToTop, distToBottom);
-      
-      // Calculate urgency based on distance (closer = higher urgency)
-      // Start avoiding as soon as we're within minDistanceToBoundary
-      if (minDist < this._minDistanceToBoundary) {
-        // Urgency increases as distance decreases
-        // At 0 distance, urgency = 1.0 (maximum)
-        // At minDistanceToBoundary, urgency = 0.0 (minimum - but still triggers avoidance)
-        urgency = Math.max(0, Math.min(1, 1 - (minDist / this._minDistanceToBoundary)));
-      }
-      
-      // Decisive steering: prioritize the most urgent direction
-      // Start avoiding when within minDistanceToBoundary (not 1.5x)
-      const avoidanceThreshold = this._minDistanceToBoundary;
-      let steerX = 0;
-      let steerY = 0;
-      let maxUrgency = 0;
-      
-      // Check each wall - start avoiding when within minDistanceToBoundary
-      // Left wall: check if too close
-      if (distToLeft < avoidanceThreshold) {
-        // Urgency: 1.0 at distance 0, 0.0 at minDistanceToBoundary
-        const wallUrgency = 1 - (distToLeft / this._minDistanceToBoundary);
-        // Increase urgency if heading toward the wall
-        const headingUrgency = vx < -0.1 ? 1.3 : 1.0;
-        const totalUrgency = Math.min(1, wallUrgency * headingUrgency);
-        if (totalUrgency > maxUrgency) {
-          maxUrgency = totalUrgency;
-          steerX = 1; // Steer right
-          steerY = 0; // Clear Y to avoid conflict
-        }
-      }
-      
-      // Right wall: check if too close
-      if (distToRight < avoidanceThreshold) {
-        const wallUrgency = 1 - (distToRight / this._minDistanceToBoundary);
-        const headingUrgency = vx > 0.1 ? 1.3 : 1.0;
-        const totalUrgency = Math.min(1, wallUrgency * headingUrgency);
-        if (totalUrgency > maxUrgency) {
-          maxUrgency = totalUrgency;
-          steerX = -1; // Steer left
-          steerY = 0; // Clear Y to avoid conflict
-        }
-      }
-      
-      // Top wall: check if too close
-      if (distToTop < avoidanceThreshold) {
-        const wallUrgency = 1 - (distToTop / this._minDistanceToBoundary);
-        const headingUrgency = vy < -0.1 ? 1.3 : 1.0;
-        const totalUrgency = Math.min(1, wallUrgency * headingUrgency);
-        if (totalUrgency > maxUrgency) {
-          maxUrgency = totalUrgency;
-          steerX = 0; // Clear X to avoid conflict
-          steerY = 1; // Steer down
-        }
-      }
-      
-      // Bottom wall: check if too close
-      if (distToBottom < avoidanceThreshold) {
-        const wallUrgency = 1 - (distToBottom / this._minDistanceToBoundary);
-        const headingUrgency = vy > 0.1 ? 1.3 : 1.0;
-        const totalUrgency = Math.min(1, wallUrgency * headingUrgency);
-        if (totalUrgency > maxUrgency) {
-          maxUrgency = totalUrgency;
-          steerX = 0; // Clear X to avoid conflict
-          steerY = -1; // Steer up
-        }
-      }
-      
-      // If we're in a corner (close to two walls), choose the direction with most clearance
-      if (steerX !== 0 && steerY !== 0) {
-        // We have conflicting directions - choose the one with more clearance
-        const clearanceX = steerX > 0 ? distToRight : distToLeft;
-        const clearanceY = steerY > 0 ? distToBottom : distToTop;
-        
-        if (clearanceX > clearanceY) {
-          // More clearance in X direction, prioritize X
-          steerY = 0;
-        } else {
-          // More clearance in Y direction, prioritize Y
-          steerX = 0;
-        }
-      }
-      
-      // If steering needed, calculate desired heading
-      if (steerX !== 0 || steerY !== 0) {
-        // Use the steering direction directly (already normalized to -1, 0, or 1)
-        desiredHeading = Math.atan2(steerY, steerX);
-        // Update urgency to match the selected wall's urgency
-        urgency = Math.max(urgency, maxUrgency);
+      const boundaryResult = this.calculateBoundaryAvoidance(currentVelocity);
+      if (boundaryResult.needsAvoidance) {
+        desiredHeading = boundaryResult.desiredHeading;
+        urgency = boundaryResult.urgency;
         newEvasionNeeded = true;
       } else {
-        // Normal behavior: random variation in heading
-        const directionChangeFreq = 0.015;
-        this._directionPhase += dtSec * directionChangeFreq * Math.PI * 2;
-        const directionVariation = Math.sin(this._directionPhase) * 0.4;
-        desiredHeading = this._baseDirectionAngle + directionVariation;
+        desiredHeading = this.calculateRandomHeading(dtSec);
       }
     } else {
-      // No boundary - just random variation
-      const directionChangeFreq = 0.015;
-      this._directionPhase += dtSec * directionChangeFreq * Math.PI * 2;
-      const directionVariation = Math.sin(this._directionPhase) * 0.4;
-      desiredHeading = this._baseDirectionAngle + directionVariation;
+      desiredHeading = this.calculateRandomHeading(dtSec);
     }
     
-    // Check for obstacles ahead and increase urgency if collision predicted
-    if (this._collisionHandler && this._item) {
-      const collisionCheck = this.checkCollisionAhead(dtSec);
-      if (collisionCheck.avoid) {
-        // Obstacle detected - increase urgency
-        urgency = Math.max(urgency, 0.7); // At least 70% urgency for obstacles
-        // Update desired heading to avoid obstacle
-        desiredHeading = Math.atan2(collisionCheck.steerY, collisionCheck.steerX);
-        newEvasionNeeded = true;
+    const obstacleResult = this.checkObstacleCollision(dtSec);
+    if (obstacleResult.needsAvoidance) {
+      urgency = Math.max(urgency, 0.7);
+      desiredHeading = obstacleResult.desiredHeading;
+      newEvasionNeeded = true;
+    }
+    
+    return { desiredHeading, urgency, newEvasionNeeded };
+  }
+  
+  private calculateBoundaryAvoidance(
+    currentVelocity: { vx: number; vy: number }
+  ): { needsAvoidance: boolean; desiredHeading: number; urgency: number } {
+    if (!this._boundary || !this._item) {
+      return { needsAvoidance: false, desiredHeading: 0, urgency: 0 };
+    }
+    
+    const pose = this._item.Pose;
+    const pos = pose.Position;
+    const size = pose.Size;
+    const halfW = (size?.x ?? 0) * 0.5;
+    const halfH = (size?.y ?? 0) * 0.5;
+    const centerX = pos.x + halfW;
+    const centerY = pos.y + halfH;
+    
+    const distances = this.calculateBoundaryDistances(centerX, centerY);
+    const minDist = Math.min(distances.left, distances.right, distances.top, distances.bottom);
+    
+    let urgency = 0;
+    if (minDist < this._minDistanceToBoundary) {
+      urgency = Math.max(0, Math.min(1, 1 - (minDist / this._minDistanceToBoundary)));
+    }
+    
+    const steering = this.calculateSteeringDirection(distances, currentVelocity);
+    
+    if (steering.steerX !== 0 || steering.steerY !== 0) {
+      const desiredHeading = Math.atan2(steering.steerY, steering.steerX);
+      urgency = Math.max(urgency, steering.maxUrgency);
+      return { needsAvoidance: true, desiredHeading, urgency };
+    }
+    
+    return { needsAvoidance: false, desiredHeading: 0, urgency };
+  }
+  
+  private calculateBoundaryDistances(
+    centerX: number,
+    centerY: number
+  ): { left: number; right: number; top: number; bottom: number } {
+    if (!this._boundary) {
+      return { left: Infinity, right: Infinity, top: Infinity, bottom: Infinity };
+    }
+    
+    return {
+      left: centerX - this._boundary.minX,
+      right: this._boundary.maxX - centerX,
+      top: centerY - this._boundary.minY,
+      bottom: this._boundary.maxY - centerY
+    };
+  }
+  
+  private calculateSteeringDirection(
+    distances: { left: number; right: number; top: number; bottom: number },
+    currentVelocity: { vx: number; vy: number }
+  ): { steerX: number; steerY: number; maxUrgency: number } {
+    const avoidanceThreshold = this._minDistanceToBoundary;
+    let steerX = 0;
+    let steerY = 0;
+    let maxUrgency = 0;
+    
+    if (distances.left < avoidanceThreshold) {
+      const wallUrgency = 1 - (distances.left / this._minDistanceToBoundary);
+      const headingUrgency = currentVelocity.vx < -0.1 ? 1.3 : 1.0;
+      const totalUrgency = Math.min(1, wallUrgency * headingUrgency);
+      if (totalUrgency > maxUrgency) {
+        maxUrgency = totalUrgency;
+        steerX = 1;
+        steerY = 0;
       }
     }
     
-    // Use evasion state if active and still valid, otherwise create new one if needed
+    if (distances.right < avoidanceThreshold) {
+      const wallUrgency = 1 - (distances.right / this._minDistanceToBoundary);
+      const headingUrgency = currentVelocity.vx > 0.1 ? 1.3 : 1.0;
+      const totalUrgency = Math.min(1, wallUrgency * headingUrgency);
+      if (totalUrgency > maxUrgency) {
+        maxUrgency = totalUrgency;
+        steerX = -1;
+        steerY = 0;
+      }
+    }
+    
+    if (distances.top < avoidanceThreshold) {
+      const wallUrgency = 1 - (distances.top / this._minDistanceToBoundary);
+      const headingUrgency = currentVelocity.vy < -0.1 ? 1.3 : 1.0;
+      const totalUrgency = Math.min(1, wallUrgency * headingUrgency);
+      if (totalUrgency > maxUrgency) {
+        maxUrgency = totalUrgency;
+        steerX = 0;
+        steerY = 1;
+      }
+    }
+    
+    if (distances.bottom < avoidanceThreshold) {
+      const wallUrgency = 1 - (distances.bottom / this._minDistanceToBoundary);
+      const headingUrgency = currentVelocity.vy > 0.1 ? 1.3 : 1.0;
+      const totalUrgency = Math.min(1, wallUrgency * headingUrgency);
+      if (totalUrgency > maxUrgency) {
+        maxUrgency = totalUrgency;
+        steerX = 0;
+        steerY = -1;
+      }
+    }
+    
+    // Resolve corner conflicts
+    if (steerX !== 0 && steerY !== 0) {
+      const clearanceX = steerX > 0 ? distances.right : distances.left;
+      const clearanceY = steerY > 0 ? distances.bottom : distances.top;
+      
+      if (clearanceX > clearanceY) {
+        steerY = 0;
+      } else {
+        steerX = 0;
+      }
+    }
+    
+    return { steerX, steerY, maxUrgency };
+  }
+  
+  private calculateRandomHeading(dtSec: number): number {
+    const directionChangeFreq = 0.015;
+    this._directionPhase += dtSec * directionChangeFreq * Math.PI * 2;
+    const directionVariation = Math.sin(this._directionPhase) * 0.4;
+    return this._baseDirectionAngle + directionVariation;
+  }
+  
+  private checkObstacleCollision(
+    dtSec: number
+  ): { needsAvoidance: boolean; desiredHeading: number } {
+    if (!this._collisionHandler || !this._item) {
+      return { needsAvoidance: false, desiredHeading: 0 };
+    }
+    
+    const collisionCheck = this.checkCollisionAhead(dtSec);
+    if (collisionCheck.avoid) {
+      const desiredHeading = Math.atan2(collisionCheck.steerY, collisionCheck.steerX);
+      return { needsAvoidance: true, desiredHeading };
+    }
+    
+    return { needsAvoidance: false, desiredHeading: 0 };
+  }
+  
+  private applyEvasionState(
+    headingResult: { desiredHeading: number; urgency: number; newEvasionNeeded: boolean }
+  ): { desiredHeading: number; urgency: number } {
     if (this._evasionState && this._evasionState.timeRemaining > 0) {
-      // Stick with previous evasion decision to prevent twitching
-      desiredHeading = this._evasionState.desiredHeading;
-      urgency = this._evasionState.urgency;
-    } else if (newEvasionNeeded && urgency > 0.3) {
-      // Create new evasion state only if urgency is significant
+      return {
+        desiredHeading: this._evasionState.desiredHeading,
+        urgency: this._evasionState.urgency
+      };
+    }
+    
+    if (headingResult.newEvasionNeeded && headingResult.urgency > 0.3) {
       this._evasionState = {
         active: true,
-        desiredHeading: desiredHeading,
-        urgency: urgency,
+        desiredHeading: headingResult.desiredHeading,
+        urgency: headingResult.urgency,
         timeRemaining: this._evasionDuration
       };
-    } else if (!newEvasionNeeded) {
-      // Clear evasion state if no longer needed
+    } else if (!headingResult.newEvasionNeeded) {
       this._evasionState = null;
     }
     
-    // Boat-like turning: gradually rotate momentum toward desired heading
-    // Turn rate increases with urgency (closer = steeper turn)
+    return {
+      desiredHeading: headingResult.desiredHeading,
+      urgency: headingResult.urgency
+    };
+  }
+  
+  private rotateMomentumTowardHeading(
+    currentDirection: number,
+    desiredHeading: number,
+    currentSpeed: number,
+    urgency: number,
+    dtSec: number
+  ): { vx: number; vy: number } {
     let angleDiff = desiredHeading - currentDirection;
     
     // Normalize angle difference to [-PI, PI]
     while (angleDiff > Math.PI) angleDiff -= 2 * Math.PI;
     while (angleDiff < -Math.PI) angleDiff += 2 * Math.PI;
     
-    // Base turn rate (when no urgency)
-    const baseTurnRate = 1.5; // radians per second
-    // Maximum turn rate (when maximum urgency)
-    const maxTurnRate = 6.0; // radians per second (much steeper when close)
-    
-    // Interpolate turn rate based on urgency
-    const turnRate = baseTurnRate + (maxTurnRate - baseTurnRate) * urgency;
-    
+    const turnRate = this.calculateTurnRate(urgency);
     const turnAmount = Math.max(-turnRate * dtSec, Math.min(turnRate * dtSec, angleDiff));
     const newDirection = currentDirection + turnAmount;
     
-    // Rotate velocity vector (momentum) toward new direction - boat-like behavior
-    // Maintain speed, just rotate the direction (momentum carries through the turn)
     const targetSpeed = Math.max(currentSpeed, this._horizontalSpeed * 0.7);
-    vx = Math.cos(newDirection) * targetSpeed;
-    vy = Math.sin(newDirection) * targetSpeed;
-    
-    // Physics-based gliding: convert between horizontal speed and vertical lift
-    // This happens naturally as the momentum rotates - no need to force it
-    const horizontalSpeed = Math.abs(vx);
-    const isClimbing = vy < 0; // negative vy means going up
-    const isDiving = vy > 0.5; // positive vy means going down
+    return {
+      vx: Math.cos(newDirection) * targetSpeed,
+      vy: Math.sin(newDirection) * targetSpeed
+    };
+  }
+  
+  private calculateTurnRate(urgency: number): number {
+    const baseTurnRate = 1.5; // radians per second
+    const maxTurnRate = 6.0; // radians per second
+    return baseTurnRate + (maxTurnRate - baseTurnRate) * urgency;
+  }
+  
+  private applyGlidingPhysics(velocity: { vx: number; vy: number }): void {
+    const horizontalSpeed = Math.abs(velocity.vx);
+    const isClimbing = velocity.vy < 0;
     
     if (isClimbing && horizontalSpeed >= this._minSpeedForLift) {
-      // When climbing: convert horizontal speed to vertical lift
       const availableLift = Math.min(horizontalSpeed * this._glideEfficiency, this._maxClimbRate);
-      // Apply lift upward (negative vy means up)
-      vy = Math.max(vy, -availableLift);
+      velocity.vy = Math.max(velocity.vy, -availableLift);
     }
-    
-    // Maintain minimum forward speed (boat-like momentum)
+  }
+  
+  private maintainMinimumSpeed(
+    velocity: { vx: number; vy: number },
+    currentSpeed: number,
+    dtSec: number
+  ): void {
     if (currentSpeed < this._horizontalSpeed * 0.5) {
-      // If too slow, boost speed in current direction
+      const newDirection = Math.atan2(velocity.vy, velocity.vx);
       const speedBoost = 1.0;
-      const boostX = Math.cos(newDirection) * speedBoost * dtSec;
-      const boostY = Math.sin(newDirection) * speedBoost * dtSec;
-      vx += boostX;
-      vy += boostY;
+      velocity.vx += Math.cos(newDirection) * speedBoost * dtSec;
+      velocity.vy += Math.sin(newDirection) * speedBoost * dtSec;
     }
-    
-    // Apply velocities
-    StageItemPhysics.setVelocity(this._item, vx, vy);
-    
-    // Face the direction of flight
-    if (Math.hypot(vx, vy) > 0.001) {
-      const angleRad = Math.atan2(vy, vx);
+  }
+  
+  private updateRotation(pose: any, velocity: { vx: number; vy: number }): void {
+    if (Math.hypot(velocity.vx, velocity.vy) > 0.001) {
+      const angleRad = Math.atan2(velocity.vy, velocity.vx);
       const angleDeg = (angleRad * 180) / Math.PI;
       pose.Rotation = angleDeg + 90; // Image points up, so add 90 degrees
     }
