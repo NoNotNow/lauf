@@ -39,7 +39,6 @@
       "PhysicsConfiguration": {
         "damping": 0.5,
         "hasCollision": true,
-        "mass": 100,
         "hasGravity": true
       },
       "Transformers": [
@@ -49,6 +48,7 @@
             "TargetId": "Avatar",
             "Distance": 0.4,
             "maxSpeed": 0.2,
+            "force": 0.0001,
             "direction": "horizontal"
           }
         },
@@ -287,7 +287,7 @@
       "PhysicsConfiguration": {
         "hasGravity": true,
         "canMove": true,
-        "mass": 100,
+        "mass": 10,
         "restitution": 0.5
       },
       "Transformers": [

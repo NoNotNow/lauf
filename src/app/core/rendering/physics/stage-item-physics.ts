@@ -66,6 +66,11 @@ export class StageItemPhysics {
         return StageItemPhysics.set(item, {vx: Number(vx) || 0, vy: Number(vy) || 0});
     }
 
+    static accelerate(item: StageItem, ax: number, ay: number, dt: number): PhysicsState {
+        const s = StageItemPhysics.get(item);
+        return StageItemPhysics.setVelocity(item, s.vx + ax * dt, s.vy + ay * dt);
+    }
+
     static getAngular(item: StageItem): number {
         return StageItemPhysics.get(item).omega;
     }

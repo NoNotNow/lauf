@@ -265,8 +265,8 @@ export class WorldAssemblerService {
     }
 
     if (target) {
-      const follower = new FollowItem(this.ticker, item, {
-        target: target,
+      const follower = new FollowItem(this.ticker, item,target, {
+
         distance: params.Distance,
         maxSpeed: params.maxSpeed ?? params.MaxSpeed,
         direction: params.direction,
