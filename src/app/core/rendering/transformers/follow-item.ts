@@ -47,9 +47,10 @@ export class FollowItem {
 
     if (dist < 0.01) return; // Already at target
 
-    const ax = (dx / dist) * this._options.force;
-    const ay = (dy / dist) * this._options.force;
-
+    let ax = (dx / dist) * this._options.force;
+    let ay = (dy / dist) * this._options.force;
+    if (this._options.direction === 'vertical') ax = 0;
+    if (this._options.direction === 'horizontal') ay = 0;
     StageItemPhysics.accelerate(this._item, ax, ay, dt);
   }
 }

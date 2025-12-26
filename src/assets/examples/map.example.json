@@ -48,7 +48,7 @@
             "TargetId": "Avatar",
             "Distance": 0.4,
             "maxSpeed": 0.2,
-            "force": 0.0001,
+            "force": 0.3,
             "direction": "horizontal"
           }
         },
@@ -95,8 +95,8 @@
           "Y": 8
         },
         "Size": {
-          "X": 0.14,
-          "Y": 0.14
+          "X": 0.4,
+          "Y": 0.4
         }
       },
       "Design": {
@@ -324,8 +324,8 @@
         "Image": "assets/tree.svg"
       },
       "PhysicsConfiguration": {
-        "canMove": true,
-        "canRotate": true,
+        "canMove": false,
+        "canRotate": false,
         "hasGravity": true,
         "restitution": 0.2,
         "damping": 2,
@@ -376,7 +376,7 @@
       "Image": "assets/hero.svg"
     },
     "Physics": {
-      "mass": 20,
+      "mass": 200,
       "canMove": true,
       "canRotate": true,
       "hasGravity": true,
