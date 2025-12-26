@@ -48,7 +48,8 @@ export class TickService {
   private emit(time?: number): void {
     this.frame++;
     const now = time ?? performance.now();
-    const dtSec = Math.max(0, (now - this.lastTime) / 1000);
+    let dtSec = Math.max(0, (now - this.lastTime) / 1000);
+    if(dtSec>0.050) dtSec = 0.016; //for debugging purposes enable stepping through
     this.lastTime = now;
 
     this.tickObject.time = now;
