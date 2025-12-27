@@ -49,17 +49,15 @@ export class StageItemPhysics {
     }
 
     static set(item: StageItem, partial: Partial<PhysicsState>): PhysicsState {
-        const next = StageItemPhysics.set_(StageItemPhysics.get(item), partial);
-        store.set(item, next);
-        return next;
+        return StageItemPhysics.set_(StageItemPhysics.get(item), partial);
     }
 
     static set_(s: PhysicsState, partial: Partial<PhysicsState>): PhysicsState {
-        const next = {...s, ...partial} as PhysicsState;
+        Object.assign(s, partial);
         // ensure sane values
-        next.mass = Math.max(1e-6, Number(next.mass) ?? 1);
-        next.restitution = Math.min(1, Math.max(0, next.restitution ?? 0.85));
-        return next;
+        s.mass = Math.max(1e-6, Number(s.mass) ?? 1);
+        s.restitution = Math.min(1, Math.max(0, s.restitution ?? 0.85));
+        return s;
     }
 
     static getVelocity(item: StageItem): { vx: number; vy: number } {
@@ -71,9 +69,7 @@ export class StageItemPhysics {
     }
 
     static setVelocity(item: StageItem, vx: number, vy: number): PhysicsState {
-        const next = StageItemPhysics.setVelocity_(StageItemPhysics.get(item), vx, vy);
-        store.set(item, next);
-        return next;
+        return StageItemPhysics.setVelocity_(StageItemPhysics.get(item), vx, vy);
     }
 
     static setVelocity_(s: PhysicsState, vx: number, vy: number): PhysicsState {
@@ -81,9 +77,7 @@ export class StageItemPhysics {
     }
 
     static accelerate(item: StageItem, ax: number, ay: number, dt: number): PhysicsState {
-        const next = StageItemPhysics.accelerate_(StageItemPhysics.get(item), ax, ay, dt);
-        store.set(item, next);
-        return next;
+        return StageItemPhysics.accelerate_(StageItemPhysics.get(item), ax, ay, dt);
     }
 
     static accelerate_(s: PhysicsState, ax: number, ay: number, dt: number): PhysicsState {
@@ -99,9 +93,7 @@ export class StageItemPhysics {
     }
 
     static setAngular(item: StageItem, omega: number): PhysicsState {
-        const next = StageItemPhysics.setAngular_(StageItemPhysics.get(item), omega);
-        store.set(item, next);
-        return next;
+        return StageItemPhysics.setAngular_(StageItemPhysics.get(item), omega);
     }
 
     static setAngular_(s: PhysicsState, omega: number): PhysicsState {

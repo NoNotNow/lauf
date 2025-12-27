@@ -1,7 +1,7 @@
 import { Subscription } from 'rxjs';
 import { StageItem } from '../../models/game-items/stage-item';
 import { TickService } from '../../services/tick.service';
-import { StageItemPhysics } from '../physics/stage-item-physics';
+import { StageItemPhysics, PhysicsState } from '../physics/stage-item-physics';
 import { toNumber } from '../../utils/number-utils';
 
 export interface KeyboardControllerOptions {
@@ -25,11 +25,15 @@ import { ITransformer } from './transformer.interface';
 export class KeyboardController implements ITransformer {
   private sub?: Subscription;
   private _item?: StageItem;
+  private _phys?: PhysicsState;
   private keys = new Set<string>();
   private opts: Required<KeyboardControllerOptions>;
 
   constructor(private ticker: TickService, item?: StageItem, params?: any) {
     this._item = item;
+    if (item) {
+      this._phys = StageItemPhysics.get(item);
+    }
     this.opts = {
       linearAccel: params?.linearAccel ?? 2.5,
       linearBrake: params?.linearBrake ?? 2.0,
@@ -41,7 +45,10 @@ export class KeyboardController implements ITransformer {
     };
   }
 
-  setItem(item: StageItem | undefined): void { this._item = item; }
+  setItem(item: StageItem | undefined): void {
+    this._item = item;
+    this._phys = item ? StageItemPhysics.get(item) : undefined;
+  }
 
   start(): void {
     if (this.sub) return;
@@ -71,15 +78,12 @@ export class KeyboardController implements ITransformer {
   };
 
   private onTick(dt: number): void {
-    const item = this._item;
-    if (!item) return;
-    if (dt === 0) return;
+    if (!this._item || !this._phys || dt === 0) return;
 
-    const phys = StageItemPhysics.get(item);
     // Read and normalize current values
-    let vx = toNumber(phys.vx, 0);
-    let vy = toNumber(phys.vy, 0);
-    let omega = toNumber(phys.omega, 0); // deg/s
+    let vx = toNumber(this._phys.vx, 0);
+    let vy = toNumber(this._phys.vy, 0);
+    let omega = toNumber(this._phys.omega, 0); // deg/s
 
     // Controls
     const forwardHeld = this.keys.has('ArrowUp') || this.keys.has('KeyW');
@@ -88,7 +92,7 @@ export class KeyboardController implements ITransformer {
     const rightHeld = this.keys.has('ArrowRight') || this.keys.has('KeyD');
 
     // Facing direction from item rotation (degrees). 0 deg faces up (negative Y).
-    const pose: any = (item as any).Pose ?? ((item as any).Pose = {});
+    const pose: any = (this._item as any).Pose ?? ((this._item as any).Pose = {});
     const rotDeg = toNumber(pose.Rotation, 0);
     const rotRad = rotDeg * Math.PI / 180;
     // Forward vector: at 0°, forward is (0, -1); rotates with pose.
@@ -147,8 +151,8 @@ export class KeyboardController implements ITransformer {
       omega = Math.sign(omega) * maxW;
     }
 
-    StageItemPhysics.setVelocity(item, vx, vy);
-    StageItemPhysics.setAngular(item, omega);
+    StageItemPhysics.setVelocity_(this._phys, vx, vy);
+    StageItemPhysics.setAngular_(this._phys, omega);
   }
 }
 

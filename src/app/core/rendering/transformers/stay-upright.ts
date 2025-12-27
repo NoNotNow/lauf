@@ -1,7 +1,7 @@
 import { Subscription } from 'rxjs';
 import { StageItem } from '../../models/game-items/stage-item';
 import { TickService } from '../../services/tick.service';
-import { StageItemPhysics } from '../physics/stage-item-physics';
+import { StageItemPhysics, PhysicsState } from '../physics/stage-item-physics';
 import { toNumber } from '../../utils/number-utils';
 
 export interface StayUprightOptions {
@@ -20,6 +20,7 @@ import { ITransformer } from './transformer.interface';
 export class StayUpright implements ITransformer {
   private sub?: Subscription;
   private _item?: StageItem;
+  private _phys?: PhysicsState;
   private _latency: number;
   private _maxAngle: number;
   private _speed: number;
@@ -29,6 +30,9 @@ export class StayUpright implements ITransformer {
 
   constructor(private ticker: TickService, item?: StageItem, params?: any) {
     this._item = item;
+    if (item) {
+      this._phys = StageItemPhysics.get(item);
+    }
     this._latency = params?.latency ?? params?.Latency ?? 0.5;
     this._maxAngle = params?.maxAngle ?? params?.MaxAngle ?? 5.0;
     this._speed = params?.speed ?? params?.Speed ?? 1.0;
@@ -37,6 +41,7 @@ export class StayUpright implements ITransformer {
 
   setItem(item: StageItem | undefined): void {
     this._item = item;
+    this._phys = item ? StageItemPhysics.get(item) : undefined;
   }
 
   start(): void {
@@ -50,11 +55,10 @@ export class StayUpright implements ITransformer {
   }
 
   private onTick(dt: number): void {
-    const item = this._item;
-    if (!item || dt === 0) return;
+    if (!this._item || !this._phys || dt === 0) return;
 
     // Get current rotation in degrees. We want it to be 0.
-    let rotation = toNumber(item.Pose.Rotation, 0);
+    let rotation = toNumber(this._item.Pose.Rotation, 0);
 
     // Normalize rotation to [-180, 180]
     while (rotation > 180) rotation -= 360;
@@ -73,8 +77,7 @@ export class StayUpright implements ITransformer {
         return;
     }
 
-    const phys = StageItemPhysics.get(item);
-    let omega = toNumber(phys.omega, 0);
+    let omega = toNumber(this._phys.omega, 0);
 
     // Apply angular force to change omega towards 0 rotation
     // We want to apply a torque-like effect.
@@ -96,6 +99,6 @@ export class StayUpright implements ITransformer {
         omega *= damping;
     }
 
-    StageItemPhysics.setAngular(item, omega);
+    StageItemPhysics.setAngular_(this._phys, omega);
   }
 }

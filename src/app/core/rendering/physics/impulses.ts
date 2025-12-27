@@ -145,10 +145,11 @@ export function applyBoundaryCollisionImpulse(
 
   // Apply normal impulse
   const Jn = { x: jn * normal.x, y: jn * normal.y };
-  s.vx += Jn.x * invMass;
-  s.vy += Jn.y * invMass;
+  let vx = s.vx + Jn.x * invMass;
+  let vy = s.vy + Jn.y * invMass;
   const tau = cross2(r, Jn);
   const newOmegaRad = omegaRad + tau * invI;
+  let omega = StageItemPhysics.omegaRadToDegPerSec(newOmegaRad);
 
   // Friction/Tangent
   const vRelT_vec = { x: vAtC.x - vRelN * normal.x, y: vAtC.y - vRelN * normal.y };
@@ -158,24 +159,20 @@ export function applyBoundaryCollisionImpulse(
     const vRelT = dot(vAtC.x, vAtC.y, t.x, t.y);
     const rXt = cross2(r, t);
     const kT = invMass + (rXt * rXt) * invI;
-    let jt = -(1 + actualE) * vRelT / (kT || 1); // Using restitution for friction too might be too much, but let's try
-    // Actually, simple friction usually doesn't use restitution
-    jt = -vRelT / (kT || 1);
+    let jt = -vRelT / (kT || 1);
     
     const maxFric = mu * jn;
     if (jt > maxFric) jt = maxFric;
     if (jt < -maxFric) jt = -maxFric;
 
     const Jt = { x: jt * t.x, y: jt * t.y };
-    s.vx += Jt.x * invMass;
-    s.vy += Jt.y * invMass;
+    vx += Jt.x * invMass;
+    vy += Jt.y * invMass;
     const tauF = cross2(r, Jt);
-    s.omega = StageItemPhysics.omegaRadToDegPerSec(newOmegaRad + tauF * invI);
-  } else {
-    s.omega = StageItemPhysics.omegaRadToDegPerSec(newOmegaRad);
+    omega = StageItemPhysics.omegaRadToDegPerSec(newOmegaRad + tauF * invI);
   }
 
-  StageItemPhysics.set(item, s);
+  StageItemPhysics.set_(s, { vx, vy, omega });
 }
 
 // Resolve collision impulse between two items along normal and tangent, including angular effects.
@@ -233,15 +230,18 @@ export function applyItemItemCollisionImpulse(
 
   // Apply normal impulse
   const Jn = { x: jn * normal.x, y: jn * normal.y };
-  sa.vx -= Jn.x * invMassA;
-  sa.vy -= Jn.y * invMassA;
-  sb.vx += Jn.x * invMassB;
-  sb.vy += Jn.y * invMassB;
+  let vax = sa.vx - Jn.x * invMassA;
+  let vay = sa.vy - Jn.y * invMassA;
+  let vbx = sb.vx + Jn.x * invMassB;
+  let vby = sb.vy + Jn.y * invMassB;
+
   // Angular impulses: τ = r × J
   const tauA = cross2(ra, Jn);
   const tauB = cross2(rb, Jn);
   const newOmegaAr = omegaAr - tauA * invIA; // minus because J applied to A is negative of B's
   const newOmegaBr = omegaBr + tauB * invIB;
+  let omegaA = StageItemPhysics.omegaRadToDegPerSec(newOmegaAr);
+  let omegaB = StageItemPhysics.omegaRadToDegPerSec(newOmegaBr);
 
   // Tangent (friction/spin transfer)
   const tangent0 = { x: vRel.x - vRelN * normal.x, y: vRel.y - vRelN * normal.y };
@@ -257,24 +257,21 @@ export function applyItemItemCollisionImpulse(
     if (jt > maxFric) jt = maxFric;
     if (jt < -maxFric) jt = -maxFric;
     const Jt = { x: jt * t.x, y: jt * t.y };
-    sa.vx -= Jt.x * invMassA;
-    sa.vy -= Jt.y * invMassA;
-    sb.vx += Jt.x * invMassB;
-    sb.vy += Jt.y * invMassB;
+    
+    vax -= Jt.x * invMassA;
+    vay -= Jt.y * invMassA;
+    vbx += Jt.x * invMassB;
+    vby += Jt.y * invMassB;
+
     // Angular due to friction
     const tauAf = cross2(ra, Jt);
     const tauBf = cross2(rb, Jt);
     // Update omegas accumulating both normal and tangential contributions
-    const omegaArTotal = newOmegaAr - tauAf * invIA;
-    const omegaBrTotal = newOmegaBr + tauBf * invIB;
-    sa.omega = StageItemPhysics.omegaRadToDegPerSec(omegaArTotal);
-    sb.omega = StageItemPhysics.omegaRadToDegPerSec(omegaBrTotal);
-  } else {
-    sa.omega = StageItemPhysics.omegaRadToDegPerSec(newOmegaAr);
-    sb.omega = StageItemPhysics.omegaRadToDegPerSec(newOmegaBr);
+    omegaA = StageItemPhysics.omegaRadToDegPerSec(newOmegaAr - tauAf * invIA);
+    omegaB = StageItemPhysics.omegaRadToDegPerSec(newOmegaBr + tauBf * invIB);
   }
 
-  // Persist
-  StageItemPhysics.set(a, sa);
-  StageItemPhysics.set(b, sb);
+  // Persist using in-place updates
+  StageItemPhysics.set_(sa, { vx: vax, vy: vay, omega: omegaA });
+  StageItemPhysics.set_(sb, { vx: vbx, vy: vby, omega: omegaB });
 }

@@ -72,12 +72,12 @@ export class PhysicsIntegrator {
         const factor = Math.max(0, 1 - phys.linearDamping * dtSec);
         vx *= factor;
         vy *= factor;
-        StageItemPhysics.setVelocity(it, vx, vy);
+        StageItemPhysics.setVelocity_(phys, vx, vy);
       }
       if (phys.angularDamping > 0) {
         const factor = Math.max(0, 1 - phys.angularDamping * dtSec);
         omega *= factor;
-        StageItemPhysics.setAngular(it, omega);
+        StageItemPhysics.setAngular_(phys, omega);
       }
 
       // Integrate linear
@@ -125,11 +125,10 @@ export class PhysicsIntegrator {
             x += res.normal.x * TINY_NUDGE;
             y += res.normal.y * TINY_NUDGE;
 
-            // Re-read after impulse
-            const updated = StageItemPhysics.get(it);
-            vx = updated.vx;
-            vy = updated.vy;
-            omega = updated.omega;
+            // Re-read after impulse (no lookup needed because it's updated in-place)
+            vx = phys.vx;
+            vy = phys.vy;
+            omega = phys.omega;
           } else {
             // clamp inside (legacy behavior)
             x = Math.max(this.boundary.minX, Math.min(this.boundary.maxX, x));
@@ -145,7 +144,7 @@ export class PhysicsIntegrator {
         const speed = Math.sqrt(speedSq);
         vx = (vx / speed) * maxVel;
         vy = (vy / speed) * maxVel;
-        StageItemPhysics.setVelocity(it, vx, vy);
+        StageItemPhysics.setVelocity_(phys, vx, vy);
       }
 
       // Commit new pose

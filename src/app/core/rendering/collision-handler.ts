@@ -23,7 +23,7 @@ export class CollisionHandler {
   // Pre-allocated arrays to avoid allocation per frame
   private obbCache: (ReturnType<typeof orientedBoundingBoxFromPose> | null)[] = [];
   private physicsCache: PhysicsState[] = [];
-  private contacts: { a: StageItem; b: StageItem; normal: { x: number; y: number }; mtv: { x: number; y: number }; aobb: any; bobb: any; isCCD?: boolean }[] = [];
+  private contacts: { a: StageItem; b: StageItem; physA: PhysicsState; physB: PhysicsState; normal: { x: number; y: number }; mtv: { x: number; y: number }; aobb: any; bobb: any; isCCD?: boolean }[] = [];
 
   // Pre-allocated event object to avoid allocation per collision
   private collisionEvent: CollisionEvent = {
@@ -215,6 +215,8 @@ export class CollisionHandler {
         contacts.push({ 
           a: ai, 
           b: bj, 
+          physA,
+          physB,
           normal: { x: res.normal.x, y: res.normal.y }, 
           mtv: { x: res.minimalTranslationVector.x, y: res.minimalTranslationVector.y }, 
           aobb, 
@@ -241,9 +243,7 @@ export class CollisionHandler {
     // Iterative solver over contacts to distribute impulses like a physics engine
     for (let iter = 0; iter < this._iterations; iter++) {
       for (const c of contacts) {
-        const sa = StageItemPhysics.get(c.a);
-        const sb = StageItemPhysics.get(c.b);
-        const e = Math.min(sa.restitution, sb.restitution);
+        const e = Math.min(c.physA.restitution, c.physB.restitution);
         applyItemItemCollisionImpulse(
           c.a,
           c.b,
@@ -265,11 +265,8 @@ export class CollisionHandler {
     for (const c of contacts) {
       if (c.isCCD) continue; // Skip positional correction for predictive CCD hits
 
-      const sa = StageItemPhysics.get(c.a);
-      const sb = StageItemPhysics.get(c.b);
-
-      const invMassA = sa.mass >= 1e6 ? 0 : 1 / Math.max(1e-6, sa.mass);
-      const invMassB = sb.mass >= 1e6 ? 0 : 1 / Math.max(1e-6, sb.mass);
+      const invMassA = c.physA.mass >= 1e6 ? 0 : 1 / Math.max(1e-6, c.physA.mass);
+      const invMassB = c.physB.mass >= 1e6 ? 0 : 1 / Math.max(1e-6, c.physB.mass);
       const sum = invMassA + invMassB;
       if (sum <= 0) continue;
 

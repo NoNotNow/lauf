@@ -2,7 +2,7 @@ import { Subscription } from 'rxjs';
 import { StageItem } from '../../models/game-items/stage-item';
 import { TickService } from '../../services/tick.service';
 import { AxisAlignedBoundingBox } from '../collision';
-import { StageItemPhysics } from '../physics/stage-item-physics';
+import { StageItemPhysics, PhysicsState } from '../physics/stage-item-physics';
 import { toNumber } from '../../utils/number-utils';
 
 import { ITransformer } from './transformer.interface';
@@ -14,6 +14,7 @@ import { ITransformer } from './transformer.interface';
 export class Drifter implements ITransformer {
   private sub?: Subscription;
   private _item?: StageItem;
+  private _phys?: PhysicsState;
   private _vx = 0; // desired cells/sec
   private _vy = 0; // desired cells/sec
   private _directionalVelocityMax = 0.1; // cells/sec
@@ -26,7 +27,10 @@ export class Drifter implements ITransformer {
     params?: any,
     boundary?: AxisAlignedBoundingBox
   ) {
-    if (item) this._item = item;
+    if (item) {
+      this._item = item;
+      this._phys = StageItemPhysics.get(item);
+    }
     this._boundary = boundary;
 
     const maxSpeed = params?.maxSpeed ?? params?.MaxSpeed;
@@ -61,6 +65,7 @@ export class Drifter implements ITransformer {
 
   setItem(item: StageItem | undefined): void {
     this._item = item;
+    this._phys = item ? StageItemPhysics.get(item) : undefined;
   }
 
   setDirectionalVelocityMax(max: number): void {
@@ -83,8 +88,8 @@ export class Drifter implements ITransformer {
     this._vx = toNumber(vx, 0);
     this._vy = toNumber(vy, 0);
     this.clampVelocityToMax();
-    if (this._item) {
-      StageItemPhysics.setVelocity(this._item, this._vx, this._vy);
+    if (this._phys) {
+      StageItemPhysics.setVelocity_(this._phys, this._vx, this._vy);
     }
   }
 
@@ -116,12 +121,11 @@ export class Drifter implements ITransformer {
 
   private onTick(): void {
     // Keep StageItemPhysics in sync with our desired velocity and clamped limits
-    const it = this._item;
-    if (!it) return;
+    if (!this._phys) return;
     
     // We should NOT adopt externally changed velocities if they are caused by damping
     // because that would lead to a feedback loop where we eventually stop.
     // Instead, we just ensure the physics state has our desired velocity.
-    StageItemPhysics.setVelocity(it, this._vx, this._vy);
+    StageItemPhysics.setVelocity_(this._phys, this._vx, this._vy);
   }
 }

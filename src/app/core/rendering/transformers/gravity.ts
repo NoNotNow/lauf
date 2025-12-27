@@ -1,7 +1,7 @@
 import { Subscription } from 'rxjs';
 import { StageItem } from '../../models/game-items/stage-item';
 import { TickService } from '../../services/tick.service';
-import { StageItemPhysics } from '../physics/stage-item-physics';
+import { StageItemPhysics, PhysicsState } from '../physics/stage-item-physics';
 
 import { ITransformer } from './transformer.interface';
 
@@ -12,6 +12,7 @@ import { ITransformer } from './transformer.interface';
 export class Gravity implements ITransformer {
   private sub?: Subscription;
   private _item?: StageItem;
+  private _phys?: PhysicsState;
   private _acceleration: number = 9.81; // cells/s^2
 
   constructor(
@@ -19,7 +20,10 @@ export class Gravity implements ITransformer {
     item?: StageItem,
     params?: any
   ) {
-    if (item) this._item = item;
+    if (item) {
+      this._item = item;
+      this._phys = StageItemPhysics.get(item);
+    }
     const acceleration = params?.acceleration ?? params?.Acceleration ?? params;
     if (typeof acceleration === 'number') {
       this._acceleration = acceleration;
@@ -30,6 +34,7 @@ export class Gravity implements ITransformer {
 
   setItem(item: StageItem | undefined): void {
     this._item = item;
+    this._phys = item ? StageItemPhysics.get(item) : undefined;
   }
 
   setAcceleration(acc: number): void {
@@ -47,13 +52,9 @@ export class Gravity implements ITransformer {
   }
 
   private onTick(dtSec: number): void {
-    if (!this._item) return;
-    if (dtSec === 0) return;
+    if (!this._phys || dtSec === 0) return;
     
     // dtSec is in seconds
-    const phys = StageItemPhysics.get(this._item);
-    const newVy = phys.vy + this._acceleration * dtSec;
-    
-    StageItemPhysics.setVelocity(this._item, phys.vx, newVy);
+    StageItemPhysics.accelerate_(this._phys, 0, this._acceleration, dtSec);
   }
 }
