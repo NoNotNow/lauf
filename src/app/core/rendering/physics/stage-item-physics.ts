@@ -49,40 +49,72 @@ export class StageItemPhysics {
     }
 
     static set(item: StageItem, partial: Partial<PhysicsState>): PhysicsState {
-        const s = {...StageItemPhysics.get(item), ...partial} as PhysicsState;
+        const next = StageItemPhysics.set_(StageItemPhysics.get(item), partial);
+        store.set(item, next);
+        return next;
+    }
+
+    static set_(s: PhysicsState, partial: Partial<PhysicsState>): PhysicsState {
+        const next = {...s, ...partial} as PhysicsState;
         // ensure sane values
-        s.mass = Math.max(1e-6, Number(s.mass) ?? 1);
-        s.restitution = Math.min(1, Math.max(0, s.restitution ?? 0.85));
-        store.set(item, s);
-        return s;
+        next.mass = Math.max(1e-6, Number(next.mass) ?? 1);
+        next.restitution = Math.min(1, Math.max(0, next.restitution ?? 0.85));
+        return next;
     }
 
     static getVelocity(item: StageItem): { vx: number; vy: number } {
-        const s = StageItemPhysics.get(item);
+        return StageItemPhysics.getVelocity_(StageItemPhysics.get(item));
+    }
+
+    static getVelocity_(s: PhysicsState): { vx: number; vy: number } {
         return {vx: s.vx, vy: s.vy};
     }
 
     static setVelocity(item: StageItem, vx: number, vy: number): PhysicsState {
-        return StageItemPhysics.set(item, {vx: Number(vx) || 0, vy: Number(vy) || 0});
+        const next = StageItemPhysics.setVelocity_(StageItemPhysics.get(item), vx, vy);
+        store.set(item, next);
+        return next;
+    }
+
+    static setVelocity_(s: PhysicsState, vx: number, vy: number): PhysicsState {
+        return StageItemPhysics.set_(s, {vx: Number(vx) || 0, vy: Number(vy) || 0});
     }
 
     static accelerate(item: StageItem, ax: number, ay: number, dt: number): PhysicsState {
-        const s = StageItemPhysics.get(item);
-        return StageItemPhysics.setVelocity(item, s.vx + ax * dt, s.vy + ay * dt);
+        const next = StageItemPhysics.accelerate_(StageItemPhysics.get(item), ax, ay, dt);
+        store.set(item, next);
+        return next;
+    }
+
+    static accelerate_(s: PhysicsState, ax: number, ay: number, dt: number): PhysicsState {
+        return StageItemPhysics.setVelocity_(s, s.vx + ax * dt, s.vy + ay * dt);
     }
 
     static getAngular(item: StageItem): number {
-        return StageItemPhysics.get(item).omega;
+        return StageItemPhysics.getAngular_(StageItemPhysics.get(item));
+    }
+
+    static getAngular_(s: PhysicsState): number {
+        return s.omega;
     }
 
     static setAngular(item: StageItem, omega: number): PhysicsState {
-        return StageItemPhysics.set(item, {omega: Number(omega) || 0});
+        const next = StageItemPhysics.setAngular_(StageItemPhysics.get(item), omega);
+        store.set(item, next);
+        return next;
+    }
+
+    static setAngular_(s: PhysicsState, omega: number): PhysicsState {
+        return StageItemPhysics.set_(s, {omega: Number(omega) || 0});
     }
 
     // Moment of inertia for a rectangle about its center: I = (1/12) * m * (w^2 + h^2)
     // Units: m in arbitrary mass, w/h in cells, I in mass * cells^2
     static momentOfInertia(item: StageItem): number {
-        const s = StageItemPhysics.get(item);
+        return StageItemPhysics.momentOfInertia_(StageItemPhysics.get(item), item);
+    }
+
+    static momentOfInertia_(s: PhysicsState, item: StageItem): number {
         const w = Math.max(0, Number(item?.Pose?.Size?.x ?? 0));
         const h = Math.max(0, Number(item?.Pose?.Size?.y ?? 0));
         // Use a high but finite mass for inertia if mass is "infinite" (1e6)
