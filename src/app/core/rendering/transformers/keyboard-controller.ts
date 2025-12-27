@@ -28,16 +28,16 @@ export class KeyboardController implements ITransformer {
   private keys = new Set<string>();
   private opts: Required<KeyboardControllerOptions>;
 
-  constructor(private ticker: TickService, item?: StageItem, options?: KeyboardControllerOptions) {
+  constructor(private ticker: TickService, item?: StageItem, params?: any) {
     this._item = item;
     this.opts = {
-      linearAccel: options?.linearAccel ?? 2.0,
-      linearBrake: options?.linearBrake ?? 2.5,
-      linearDamping: options?.linearDamping ?? 1.2,
-      maxSpeed: options?.maxSpeed ?? 4.0,
-      angularAccel: options?.angularAccel ?? 180,      // deg/s^2
-      angularDamping: options?.angularDamping ?? 120,  // deg/s^2
-      maxOmega: options?.maxOmega ?? 240               // deg/s
+      linearAccel: params?.linearAccel ?? 2.5,
+      linearBrake: params?.linearBrake ?? 2.0,
+      linearDamping: params?.linearDamping ?? 0.2,
+      maxSpeed: params?.maxSpeed ?? 8.0,
+      angularAccel: params?.angularAccel ?? 600,
+      angularDamping: params?.angularDamping ?? 600,
+      maxOmega: params?.maxOmega ?? 240
     };
   }
 

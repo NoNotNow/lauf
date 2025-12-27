@@ -20,12 +20,15 @@ export class Wobbler implements ITransformer {
   constructor(
     private ticker: TickService,
     item?: StageItem,
-    amplitudeCells?: number,
-    frequencyHz?: number
+    params?: any
   ) {
     if (item) this._item = item;
-    if (typeof amplitudeCells === 'number') this._amplitudeCells = amplitudeCells;
-    if (typeof frequencyHz === 'number') this._frequencyHz = frequencyHz;
+    
+    const amplitude = params?.amplitude ?? params?.Amplitude;
+    if (typeof amplitude === 'number') this._amplitudeCells = amplitude;
+    
+    const frequency = params?.frequency ?? params?.Frequency;
+    if (typeof frequency === 'number') this._frequencyHz = frequency;
   }
 
   setItem(item: StageItem | undefined): void {

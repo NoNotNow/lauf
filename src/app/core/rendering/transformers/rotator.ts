@@ -20,12 +20,23 @@ export class Rotator implements ITransformer {
   constructor(
     private ticker: TickService,
     item?: StageItem,
-    speedDegPerSec?: number,
-    direction?: 1 | -1
+    params?: any
   ) {
     if (item) this._item = item;
-    if (typeof speedDegPerSec === 'number') this._speedDegPerSec = speedDegPerSec;
-    if (direction === 1 || direction === -1) this._direction = direction;
+    
+    const speed = params?.speed ?? params?.Speed;
+    if (typeof speed === 'number') {
+      this._speedDegPerSec = speed;
+    } else {
+      this._speedDegPerSec = 5 + Math.random() * 25;
+    }
+
+    const direction = params?.direction ?? params?.Direction;
+    if (direction === 1 || direction === -1) {
+      this._direction = direction;
+    } else {
+      this._direction = Math.random() < 0.5 ? -1 : 1;
+    }
   }
 
   setItem(item: StageItem | undefined): void {

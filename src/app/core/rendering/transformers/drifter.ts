@@ -23,14 +23,40 @@ export class Drifter implements ITransformer {
   constructor(
     private ticker: TickService,
     item?: StageItem,
-    directionalVelocityMax?: number,
-    boundary?: AxisAlignedBoundingBox,
-    bounce: boolean = true
+    params?: any,
+    boundary?: AxisAlignedBoundingBox
   ) {
     if (item) this._item = item;
-    if (typeof directionalVelocityMax === 'number') this._directionalVelocityMax = directionalVelocityMax;
-    if (boundary) this._boundary = boundary;
-    this._bounce = !!bounce;
+    this._boundary = boundary;
+
+    const maxSpeed = params?.maxSpeed ?? params?.MaxSpeed;
+    if (typeof maxSpeed === 'number') {
+      this._directionalVelocityMax = maxSpeed;
+    } else {
+      this._directionalVelocityMax = 0.02 + Math.random() * 15;
+    }
+
+    const vx = params?.vx ?? params?.Vx;
+    const vy = params?.vy ?? params?.Vy;
+
+    if (typeof vx === 'number' && typeof vy === 'number') {
+      this.setVelocity(vx, vy);
+    } else {
+      this.setRandomVelocity(this._directionalVelocityMax);
+    }
+
+    if (params?.bounce !== undefined) {
+      this._bounce = !!params.bounce;
+    }
+  }
+
+  private setRandomVelocity(maxSpeed: number): void {
+    const angle = Math.random() * Math.PI * 2;
+    const speed = Math.random() * (maxSpeed / 2);
+    this.setVelocity(
+      Math.cos(angle) * speed,
+      Math.sin(angle) * speed
+    );
   }
 
   setItem(item: StageItem | undefined): void {

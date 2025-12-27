@@ -52,30 +52,27 @@ export class Glider implements ITransformer {
   constructor(
     private ticker: TickService,
     item?: StageItem,
-    horizontalSpeed?: number,
-    glideEfficiency?: number,
-    minSpeedForLift?: number,
-    maxClimbRate?: number,
+    params?: any,
     boundary?: AxisAlignedBoundingBox,
-    collisionHandler?: CollisionHandler,
-    minDistanceToBoundary?: number,
-    boundaryAvoidanceStrength?: number,
-    lookAheadDistance?: number,
-    lookAheadTime?: number,
-    collisionAvoidanceStrength?: number
+    collisionHandler?: CollisionHandler
   ) {
     if (item) this._item = item;
-    if (typeof horizontalSpeed === 'number') this._horizontalSpeed = horizontalSpeed;
-    if (typeof glideEfficiency === 'number') this._glideEfficiency = Math.max(0, Math.min(1, glideEfficiency));
-    if (typeof minSpeedForLift === 'number') this._minSpeedForLift = minSpeedForLift;
-    if (typeof maxClimbRate === 'number') this._maxClimbRate = maxClimbRate;
     this._boundary = boundary;
     this._collisionHandler = collisionHandler;
-    if (typeof minDistanceToBoundary === 'number') this._minDistanceToBoundary = minDistanceToBoundary;
-    if (typeof boundaryAvoidanceStrength === 'number') this._boundaryAvoidanceStrength = boundaryAvoidanceStrength;
-    if (typeof lookAheadDistance === 'number') this._lookAheadDistance = lookAheadDistance;
-    if (typeof lookAheadTime === 'number') this._lookAheadTime = lookAheadTime;
-    if (typeof collisionAvoidanceStrength === 'number') this._collisionAvoidanceStrength = collisionAvoidanceStrength;
+
+    if (params) {
+      this._horizontalSpeed = params.horizontalSpeed ?? params.horizontalAmplitude ?? this._horizontalSpeed;
+      this._glideEfficiency = params.glideEfficiency ?? this._glideEfficiency;
+      this._minSpeedForLift = params.minSpeedForLift ?? this._minSpeedForLift;
+      this._maxClimbRate = params.maxClimbRate ?? this._maxClimbRate;
+      this._minDistanceToBoundary = params.minDistanceToBoundary ?? params.minDistanceToBottom ?? this._minDistanceToBoundary;
+      this._boundaryAvoidanceStrength = params.boundaryAvoidanceStrength ?? this._boundaryAvoidanceStrength;
+      this._lookAheadDistance = params.lookAheadDistance ?? this._lookAheadDistance;
+      this._lookAheadTime = params.lookAheadTime ?? this._lookAheadTime;
+      this._collisionAvoidanceStrength = params.collisionAvoidanceStrength ?? this._collisionAvoidanceStrength;
+    }
+    
+    this._glideEfficiency = Math.max(0, Math.min(1, this._glideEfficiency));
   }
   
   setBoundary(boundary?: AxisAlignedBoundingBox): void {

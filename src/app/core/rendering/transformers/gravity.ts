@@ -17,10 +17,15 @@ export class Gravity implements ITransformer {
   constructor(
     private ticker: TickService,
     item?: StageItem,
-    acceleration?: number
+    params?: any
   ) {
     if (item) this._item = item;
-    if (typeof acceleration === 'number') this._acceleration = acceleration;
+    const acceleration = params?.acceleration ?? params?.Acceleration ?? params;
+    if (typeof acceleration === 'number') {
+      this._acceleration = acceleration;
+    } else {
+      this._acceleration = 0.5;
+    }
   }
 
   setItem(item: StageItem | undefined): void {

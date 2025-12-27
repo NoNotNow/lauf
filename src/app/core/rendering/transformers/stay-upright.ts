@@ -27,12 +27,12 @@ export class StayUpright implements ITransformer {
 
   private _timeOffUpright = 0;
 
-  constructor(private ticker: TickService, item?: StageItem, options?: StayUprightOptions) {
+  constructor(private ticker: TickService, item?: StageItem, params?: any) {
     this._item = item;
-    this._latency = options?.latency ?? 0.5;
-    this._maxAngle = options?.maxAngle ?? 5.0;
-    this._speed = options?.speed ?? 1.0;
-    this._force = options?.force ?? 0.1;
+    this._latency = params?.latency ?? params?.Latency ?? 0.5;
+    this._maxAngle = params?.maxAngle ?? params?.MaxAngle ?? 5.0;
+    this._speed = params?.speed ?? params?.Speed ?? 1.0;
+    this._force = params?.force ?? params?.Force ?? 0.1;
   }
 
   setItem(item: StageItem | undefined): void {

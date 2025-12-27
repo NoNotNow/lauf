@@ -19,8 +19,15 @@ export class FollowItem implements ITransformer {
   private sub?: Subscription;
   private _options: FollowItemOptions = { distance: 0.4, maxSpeed: 0.2, direction: 'horizontal', force: 0.0001 };
 
-  constructor(private ticker: TickService, private _item: StageItem | undefined, private _target: StageItem, options?: FollowItemOptions) {
-    if(options) this._options = options;
+  constructor(private ticker: TickService, private _item: StageItem | undefined, private _target: StageItem, params?: any) {
+    if (params) {
+      this._options = {
+        distance: params.distance ?? params.Distance ?? 0.4,
+        maxSpeed: params.maxSpeed ?? params.MaxSpeed ?? 0.2,
+        direction: params.direction ?? params.Direction ?? 'horizontal',
+        force: params.force ?? params.Force ?? 0.0001
+      };
+    }
   }
 
   start(): void {
