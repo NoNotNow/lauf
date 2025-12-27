@@ -477,7 +477,7 @@ export class Glider {
         // Normalize steering direction
         const steerLen = Math.hypot(steerX, steerY);
         if (steerLen > 0) {
-          console.log(`Collision ahead: steering away from boundary (${steerX}, ${steerY})`);
+          console.log(`Collision ahead: steering away from boundary (${steerX}, ${steerY}), rotation = ${pose.Rotation}`);
           return { avoid: true, steerX: steerX / steerLen, steerY: steerY / steerLen };
         }
       }
