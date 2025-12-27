@@ -53,7 +53,7 @@ export class Rotator implements ITransformer {
       this._speedDegPerSec = speedDegPerSec;
       if (this._phys) {
         // keep physics omega in sync with configured direction*speed
-        this._phys.setAngular(this._direction * this._speedDegPerSec);
+        this._phys.setAngularVelocity(this._direction * this._speedDegPerSec);
       }
     }
   }
@@ -61,7 +61,7 @@ export class Rotator implements ITransformer {
   setDirection(direction: 1 | -1): void {
     if (direction === 1 || direction === -1) this._direction = direction;
     if (this._phys) {
-      this._phys.setAngular(this._direction * this._speedDegPerSec);
+      this._phys.setAngularVelocity(this._direction * this._speedDegPerSec);
     }
   }
 
@@ -79,7 +79,7 @@ export class Rotator implements ITransformer {
     this.sub = this.ticker.ticks$.subscribe(() => this.onTick());
     // initialize physics omega
     if (this._phys) {
-      this._phys.setAngular(this._direction * this._speedDegPerSec);
+      this._phys.setAngularVelocity(this._direction * this._speedDegPerSec);
     }
   }
 
@@ -93,6 +93,6 @@ export class Rotator implements ITransformer {
     // Keep StageItemPhysics omega aligned with configured speed and direction.
     // We do NOT adopt externally changed omega to avoid losing speed to damping feedback.
     const desired = this._direction * this._speedDegPerSec;
-    this._phys.setAngular(desired);
+    this._phys.setAngularVelocity(desired);
   }
 }

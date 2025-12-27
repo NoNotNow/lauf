@@ -1,8 +1,8 @@
 {
   "Name": "Test Level",
   "Size": {
-    "X": 10,
-    "Y": 10
+    "X": 30,
+    "Y": 30
   },
   "Camera": {
     "Position": {
@@ -25,13 +25,14 @@
     {
       "Pose": {
         "Position": {
-          "X": 5,
-          "Y": 2
+          "X": 1,
+          "Y": 3
         },
         "Size": {
           "X": 0.5,
           "Y": 0.5
-        }
+        },
+        "Rotation": 180
       },
       "Design": {
         "Color": "transparent",
@@ -75,7 +76,7 @@
     "Pose": {
       "Position": {
         "X": 5,
-        "Y": 10
+        "Y": 15
       },
       "Size": {
         "X": 0.26,

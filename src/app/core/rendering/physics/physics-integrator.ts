@@ -75,7 +75,7 @@ export class PhysicsIntegrator {
       if (state.angularDamping > 0) {
         const factor = Math.max(0, 1 - state.angularDamping * dtSec);
         omega *= factor;
-        phys.setAngular(omega);
+        phys.setAngularVelocity(omega);
       }
 
       // Integrate linear

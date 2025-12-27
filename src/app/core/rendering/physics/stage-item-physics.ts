@@ -33,12 +33,28 @@ function massFromItem(item: StageItem): number {
 
 export class StageItemPhysics {
     private state: PhysicsState;
+    private item: StageItem;
+
     //add public getter for state
     public get State(): PhysicsState {
         return this.state;
     }
 
+    // Getters for pose properties
+    public get Position() {
+        return this.item?.Pose?.Position;
+    }
+
+    public get Size() {
+        return this.item?.Pose?.Size;
+    }
+
+    public get Rotation() {
+        return this.item?.Pose?.Rotation ?? 0;
+    }
+
     private constructor(item: StageItem) {
+        this.item = item;
         const p = item.Physics;
         this.state = {
             ...DEFAULT_STATE,
@@ -83,12 +99,17 @@ export class StageItemPhysics {
         return this;
     }
 
-    getAngular(): number {
+    getAngularVelocity(): number {
         return this.state.omega;
     }
 
-    setAngular(omega: number): this {
+    setAngularVelocity(omega: number): this {
         this.state.omega = Number(omega) || 0;
+        return this;
+    }
+
+    accelerateAngular(alpha: number, dt: number): this {
+        this.state.omega += alpha * dt;
         return this;
     }
 

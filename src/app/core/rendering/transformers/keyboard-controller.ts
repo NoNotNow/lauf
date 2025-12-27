@@ -84,7 +84,7 @@ export class KeyboardController implements ITransformer {
     const velocity = this._phys.getVelocity();
     let vx = toNumber(velocity.vx, 0);
     let vy = toNumber(velocity.vy, 0);
-    let omega = toNumber(this._phys.getAngular(), 0); // deg/s
+    let omega = toNumber(this._phys.getAngularVelocity(), 0); // deg/s
 
     // Controls
     const forwardHeld = this.keys.has('ArrowUp') || this.keys.has('KeyW');
@@ -153,7 +153,7 @@ export class KeyboardController implements ITransformer {
     }
 
     this._phys.setVelocity(vx, vy);
-    this._phys.setAngular(omega);
+    this._phys.setAngularVelocity(omega);
   }
 }
 

@@ -77,7 +77,7 @@ export class StayUpright implements ITransformer {
         return;
     }
 
-    let omega = toNumber(this._phys.getAngular(), 0);
+    let omega = toNumber(this._phys.getAngularVelocity(), 0);
 
     // Apply angular force to change omega towards 0 rotation
     // We want to apply a torque-like effect.
@@ -99,6 +99,6 @@ export class StayUpright implements ITransformer {
         omega *= damping;
     }
 
-    this._phys.setAngular(omega);
+    this._phys.setAngularVelocity(omega);
   }
 }
