@@ -13,7 +13,7 @@ import { Gravity } from '../rendering/transformers/gravity';
 import { FollowItem } from '../rendering/transformers/follow-item';
 import { StayUpright } from '../rendering/transformers/stay-upright';
 import { KeyboardController } from '../rendering/transformers/keyboard-controller';
-import { Avatar, Obstacle, Target } from '../models/game-items/stage-items';
+import { Avatar, Obstacle } from '../models/game-items/stage-items';
 import { StageItem, Transformer } from '../models/game-items/stage-item';
 import { Point } from '../models/point';
 import { Camera } from '../rendering/camera';
@@ -32,6 +32,25 @@ export interface WorldAssemblerConfig {
 export class WorldAssemblerService {
   constructor(private ticker: TickService) {}
 
+  private readonly transformerHandlers: Record<
+    string,
+    (item: StageItem, context: WorldContext, params: any, boundary?: AxisAlignedBoundingBox) => void
+  > = {
+    UserController: (item, context, params) =>
+      this.attachAvatarController(item as Avatar, context, params),
+    FollowItem: (item, context, params) =>
+      this.attachFollowItem(item, context, params),
+    StayUpright: (item, context, params) =>
+      this.attachStayUpright(item, context, params),
+    Glider: (item, context, params, boundary) =>
+      this.attachGlider(item, context, params, boundary),
+    Glider2: (item, context, params) => this.attachGlider2(item, context, params),
+    Rotator: (item, context) => this.attachRotator(item, context),
+    Drifter: (item, context, _params, boundary) =>
+      this.attachDrifter(item, context, boundary),
+    Wobbler: (item, context, params) => this.attachWobbler(item, context, params),
+  };
+
   buildWorld(map: GameMap, config: WorldAssemblerConfig): WorldContext {
     const context = new WorldContext();
     const boundary = this.createBoundary(map.size);
@@ -48,11 +67,7 @@ export class WorldAssemblerService {
 
     // Assemble avatar
     if (map.avatar) {
-      this.assembleAvatar(
-        map.avatar,
-        context,
-        boundary
-      );
+      this.assembleItem(map.avatar, context, boundary);
       context.setAvatar(map.avatar);
     }
 
@@ -65,9 +80,43 @@ export class WorldAssemblerService {
     }
 
     // Assemble obstacles with their transformers
-    this.assembleObstacles(map.obstacles ?? [], context, boundary);
+    (map.obstacles ?? []).forEach(obstacle => this.assembleItem(obstacle, context, boundary));
 
     return context;
+  }
+
+  private assembleItem(
+    item: StageItem,
+    context: WorldContext,
+    boundary?: AxisAlignedBoundingBox
+  ): void {
+    const physics = item.Physics;
+
+    if (physics.hasCollision) {
+      this.wireCollision(item, context);
+    }
+
+    item.transformers?.forEach(t => this.attachTransformer(item, context, t, boundary));
+
+    if (physics.hasGravity) {
+      this.attachGravity(item, context);
+    }
+
+    if (physics.canMove || physics.canRotate) {
+      this.registerWithIntegrator(item, context);
+    }
+  }
+
+  private attachTransformer(
+    item: StageItem,
+    context: WorldContext,
+    transformer: Transformer,
+    boundary?: AxisAlignedBoundingBox
+  ): void {
+    const handler = this.transformerHandlers[transformer.Type];
+    if (handler) {
+      handler(item, context, transformer.Params, boundary);
+    }
   }
 
   private createBoundary(gridSize?: Point): AxisAlignedBoundingBox | undefined {
@@ -100,41 +149,6 @@ export class WorldAssemblerService {
     return integrator;
   }
 
-  private assembleObstacles(
-    obstacles: Obstacle[],
-    context: WorldContext,
-    boundary?: AxisAlignedBoundingBox
-  ): void {
-    obstacles.forEach(obstacle => {
-      const physics = obstacle.Physics;
-      if (physics.hasCollision) {
-        this.wireCollision(obstacle, context);
-      }
-
-      if (obstacle.transformers && obstacle.transformers.length > 0) {
-        obstacle.transformers.forEach(t => {
-          if (t.Type === 'FollowItem') {
-            this.attachFollowItem(obstacle, context, t.Params);
-          } else if (t.Type === 'StayUpright') {
-            this.attachStayUpright(obstacle, context, t.Params);
-          } else if (t.Type === 'Glider') {
-            this.attachGlider(obstacle, context, t.Params, boundary);
-          } else if (t.Type === 'Glider2') {
-            this.attachGlider2(obstacle, context, t.Params);
-          }
-        });
-      }
-      
-      if (physics.hasGravity) {
-        this.attachGravity(obstacle, context);
-      }
-      if (physics.canMove || physics.canRotate) {
-        this.registerWithIntegrator(obstacle, context);
-      }
-    });
-  }
-
-
   private wireCollision(item: StageItem, context: WorldContext): void {
     context.getCollisionHandler()?.add(item);
   }
@@ -162,12 +176,19 @@ export class WorldAssemblerService {
     context.addTransformer(drifter);
   }
 
+  private attachWobbler(item: StageItem, context: WorldContext, params: any): void {
+    const amplitude = params?.amplitude ?? params?.Amplitude ?? 0.15;
+    const frequency = params?.frequency ?? params?.Frequency ?? 0.5;
+    const wobbler = new Wobbler(this.ticker, item, amplitude, frequency);
+    context.addTransformer(wobbler);
+  }
+
   private attachGravity(item: StageItem, context: WorldContext): void {
     const gravity = new Gravity(this.ticker, item, 0.5);
     context.addTransformer(gravity);
   }
 
-  private attachGlider2(obstacle: Obstacle, context: WorldContext, params: any) {
+  private attachGlider2(item: StageItem, context: WorldContext, params: any) {
     const glider2 = new Glider2(this.ticker, params);
     context.addTransformer(glider2);
   }
@@ -204,39 +225,6 @@ export class WorldAssemblerService {
   private registerWithIntegrator(item: StageItem, context: WorldContext): void {
     context.getIntegrator()?.add(item);
   }
-
-  private assembleAvatar(
-    avatar: Avatar,
-    context: WorldContext,
-    boundary?: AxisAlignedBoundingBox
-  ): void {
-    const physics = avatar.Physics;
-    if (physics.hasCollision) {
-      this.wireCollision(avatar, context);
-    }
-
-    if (avatar.transformers && avatar.transformers.length > 0) {
-      avatar.transformers.forEach(t => {
-        if (t.Type === 'UserController') {
-          this.attachAvatarController(avatar, context, t.Params);
-        } else if (t.Type === 'FollowItem') {
-          this.attachFollowItem(avatar, context, t.Params);
-        } else if (t.Type === 'StayUpright') {
-          this.attachStayUpright(avatar, context, t.Params);
-        } else if (t.Type === 'Glider') {
-          this.attachGlider(avatar, context, t.Params, boundary);
-        }
-      });
-    }
-
-    if (physics.hasGravity) {
-      this.attachGravity(avatar, context);
-    }
-    if (physics.canMove || physics.canRotate) {
-      this.registerWithIntegrator(avatar, context);
-    }
-  }
-
 
   private attachAvatarController(
     avatar: Avatar,
