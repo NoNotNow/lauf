@@ -1,0 +1,117 @@
+{
+  "Name": "Test Level",
+  "Size": {
+    "X": 10,
+    "Y": 10
+  },
+  "Camera": {
+    "Position": {
+      "X": 5,
+      "Y": 5
+    },
+    "Zoom": 1.0
+  },
+  "Design": {
+    "Color": "#118800",
+    "Border": {
+      "Style": "dashed",
+      "Color": "#FF00FF",
+      "Width": "0.002"
+    },
+    "Image": ""
+  },
+  "Obstacles": [
+ 
+    {
+      "Pose": {
+        "Position": {
+          "X": 5,
+          "Y": 2
+        },
+        "Size": {
+          "X": 0.5,
+          "Y": 0.5
+        }
+      },
+      "Design": {
+        "Color": "transparent",
+        "Image": "assets/bird.svg"
+      },
+      "PhysicsConfiguration": {
+        "hasGravity": true,
+        "canMove": true,
+        "mass": 10,
+        "restitution": 0.5
+      },
+      "Transformers": [
+        {
+          "Type": "Glider",
+          "Params": {
+            "horizontalSpeed": 3.0,
+            "glideEfficiency": 0.4,
+            "minSpeedForLift": 1.5,
+            "maxClimbRate": 4.0,
+            "minDistanceToBoundary": 2,
+
+            "boundaryAvoidanceStrength": 10.0,
+            "lookAheadDistance": 2.5,
+            "lookAheadTime": 0.6,
+            "collisionAvoidanceStrength": 4.0
+          }
+        }
+      ]
+    }
+    
+  ],
+  "Targets": [],
+  "Avatar": {
+    "Id": "Avatar",
+    "Pose": {
+      "Position": {
+        "X": 5,
+        "Y": 5
+      },
+      "Size": {
+        "X": 0.26,
+        "Y": 0.36
+      }
+    },
+    "Design": {
+      "Color": "transparent",
+      "Border": {
+        "Style": "none"
+      },
+      "Image": "assets/hero.svg"
+    },
+    "Physics": {
+      "mass": 200,
+      "canMove": true,
+      "canRotate": true,
+      "hasGravity": true,
+      "restitution": 0.7
+    },
+    "Transformers": [
+      {
+        "Type": "UserController",
+        "Params": {
+          "linearAccel": 3.0,
+          "linearBrake": 2.5,
+          "linearDamping": 0.2,
+          "maxSpeed": 10.0,
+          "angularAccel": 700,
+          "angularDamping": 500,
+          "maxOmega": 300
+        }
+      },
+      {
+        "Type": "StayUpright",
+        "Params": {
+          "latency": 20.0,
+          "maxAngle": 10.0,
+          "speed": 5.0,
+          "force": 4
+        }
+      }
+    ]
+  }
+}
