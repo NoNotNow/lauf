@@ -109,19 +109,20 @@ export function estimateBoundaryContactPoint(
 // Resolve collision impulse between an item and a static boundary along normal and tangent.
 export function resolveBoundaryCollision(
   item: StageItem,
-  s: PhysicsState,
+  phys: StageItemPhysics,
   obb: OrientedBoundingBox,
   boundary: { minX: number; minY: number; maxX: number; maxY: number },
   normal: { x: number; y: number },
   params: ItemItemImpulseParams
 ): void {
+  const s = phys.State;
   const e = Math.min(1, Math.max(0, Number(params?.restitution ?? 0.85)));
   const mu = Math.max(0, Number(params?.friction ?? 0));
 
   const invMass = s.mass >= 1e6 ? 0 : 1 / Math.max(1e-6, s.mass);
   if (invMass === 0) return;
 
-  const I = StageItemPhysics.momentOfInertia(s, item);
+  const I = phys.momentOfInertia(item);
   const invI = s.mass >= 1e6 ? 0 : 1 / I;
 
   // Contact point and lever arm
@@ -173,7 +174,7 @@ export function resolveBoundaryCollision(
     omega = StageItemPhysics.omegaRadToDegPerSec(newOmegaRad + tauF * invI);
   }
 
-  StageItemPhysics.set_(s, { vx, vy, omega });
+  phys.set({ vx, vy, omega });
 }
 
 // Resolve collision impulse between two items along normal and tangent, including angular effects.
@@ -181,20 +182,22 @@ export function resolveBoundaryCollision(
 export function resolveItemItemCollision(
   a: StageItem,
   b: StageItem,
-  sa: PhysicsState,
-  sb: PhysicsState,
+  physA: StageItemPhysics,
+  physB: StageItemPhysics,
   aObb: OrientedBoundingBox,
   bObb: OrientedBoundingBox,
   normal: { x: number; y: number },
   params: ItemItemImpulseParams
 ): void {
+  const sa = physA.State;
+  const sb = physB.State;
   const e = Math.min(1, Math.max(0, Number(params?.restitution ?? 0.85)));
   const mu = Math.max(0, Number(params?.friction ?? 0));
 
   const invMassA = sa.mass >= 1e6 ? 0 : 1 / Math.max(1e-6, sa.mass);
   const invMassB = sb.mass >= 1e6 ? 0 : 1 / Math.max(1e-6, sb.mass);
-  const IA = StageItemPhysics.momentOfInertia(sa,a);
-  const IB = StageItemPhysics.momentOfInertia(sb, b);
+  const IA = physA.momentOfInertia(a);
+  const IB = physB.momentOfInertia(b);
   const invIA = sa.mass >= 1e6 ? 0 : 1 / IA;
   const invIB = sb.mass >= 1e6 ? 0 : 1 / IB;
 
@@ -271,6 +274,6 @@ export function resolveItemItemCollision(
   }
 
   // Persist using in-place updates
-  StageItemPhysics.set_(sa, { vx: vax, vy: vay, omega: omegaA });
-  StageItemPhysics.set_(sb, { vx: vbx, vy: vby, omega: omegaB });
+  physA.set({ vx: vax, vy: vay, omega: omegaA });
+  physB.set({ vx: vbx, vy: vby, omega: omegaB });
 }

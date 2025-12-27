@@ -59,7 +59,7 @@ export class PhysicsIntegrator {
       const pos = pose.Position;
       if (!pos) continue;
 
-      const state = phys.getState();
+      const state = phys.State;
       // Read velocities
       let vx = toNumber(state.vx, 0);
       let vy = toNumber(state.vy, 0);
@@ -112,10 +112,9 @@ export class PhysicsIntegrator {
           if (this.bounce) {
             // For collision impulse calculation, we DO use the collision box
             const obb = orientedBoundingBoxFromPose(pose, it.Physics.collisionBox);
-            const state = phys.getState();
             resolveBoundaryCollision(
               it,
-              state,
+              phys,
               obb,
               this.boundary,
               res.normal,
@@ -126,7 +125,7 @@ export class PhysicsIntegrator {
             y += res.normal.y * TINY_NUDGE;
 
             // Re-read after impulse (no lookup needed because it's updated in-place)
-            const updatedState = phys.getState();
+            const updatedState = phys.State;
             vx = updatedState.vx;
             vy = updatedState.vy;
             omega = updatedState.omega;

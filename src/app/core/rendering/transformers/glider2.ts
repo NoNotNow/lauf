@@ -21,7 +21,7 @@ export class Glider2 implements ITransformer {
     }
     onTick(dtSec: number): void {
         console.log('Glider2 tick', dtSec);
-        this._physics.accelerate(1,1,0.001);
+        
 
     }
 }

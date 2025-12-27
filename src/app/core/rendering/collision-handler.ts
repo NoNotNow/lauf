@@ -165,8 +165,8 @@ export class CollisionHandler {
         const radiusSum = Math.max(aobb.half.x, aobb.half.y) + Math.max(bobb.half.x, bobb.half.y);
 
         // Expand radius check based on relative velocity to catch fast-moving objects (CCD approximation)
-        const stateA = physA.getState();
-        const stateB = physB.getState();
+        const stateA = physA.State;
+        const stateB = physB.State;
         const relVx = (stateA.vx ?? 0) - (stateB.vx ?? 0);
         const relVy = (stateA.vy ?? 0) - (stateB.vy ?? 0);
         const relSpeedSq = relVx * relVx + relVy * relVy;
@@ -241,14 +241,14 @@ export class CollisionHandler {
     // Iterative solver over contacts to distribute impulses like a physics engine
     for (let iter = 0; iter < this._iterations; iter++) {
       for (const c of contacts) {
-        const stateA = c.physA.getState();
-        const stateB = c.physB.getState();
+        const stateA = c.physA.State;
+        const stateB = c.physB.State;
         const e = Math.min(stateA.restitution, stateB.restitution);
         resolveItemItemCollision(
           c.a,
           c.b,
-          stateA,
-          stateB,
+          c.physA,
+          c.physB,
           c.aobb,
           c.bobb,
           c.normal,
@@ -265,8 +265,8 @@ export class CollisionHandler {
     for (const c of contacts) {
       if (c.isCCD) continue; // Skip positional correction for predictive CCD hits
 
-      const stateA = c.physA.getState();
-      const stateB = c.physB.getState();
+      const stateA = c.physA.State;
+      const stateB = c.physB.State;
       const invMassA = stateA.mass >= 1e6 ? 0 : 1 / Math.max(1e-6, stateA.mass);
       const invMassB = stateB.mass >= 1e6 ? 0 : 1 / Math.max(1e-6, stateB.mass);
       const sum = invMassA + invMassB;
