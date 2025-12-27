@@ -3,7 +3,7 @@ import { StageItem } from '../models/game-items/stage-item';
 import { TickService } from '../services/tick.service';
 import { orientedBoundingBoxFromPose, orientedBoundingBoxIntersectsOrientedBoundingBox, resetOBBPool } from './collision';
 import { StageItemPhysics, PhysicsState } from './physics/stage-item-physics';
-import { applyItemItemCollisionImpulse } from './physics/impulses';
+import { resolveItemItemCollision } from './physics/impulses';
 
 export interface CollisionEvent {
   a: StageItem;
@@ -14,7 +14,7 @@ export interface CollisionEvent {
 
 export class CollisionHandler {
   private sub?: Subscription;
-  private items: StageItem[] = [];
+  private items: { it: StageItem; phys: PhysicsState }[] = [];
   private _restitutionDefault = 0.85;
   private _frictionDefault = 0.8;
   private _iterations = 10; // sequential impulse iterations per tick
@@ -49,14 +49,12 @@ export class CollisionHandler {
 
   add(item: StageItem): void {
     if (!item) return;
-    if (this.items.includes(item)) return;
-    // ensure physics state exists (mass from size)
-    StageItemPhysics.get(item);
-    this.items.push(item);
+    if (this.items.some(e => e.it === item)) return;
+    this.items.push({ it: item, phys: StageItemPhysics.get(item) });
   }
 
   remove(item: StageItem): void {
-    const i = this.items.indexOf(item);
+    const i = this.items.findIndex(e => e.it === item);
     if (i >= 0) this.items.splice(i, 1);
   }
 
@@ -76,7 +74,7 @@ export class CollisionHandler {
     
     const testOBB = orientedBoundingBoxFromPose(pose, excludeItem?.Physics.collisionBox);
     
-    for (const item of this.items) {
+    for (const { it: item } of this.items) {
       if (item === excludeItem) continue;
       if (!item.Physics.hasCollision) continue;
       
@@ -141,26 +139,24 @@ export class CollisionHandler {
     obbs.length = n;
     physics.length = n;
     for (let i = 0; i < n; i++) {
-      const item = this.items[i];
+      const { it: item, phys } = this.items[i];
       const p = item?.Pose;
       obbs[i] = p ? orientedBoundingBoxFromPose(p, item.Physics.collisionBox) : null;
-      physics[i] = StageItemPhysics.get(item);
+      physics[i] = phys;
     }
 
     // Build contact list once per tick - reuse pre-allocated array
     const contacts = this.contacts;
     contacts.length = 0;
     for (let i = 0; i < n - 1; i++) {
-      const ai = this.items[i];
+      const { it: ai, phys: physA } = this.items[i];
       const aobb = obbs[i];
       if (!aobb) continue;
-      const physA = physics[i];
 
       for (let j = i + 1; j < n; j++) {
-        const bj = this.items[j];
+        const { it: bj, phys: physB } = this.items[j];
         const bobb = obbs[j];
         if (!bobb) continue;
-        const physB = physics[j];
 
         // Broad-phase pruning: check distance between centers first
         const dx = bobb.center.x - aobb.center.x;
@@ -244,11 +240,11 @@ export class CollisionHandler {
     for (let iter = 0; iter < this._iterations; iter++) {
       for (const c of contacts) {
         const e = Math.min(c.physA.restitution, c.physB.restitution);
-        applyItemItemCollisionImpulse(
+        resolveItemItemCollision(
           c.a,
           c.b,
-          c.a.Pose,
-          c.b.Pose,
+          c.physA,
+          c.physB,
           c.aobb,
           c.bobb,
           c.normal,

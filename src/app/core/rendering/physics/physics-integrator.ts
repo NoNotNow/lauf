@@ -1,9 +1,9 @@
 import { Subscription } from 'rxjs';
 import { TickService } from '../../services/tick.service';
 import { StageItem } from '../../models/game-items/stage-item';
-import { StageItemPhysics } from './stage-item-physics';
+import { StageItemPhysics, PhysicsState } from './stage-item-physics';
 import { AxisAlignedBoundingBox, orientedBoundingBoxFromPose, poseContainmentAgainstAxisAlignedBoundingBox } from '../collision';
-import { applyBoundaryCollisionImpulse } from './impulses';
+import { resolveBoundaryCollision } from './impulses';
 import { toNumber } from '../../utils/number-utils';
 
 const TINY_NUDGE = 1e-6;
@@ -12,7 +12,7 @@ const TINY_NUDGE = 1e-6;
 // Transformers (Drifter, Rotator, future KeyboardController) should only set velocities/omega.
 export class PhysicsIntegrator {
   private sub?: Subscription;
-  private items: StageItem[] = [];
+  private items: { it: StageItem; phys: PhysicsState }[] = [];
   private boundary?: AxisAlignedBoundingBox;
   private bounce: boolean = true;
 
@@ -28,10 +28,8 @@ export class PhysicsIntegrator {
 
   add(item: StageItem | undefined): void {
     if (!item) return;
-    if (this.items.includes(item)) return;
-    // Ensure physics state exists
-    StageItemPhysics.get(item);
-    this.items.push(item);
+    if (this.items.some(e => e.it === item)) return;
+    this.items.push({ it: item, phys: StageItemPhysics.get(item) });
   }
 
   addMany(items: (StageItem | undefined)[] | undefined): void {
@@ -54,7 +52,7 @@ export class PhysicsIntegrator {
   private onTick(dtSec: number): void {
     if (dtSec === 0) return;
 
-    for (const it of this.items) {
+    for (const { it, phys } of this.items) {
       const pose = it?.Pose;
       if (!pose) continue;
 
@@ -62,7 +60,6 @@ export class PhysicsIntegrator {
       if (!pos) continue;
 
       // Read velocities
-      const phys = StageItemPhysics.get(it);
       let vx = toNumber(phys.vx, 0);
       let vy = toNumber(phys.vy, 0);
       let omega = toNumber(phys.omega, 0); // deg/s
@@ -114,8 +111,9 @@ export class PhysicsIntegrator {
           if (this.bounce) {
             // For collision impulse calculation, we DO use the collision box
             const obb = orientedBoundingBoxFromPose(pose, it.Physics.collisionBox);
-            applyBoundaryCollisionImpulse(
+            resolveBoundaryCollision(
               it,
+              phys,
               obb,
               this.boundary,
               res.normal,

@@ -60,40 +60,20 @@ export class StageItemPhysics {
         return s;
     }
 
-    static getVelocity(item: StageItem): { vx: number; vy: number } {
-        return StageItemPhysics.getVelocity_(StageItemPhysics.get(item));
-    }
-
     static getVelocity_(s: PhysicsState): { vx: number; vy: number } {
         return {vx: s.vx, vy: s.vy};
-    }
-
-    static setVelocity(item: StageItem, vx: number, vy: number): PhysicsState {
-        return StageItemPhysics.setVelocity_(StageItemPhysics.get(item), vx, vy);
     }
 
     static setVelocity_(s: PhysicsState, vx: number, vy: number): PhysicsState {
         return StageItemPhysics.set_(s, {vx: Number(vx) || 0, vy: Number(vy) || 0});
     }
 
-    static accelerate(item: StageItem, ax: number, ay: number, dt: number): PhysicsState {
-        return StageItemPhysics.accelerate_(StageItemPhysics.get(item), ax, ay, dt);
-    }
-
     static accelerate_(s: PhysicsState, ax: number, ay: number, dt: number): PhysicsState {
         return StageItemPhysics.setVelocity_(s, s.vx + ax * dt, s.vy + ay * dt);
     }
 
-    static getAngular(item: StageItem): number {
-        return StageItemPhysics.getAngular_(StageItemPhysics.get(item));
-    }
-
     static getAngular_(s: PhysicsState): number {
         return s.omega;
-    }
-
-    static setAngular(item: StageItem, omega: number): PhysicsState {
-        return StageItemPhysics.setAngular_(StageItemPhysics.get(item), omega);
     }
 
     static setAngular_(s: PhysicsState, omega: number): PhysicsState {

@@ -1,7 +1,8 @@
+// Trivial change to force re-evaluation
 import { StageItem } from '../../models/game-items/stage-item';
 import { Pose } from '../../models/pose';
 import { OrientedBoundingBox } from '../collision';
-import { StageItemPhysics } from './stage-item-physics';
+import { StageItemPhysics, PhysicsState } from './stage-item-physics';
 
 // Simple 2D vector helpers (kept local to keep file small and focused)
 function dot(ax: number, ay: number, bx: number, by: number): number { return ax * bx + ay * by; }
@@ -106,8 +107,9 @@ export function estimateBoundaryContactPoint(
 }
 
 // Resolve collision impulse between an item and a static boundary along normal and tangent.
-export function applyBoundaryCollisionImpulse(
+export function resolveBoundaryCollision(
   item: StageItem,
+  s: PhysicsState,
   obb: OrientedBoundingBox,
   boundary: { minX: number; minY: number; maxX: number; maxY: number },
   normal: { x: number; y: number },
@@ -116,11 +118,10 @@ export function applyBoundaryCollisionImpulse(
   const e = Math.min(1, Math.max(0, Number(params?.restitution ?? 0.85)));
   const mu = Math.max(0, Number(params?.friction ?? 0));
 
-  const s = StageItemPhysics.get(item);
   const invMass = s.mass >= 1e6 ? 0 : 1 / Math.max(1e-6, s.mass);
   if (invMass === 0) return;
 
-  const I = StageItemPhysics.momentOfInertia(item);
+  const I = StageItemPhysics.momentOfInertia_(s, item);
   const invI = s.mass >= 1e6 ? 0 : 1 / I;
 
   // Contact point and lever arm
@@ -177,11 +178,11 @@ export function applyBoundaryCollisionImpulse(
 
 // Resolve collision impulse between two items along normal and tangent, including angular effects.
 // normal must point from A to B and be unit length.
-export function applyItemItemCollisionImpulse(
+export function resolveItemItemCollision(
   a: StageItem,
   b: StageItem,
-  aPose: Pose | undefined,
-  bPose: Pose | undefined,
+  sa: PhysicsState,
+  sb: PhysicsState,
   aObb: OrientedBoundingBox,
   bObb: OrientedBoundingBox,
   normal: { x: number; y: number },
@@ -190,12 +191,10 @@ export function applyItemItemCollisionImpulse(
   const e = Math.min(1, Math.max(0, Number(params?.restitution ?? 0.85)));
   const mu = Math.max(0, Number(params?.friction ?? 0));
 
-  const sa = StageItemPhysics.get(a);
-  const sb = StageItemPhysics.get(b);
   const invMassA = sa.mass >= 1e6 ? 0 : 1 / Math.max(1e-6, sa.mass);
   const invMassB = sb.mass >= 1e6 ? 0 : 1 / Math.max(1e-6, sb.mass);
-  const IA = StageItemPhysics.momentOfInertia(a);
-  const IB = StageItemPhysics.momentOfInertia(b);
+  const IA = StageItemPhysics.momentOfInertia_(sa,a);
+  const IB = StageItemPhysics.momentOfInertia_(sb, b);
   const invIA = sa.mass >= 1e6 ? 0 : 1 / IA;
   const invIB = sb.mass >= 1e6 ? 0 : 1 / IB;
 
