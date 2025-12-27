@@ -57,6 +57,6 @@ export class FollowItem implements ITransformer {
     let ay = (dy / dist) * this._options.force;
     if (this._options.direction === 'vertical') ax = 0;
     if (this._options.direction === 'horizontal') ay = 0;
-    StageItemPhysics.accelerate_(this._phys, ax, ay, dt);
+    StageItemPhysics.accelerate(this._phys, ax, ay, dt);
   }
 }

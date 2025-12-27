@@ -151,8 +151,8 @@ export class KeyboardController implements ITransformer {
       omega = Math.sign(omega) * maxW;
     }
 
-    StageItemPhysics.setVelocity_(this._phys, vx, vy);
-    StageItemPhysics.setAngular_(this._phys, omega);
+    StageItemPhysics.setVelocity(this._phys, vx, vy);
+    StageItemPhysics.setAngular(this._phys, omega);
   }
 }
 

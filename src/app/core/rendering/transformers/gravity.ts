@@ -55,6 +55,6 @@ export class Gravity implements ITransformer {
     if (!this._phys || dtSec === 0) return;
     
     // dtSec is in seconds
-    StageItemPhysics.accelerate_(this._phys, 0, this._acceleration, dtSec);
+    StageItemPhysics.accelerate(this._phys, 0, this._acceleration, dtSec);
   }
 }

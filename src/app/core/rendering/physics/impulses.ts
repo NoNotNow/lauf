@@ -121,7 +121,7 @@ export function resolveBoundaryCollision(
   const invMass = s.mass >= 1e6 ? 0 : 1 / Math.max(1e-6, s.mass);
   if (invMass === 0) return;
 
-  const I = StageItemPhysics.momentOfInertia_(s, item);
+  const I = StageItemPhysics.momentOfInertia(s, item);
   const invI = s.mass >= 1e6 ? 0 : 1 / I;
 
   // Contact point and lever arm
@@ -193,8 +193,8 @@ export function resolveItemItemCollision(
 
   const invMassA = sa.mass >= 1e6 ? 0 : 1 / Math.max(1e-6, sa.mass);
   const invMassB = sb.mass >= 1e6 ? 0 : 1 / Math.max(1e-6, sb.mass);
-  const IA = StageItemPhysics.momentOfInertia_(sa,a);
-  const IB = StageItemPhysics.momentOfInertia_(sb, b);
+  const IA = StageItemPhysics.momentOfInertia(sa,a);
+  const IB = StageItemPhysics.momentOfInertia(sb, b);
   const invIA = sa.mass >= 1e6 ? 0 : 1 / IA;
   const invIB = sb.mass >= 1e6 ? 0 : 1 / IB;
 

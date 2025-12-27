@@ -127,7 +127,7 @@ export class Glider implements ITransformer {
     this.applyGlidingPhysics(newVelocity);
     this.maintainMinimumSpeed(newVelocity, currentSpeed, dtSec);
     
-    StageItemPhysics.setVelocity_(this._phys, newVelocity.vx, newVelocity.vy);
+    StageItemPhysics.setVelocity(this._phys, newVelocity.vx, newVelocity.vy);
     this.updateRotation(pose, newVelocity);
   }
   

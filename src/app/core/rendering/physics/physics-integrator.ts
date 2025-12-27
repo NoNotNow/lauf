@@ -69,12 +69,12 @@ export class PhysicsIntegrator {
         const factor = Math.max(0, 1 - phys.linearDamping * dtSec);
         vx *= factor;
         vy *= factor;
-        StageItemPhysics.setVelocity_(phys, vx, vy);
+        StageItemPhysics.setVelocity(phys, vx, vy);
       }
       if (phys.angularDamping > 0) {
         const factor = Math.max(0, 1 - phys.angularDamping * dtSec);
         omega *= factor;
-        StageItemPhysics.setAngular_(phys, omega);
+        StageItemPhysics.setAngular(phys, omega);
       }
 
       // Integrate linear
@@ -142,7 +142,7 @@ export class PhysicsIntegrator {
         const speed = Math.sqrt(speedSq);
         vx = (vx / speed) * maxVel;
         vy = (vy / speed) * maxVel;
-        StageItemPhysics.setVelocity_(phys, vx, vy);
+        StageItemPhysics.setVelocity(phys, vx, vy);
       }
 
       // Commit new pose

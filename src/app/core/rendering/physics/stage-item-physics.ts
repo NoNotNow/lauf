@@ -60,33 +60,30 @@ export class StageItemPhysics {
         return s;
     }
 
-    static getVelocity_(s: PhysicsState): { vx: number; vy: number } {
+    static getVelocity(s: PhysicsState): { vx: number; vy: number } {
         return {vx: s.vx, vy: s.vy};
     }
 
-    static setVelocity_(s: PhysicsState, vx: number, vy: number): PhysicsState {
+    static setVelocity(s: PhysicsState, vx: number, vy: number): PhysicsState {
         return StageItemPhysics.set_(s, {vx: Number(vx) || 0, vy: Number(vy) || 0});
     }
 
-    static accelerate_(s: PhysicsState, ax: number, ay: number, dt: number): PhysicsState {
-        return StageItemPhysics.setVelocity_(s, s.vx + ax * dt, s.vy + ay * dt);
+    static accelerate(s: PhysicsState, ax: number, ay: number, dt: number): PhysicsState {
+        return StageItemPhysics.setVelocity(s, s.vx + ax * dt, s.vy + ay * dt);
     }
 
-    static getAngular_(s: PhysicsState): number {
+    static getAngular(s: PhysicsState): number {
         return s.omega;
     }
 
-    static setAngular_(s: PhysicsState, omega: number): PhysicsState {
+    static setAngular(s: PhysicsState, omega: number): PhysicsState {
         return StageItemPhysics.set_(s, {omega: Number(omega) || 0});
     }
 
     // Moment of inertia for a rectangle about its center: I = (1/12) * m * (w^2 + h^2)
     // Units: m in arbitrary mass, w/h in cells, I in mass * cells^2
-    static momentOfInertia(item: StageItem): number {
-        return StageItemPhysics.momentOfInertia_(StageItemPhysics.get(item), item);
-    }
 
-    static momentOfInertia_(s: PhysicsState, item: StageItem): number {
+    static momentOfInertia(s: PhysicsState, item: StageItem): number {
         const w = Math.max(0, Number(item?.Pose?.Size?.x ?? 0));
         const h = Math.max(0, Number(item?.Pose?.Size?.y ?? 0));
         // Use a high but finite mass for inertia if mass is "infinite" (1e6)

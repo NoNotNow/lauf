@@ -89,7 +89,7 @@ export class Drifter implements ITransformer {
     this._vy = toNumber(vy, 0);
     this.clampVelocityToMax();
     if (this._phys) {
-      StageItemPhysics.setVelocity_(this._phys, this._vx, this._vy);
+      StageItemPhysics.setVelocity(this._phys, this._vx, this._vy);
     }
   }
 
@@ -126,6 +126,6 @@ export class Drifter implements ITransformer {
     // We should NOT adopt externally changed velocities if they are caused by damping
     // because that would lead to a feedback loop where we eventually stop.
     // Instead, we just ensure the physics state has our desired velocity.
-    StageItemPhysics.setVelocity_(this._phys, this._vx, this._vy);
+    StageItemPhysics.setVelocity(this._phys, this._vx, this._vy);
   }
 }

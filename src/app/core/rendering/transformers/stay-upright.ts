@@ -99,6 +99,6 @@ export class StayUpright implements ITransformer {
         omega *= damping;
     }
 
-    StageItemPhysics.setAngular_(this._phys, omega);
+    StageItemPhysics.setAngular(this._phys, omega);
   }
 }
