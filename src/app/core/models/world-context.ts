@@ -23,6 +23,7 @@ export class WorldContext {
   private gravities: Gravity[] = [];
   private followers: FollowItem[] = [];
   private uprights: StayUpright[] = [];
+  
   private avatarController?: KeyboardController;
   private integrator?: PhysicsIntegrator;
   private collisions?: CollisionHandler;

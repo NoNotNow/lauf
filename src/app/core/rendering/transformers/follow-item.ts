@@ -3,13 +3,6 @@ import { StageItem } from '../../models/game-items/stage-item';
 import { TickService } from '../../services/tick.service';
 import { StageItemPhysics } from '../physics/stage-item-physics';
 
-// "TargetId": "Avatar",
-//     "Distance": 0.4,
-//     "maxSpeed": 0.2,
-//     "force": 0.0001,
-//     "direction": "horizontal"
-
-
 export interface FollowItemOptions {
   distance:number;
   maxSpeed:number;

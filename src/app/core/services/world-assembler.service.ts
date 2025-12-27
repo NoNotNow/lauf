@@ -18,6 +18,7 @@ import { StageItem, Transformer } from '../models/game-items/stage-item';
 import { Point } from '../models/point';
 import { Camera } from '../rendering/camera';
 import { UserControllerParams } from '../models/user-controller-params';
+import { Glider2 } from '../rendering/transformers/glider2';
 
 export interface WorldAssemblerConfig {
   enableCollisions: boolean;
@@ -118,6 +119,8 @@ export class WorldAssemblerService {
             this.attachStayUpright(obstacle, context, t.Params);
           } else if (t.Type === 'Glider') {
             this.attachGlider(obstacle, context, t.Params, boundary);
+          } else if (t.Type === 'Glider2') {
+            this.attachGlider2(obstacle, context, t.Params);
           }
         });
       }
@@ -130,6 +133,7 @@ export class WorldAssemblerService {
       }
     });
   }
+
 
   private wireCollision(item: StageItem, context: WorldContext): void {
     context.getCollisionHandler()?.add(item);
@@ -161,6 +165,10 @@ export class WorldAssemblerService {
   private attachGravity(item: StageItem, context: WorldContext): void {
     const gravity = new Gravity(this.ticker, item, 0.5);
     context.addGravity(gravity);
+  }
+
+  private attachGlider2(obstacle: Obstacle, context: WorldContext, params: any) {
+    const glider2 = new Glider2(this.ticker, params);
   }
 
   private attachGlider(item: StageItem, context: WorldContext, params?: any, boundary?: AxisAlignedBoundingBox): void {

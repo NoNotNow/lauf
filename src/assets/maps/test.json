@@ -15,7 +15,7 @@
     "Color": "#118800",
     "Border": {
       "Style": "dashed",
-      "Color": "#FF00FF",
+      "Color": "#FFFFFF11",
       "Width": "0.002"
     },
     "Image": ""
@@ -45,7 +45,7 @@
       },
       "Transformers": [
         {
-          "Type": "Glider",
+          "Type": "GliderInvalid",
           "Params": {
             "horizontalSpeed": 3.0,
             "glideEfficiency": 0.4,
@@ -58,6 +58,12 @@
             "lookAheadTime": 0.6,
             "collisionAvoidanceStrength": 4.0
           }
+        },
+        {
+            "Type": "Glider2",
+            "Params": {
+                
+            }
         }
       ]
     }
@@ -69,7 +75,7 @@
     "Pose": {
       "Position": {
         "X": 5,
-        "Y": 5
+        "Y": 10
       },
       "Size": {
         "X": 0.26,
