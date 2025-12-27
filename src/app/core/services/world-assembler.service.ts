@@ -46,7 +46,7 @@ export class WorldAssemblerService {
       context.addTransformer(new StayUpright(this.ticker, item, params)),
     Glider: (item, context, params, boundary) =>
       context.addTransformer(new Glider(this.ticker, item, params, boundary, context.getCollisionHandler())),
-    Glider2: (item, context, params) => context.addTransformer(new Glider2(this.ticker, params)),
+    Glider2: (item, context, params) => context.addTransformer(new Glider2(this.ticker,item,  params)),
     Rotator: (item, context, params) => context.addTransformer(new Rotator(this.ticker, item, params)),
     Drifter: (item, context, params, boundary) =>
       context.addTransformer(new Drifter(this.ticker, item, params, boundary)),

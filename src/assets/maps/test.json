@@ -38,7 +38,7 @@
         "Image": "assets/bird.svg"
       },
       "PhysicsConfiguration": {
-        "hasGravity": true,
+        "hasGravity": false,
         "canMove": true,
         "mass": 10,
         "restitution": 0.5

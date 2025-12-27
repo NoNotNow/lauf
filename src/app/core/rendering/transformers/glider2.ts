@@ -1,9 +1,15 @@
+import { StageItem } from "../../models/game-items/stage-item";
 import { TickService } from "../../services/tick.service";
+import { StageItemPhysics } from "../physics/stage-item-physics";
 import { ITransformer } from "./transformer.interface";
 
 export class Glider2 implements ITransformer {
     private sub?: any;
-    constructor(private tickerService: TickService, params?: any) { 
+    private _params: any;
+    private _physics: StageItemPhysics;
+    constructor(private tickerService: TickService,item:StageItem, params?: any) { 
+        this._params = params || {};
+        this._physics = StageItemPhysics.get(item);
     }
     start(): void {
         if (this.sub) return;
@@ -15,5 +21,7 @@ export class Glider2 implements ITransformer {
     }
     onTick(dtSec: number): void {
         console.log('Glider2 tick', dtSec);
+       // StageItemPhysics.accelerate(this._physics, 1,1,0.001);
+
     }
 }
