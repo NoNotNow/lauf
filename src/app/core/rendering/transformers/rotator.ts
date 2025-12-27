@@ -4,10 +4,12 @@ import { TickService } from '../../services/tick.service';
 import { AxisAlignedBoundingBox } from '../collision';
 import { StageItemPhysics } from '../physics/stage-item-physics';
 
+import { ITransformer } from './transformer.interface';
+
 // Rotates a single StageItem continuously using the TickService.
 // - speedDegPerSec: degrees per second
 // - direction: +1 for clockwise, -1 for counter-clockwise
-export class Rotator {
+export class Rotator implements ITransformer {
   private sub?: Subscription;
   private _item?: StageItem;
   private _speedDegPerSec = 10;

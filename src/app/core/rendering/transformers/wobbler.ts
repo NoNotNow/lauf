@@ -2,11 +2,13 @@ import { Subscription } from 'rxjs';
 import { StageItem } from '../../models/game-items/stage-item';
 import { TickService } from '../../services/tick.service';
 
+import { ITransformer } from './transformer.interface';
+
 // Applies a gentle wobble (sinusoidal position offset) to a single StageItem using TickService.
 // - amplitudeCells: max offset in grid cells (applied on both axes)
 // - frequencyHz: oscillations per second
 // Each instance gets randomized phases so obstacles don't wobble in sync.
-export class Wobbler {
+export class Wobbler implements ITransformer {
   private sub?: Subscription;
   private _item?: StageItem;
   private _amplitudeCells = 0.15; // cells

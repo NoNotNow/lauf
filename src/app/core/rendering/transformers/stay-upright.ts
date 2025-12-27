@@ -11,11 +11,13 @@ export interface StayUprightOptions {
   force?: number;    // Angular force to apply
 }
 
+import { ITransformer } from './transformer.interface';
+
 /**
  * StayUpright: ensures a StageItem stays upright (0 degrees rotation).
  * Applies angular velocity to correct any tilt.
  */
-export class StayUpright {
+export class StayUpright implements ITransformer {
   private sub?: Subscription;
   private _item?: StageItem;
   private _latency: number;

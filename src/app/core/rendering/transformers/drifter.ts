@@ -5,11 +5,13 @@ import { AxisAlignedBoundingBox } from '../collision';
 import { StageItemPhysics } from '../physics/stage-item-physics';
 import { toNumber } from '../../utils/number-utils';
 
+import { ITransformer } from './transformer.interface';
+
 // Moves a single StageItem with a (slow) velocity vector. Optionally bounces within a boundary.
 // - directionalVelocityMax: cap for the velocity magnitude (cells/sec)
 // - boundary: optional rectangle in cell coordinates; when set and bounce=true, item bounces off edges
 // - bounce: whether to reflect velocity at the boundary (default true)
-export class Drifter {
+export class Drifter implements ITransformer {
   private sub?: Subscription;
   private _item?: StageItem;
   private _vx = 0; // desired cells/sec

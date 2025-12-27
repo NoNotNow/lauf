@@ -17,7 +17,9 @@ import { CollisionHandler } from '../collision-handler';
  * - Boundary avoidance: turns around when too close to bottom
  * - Predictive collision avoidance: checks ahead for obstacles
  */
-export class Glider {
+import { ITransformer } from './transformer.interface';
+
+export class Glider implements ITransformer {
   private sub?: Subscription;
   private _item?: StageItem;
   private _horizontalSpeed = 2.0; // base horizontal speed (cells/s)

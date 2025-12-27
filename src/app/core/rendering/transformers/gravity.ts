@@ -3,11 +3,13 @@ import { StageItem } from '../../models/game-items/stage-item';
 import { TickService } from '../../services/tick.service';
 import { StageItemPhysics } from '../physics/stage-item-physics';
 
+import { ITransformer } from './transformer.interface';
+
 /**
  * Applies a constant downward acceleration (gravity) to a StageItem.
  * Measured in cells/s^2.
  */
-export class Gravity {
+export class Gravity implements ITransformer {
   private sub?: Subscription;
   private _item?: StageItem;
   private _acceleration: number = 9.81; // cells/s^2

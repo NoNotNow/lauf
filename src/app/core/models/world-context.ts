@@ -1,11 +1,4 @@
-import { Rotator } from '../rendering/transformers/rotator';
-import { Wobbler } from '../rendering/transformers/wobbler';
-import { Glider } from '../rendering/transformers/glider';
-import { Drifter } from '../rendering/transformers/drifter';
-import { Gravity } from '../rendering/transformers/gravity';
-import { FollowItem } from '../rendering/transformers/follow-item';
-import { StayUpright } from '../rendering/transformers/stay-upright';
-import { KeyboardController } from '../rendering/transformers/keyboard-controller';
+import { ITransformer } from '../rendering/transformers/transformer.interface';
 import { CollisionHandler } from '../rendering/collision-handler';
 import { PhysicsIntegrator } from '../rendering/physics/physics-integrator';
 import { Camera } from '../rendering/camera';
@@ -16,50 +9,23 @@ import { Avatar } from './game-items/stage-items';
  * Manages lifecycle of transformers, physics, controllers, and camera.
  */
 export class WorldContext {
-  private rotators: Rotator[] = [];
-  private wobblers: Wobbler[] = [];
-  private gliders: Glider[] = [];
-  private drifters: Drifter[] = [];
-  private gravities: Gravity[] = [];
-  private followers: FollowItem[] = [];
-  private uprights: StayUpright[] = [];
+  private transformers: ITransformer[] = [];
   
-  private avatarController?: KeyboardController;
   private integrator?: PhysicsIntegrator;
   private collisions?: CollisionHandler;
   private camera?: Camera;
   private avatar?: Avatar;
 
-  addRotator(rotator: Rotator): void {
-    this.rotators.push(rotator);
+  addTransformer(transformer: ITransformer): void {
+    this.transformers.push(transformer);
   }
 
-  addWobbler(wobbler: Wobbler): void {
-    this.wobblers.push(wobbler);
+  setAvatarController(controller: ITransformer): void {
+    this.addTransformer(controller);
   }
 
-  addGlider(glider: Glider): void {
-    this.gliders.push(glider);
-  }
-
-  addDrifter(drifter: Drifter): void {
-    this.drifters.push(drifter);
-  }
-
-  addGravity(gravity: Gravity): void {
-    this.gravities.push(gravity);
-  }
-
-  addFollower(follower: FollowItem): void {
-    this.followers.push(follower);
-  }
-
-  addUpright(upright: StayUpright): void {
-    this.uprights.push(upright);
-  }
-
-  setAvatarController(controller: KeyboardController): void {
-    this.avatarController = controller;
+  getTransformers(): ITransformer[] {
+    return this.transformers;
   }
 
   setIntegrator(integrator: PhysicsIntegrator): void {
@@ -114,41 +80,20 @@ export class WorldContext {
   }
 
   start(): void {
-    this.rotators.forEach(r => r.start());
-    this.wobblers.forEach(w => w.start());
-    this.gliders.forEach(g => g.start());
-    this.drifters.forEach(d => d.start());
-    this.gravities.forEach(g => g.start());
-    this.followers.forEach(f => f.start());
-    this.uprights.forEach(u => u.start());
-    this.avatarController?.start();
+    this.transformers.forEach(t => t.start());
     this.collisions?.start();
     this.integrator?.start();
   }
 
   stop(): void {
-    this.rotators.forEach(r => r.stop());
-    this.wobblers.forEach(w => w.stop());
-    this.gliders.forEach(g => g.stop());
-    this.drifters.forEach(d => d.stop());
-    this.gravities.forEach(g => g.stop());
-    this.followers.forEach(f => f.stop());
-    this.uprights.forEach(u => u.stop());
-    this.avatarController?.stop();
+    this.transformers.forEach(t => t.stop());
     this.integrator?.stop();
     this.collisions?.stop();
   }
 
   cleanup(): void {
     this.stop();
-    this.rotators = [];
-    this.wobblers = [];
-    this.gliders = [];
-    this.drifters = [];
-    this.gravities = [];
-    this.followers = [];
-    this.uprights = [];
-    this.avatarController = undefined;
+    this.transformers = [];
     this.collisions?.clear();
     this.integrator = undefined;
     this.collisions = undefined;

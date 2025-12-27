@@ -144,7 +144,7 @@ export class WorldAssemblerService {
     const direction = this.randomDirection();
 
     const rotator = new Rotator(this.ticker, item, speed, direction);
-    context.addRotator(rotator);
+    context.addTransformer(rotator);
   }
 
   private attachDrifter(
@@ -159,16 +159,17 @@ export class WorldAssemblerService {
 
     const drifter = new Drifter(this.ticker, item, maxSpeed, boundary, true);
     drifter.setVelocity(vx, vy);
-    context.addDrifter(drifter);
+    context.addTransformer(drifter);
   }
 
   private attachGravity(item: StageItem, context: WorldContext): void {
     const gravity = new Gravity(this.ticker, item, 0.5);
-    context.addGravity(gravity);
+    context.addTransformer(gravity);
   }
 
   private attachGlider2(obstacle: Obstacle, context: WorldContext, params: any) {
     const glider2 = new Glider2(this.ticker, params);
+    context.addTransformer(glider2);
   }
 
   private attachGlider(item: StageItem, context: WorldContext, params?: any, boundary?: AxisAlignedBoundingBox): void {
@@ -197,7 +198,7 @@ export class WorldAssemblerService {
       lookAheadTime,
       collisionAvoidanceStrength
     );
-    context.addGlider(glider);
+    context.addTransformer(glider);
   }
 
   private registerWithIntegrator(item: StageItem, context: WorldContext): void {
@@ -257,7 +258,7 @@ export class WorldAssemblerService {
       avatar,
       params ?? defaultParams
     );
-    context.setAvatarController(controller);
+    context.addTransformer(controller);
   }
 
   private attachFollowItem(
@@ -280,7 +281,7 @@ export class WorldAssemblerService {
         direction: params.direction,
         force: params.force ?? params.Force
       });
-      context.addFollower(follower);
+      context.addTransformer(follower);
     }
   }
 
@@ -295,7 +296,7 @@ export class WorldAssemblerService {
       speed: params?.speed ?? params?.Speed,
       force: params?.force ?? params?.Force
     });
-    context.addUpright(upright);
+    context.addTransformer(upright);
   }
 
   // Random generation helpers

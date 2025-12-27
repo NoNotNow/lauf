@@ -14,13 +14,15 @@ export interface KeyboardControllerOptions {
   maxOmega?: number;         // deg / s cap for |omega|
 }
 
+import { ITransformer } from './transformer.interface';
+
 // KeyboardController: adjusts a StageItem's linear and angular velocities
 // based on arrow keys. Forward is along the item's facing direction (Pose.Rotation).
 // - Up: accelerate forward
 // - Down: accelerate backward (decelerate forward)
 // - Left/Right: apply angular acceleration (-/+)
 // Uses reasonable defaults so it works out-of-the-box.
-export class KeyboardController {
+export class KeyboardController implements ITransformer {
   private sub?: Subscription;
   private _item?: StageItem;
   private keys = new Set<string>();
