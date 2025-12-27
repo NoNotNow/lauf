@@ -8,7 +8,7 @@ export class PersistenceService {
   constructor(private http: HttpClient) {}
 
   // Fetches a map JSON and returns a populated GameMap instance
-  getMap(url: string = 'assets/examples/map.example.json'): Observable<GameMap> {
+  getMap(url: string = 'assets/examples/example.json'): Observable<GameMap> {
     return this.http.get(url).pipe(
       map((data: any) => new GameMap().FromJson(data))
     );

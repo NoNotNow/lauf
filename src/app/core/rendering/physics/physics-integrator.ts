@@ -12,7 +12,7 @@ const TINY_NUDGE = 1e-6;
 // Transformers (Drifter, Rotator, future KeyboardController) should only set velocities/omega.
 export class PhysicsIntegrator {
   private sub?: Subscription;
-  private items: { it: StageItem; phys: PhysicsState }[] = [];
+  private items: { it: StageItem; phys: StageItemPhysics }[] = [];
   private boundary?: AxisAlignedBoundingBox;
   private bounce: boolean = true;
 
@@ -29,7 +29,7 @@ export class PhysicsIntegrator {
   add(item: StageItem | undefined): void {
     if (!item) return;
     if (this.items.some(e => e.it === item)) return;
-    this.items.push({ it: item, phys: StageItemPhysics.get(item) });
+    this.items.push({ it: item, phys: StageItemPhysics.for(item) });
   }
 
   addMany(items: (StageItem | undefined)[] | undefined): void {
@@ -59,22 +59,23 @@ export class PhysicsIntegrator {
       const pos = pose.Position;
       if (!pos) continue;
 
+      const state = phys.getState();
       // Read velocities
-      let vx = toNumber(phys.vx, 0);
-      let vy = toNumber(phys.vy, 0);
-      let omega = toNumber(phys.omega, 0); // deg/s
+      let vx = toNumber(state.vx, 0);
+      let vy = toNumber(state.vy, 0);
+      let omega = toNumber(state.omega, 0); // deg/s
 
       // Apply damping
-      if (phys.linearDamping > 0) {
-        const factor = Math.max(0, 1 - phys.linearDamping * dtSec);
+      if (state.linearDamping > 0) {
+        const factor = Math.max(0, 1 - state.linearDamping * dtSec);
         vx *= factor;
         vy *= factor;
-        StageItemPhysics.setVelocity(phys, vx, vy);
+        phys.setVelocity(vx, vy);
       }
-      if (phys.angularDamping > 0) {
-        const factor = Math.max(0, 1 - phys.angularDamping * dtSec);
+      if (state.angularDamping > 0) {
+        const factor = Math.max(0, 1 - state.angularDamping * dtSec);
         omega *= factor;
-        StageItemPhysics.setAngular(phys, omega);
+        phys.setAngular(omega);
       }
 
       // Integrate linear
@@ -111,22 +112,24 @@ export class PhysicsIntegrator {
           if (this.bounce) {
             // For collision impulse calculation, we DO use the collision box
             const obb = orientedBoundingBoxFromPose(pose, it.Physics.collisionBox);
+            const state = phys.getState();
             resolveBoundaryCollision(
               it,
-              phys,
+              state,
               obb,
               this.boundary,
               res.normal,
-              { restitution: phys.restitution ?? 0.85, friction: 0.8 } // Default friction
+              { restitution: state.restitution ?? 0.85, friction: 0.8 } // Default friction
             );
 
             x += res.normal.x * TINY_NUDGE;
             y += res.normal.y * TINY_NUDGE;
 
             // Re-read after impulse (no lookup needed because it's updated in-place)
-            vx = phys.vx;
-            vy = phys.vy;
-            omega = phys.omega;
+            const updatedState = phys.getState();
+            vx = updatedState.vx;
+            vy = updatedState.vy;
+            omega = updatedState.omega;
           } else {
             // clamp inside (legacy behavior)
             x = Math.max(this.boundary.minX, Math.min(this.boundary.maxX, x));
@@ -142,7 +145,7 @@ export class PhysicsIntegrator {
         const speed = Math.sqrt(speedSq);
         vx = (vx / speed) * maxVel;
         vy = (vy / speed) * maxVel;
-        StageItemPhysics.setVelocity(phys, vx, vy);
+        phys.setVelocity(vx, vy);
       }
 
       // Commit new pose

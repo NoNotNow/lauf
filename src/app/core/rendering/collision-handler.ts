@@ -14,7 +14,7 @@ export interface CollisionEvent {
 
 export class CollisionHandler {
   private sub?: Subscription;
-  private items: { it: StageItem; phys: PhysicsState }[] = [];
+  private items: { it: StageItem; phys: StageItemPhysics }[] = [];
   private _restitutionDefault = 0.85;
   private _frictionDefault = 0.8;
   private _iterations = 10; // sequential impulse iterations per tick
@@ -22,8 +22,8 @@ export class CollisionHandler {
 
   // Pre-allocated arrays to avoid allocation per frame
   private obbCache: (ReturnType<typeof orientedBoundingBoxFromPose> | null)[] = [];
-  private physicsCache: PhysicsState[] = [];
-  private contacts: { a: StageItem; b: StageItem; physA: PhysicsState; physB: PhysicsState; normal: { x: number; y: number }; mtv: { x: number; y: number }; aobb: any; bobb: any; isCCD?: boolean }[] = [];
+  private physicsCache: StageItemPhysics[] = [];
+  private contacts: { a: StageItem; b: StageItem; physA: StageItemPhysics; physB: StageItemPhysics; normal: { x: number; y: number }; mtv: { x: number; y: number }; aobb: any; bobb: any; isCCD?: boolean }[] = [];
 
   // Pre-allocated event object to avoid allocation per collision
   private collisionEvent: CollisionEvent = {
@@ -50,7 +50,7 @@ export class CollisionHandler {
   add(item: StageItem): void {
     if (!item) return;
     if (this.items.some(e => e.it === item)) return;
-    this.items.push({ it: item, phys: StageItemPhysics.get(item) });
+    this.items.push({ it: item, phys: StageItemPhysics.for(item) });
   }
 
   remove(item: StageItem): void {
@@ -165,8 +165,10 @@ export class CollisionHandler {
         const radiusSum = Math.max(aobb.half.x, aobb.half.y) + Math.max(bobb.half.x, bobb.half.y);
 
         // Expand radius check based on relative velocity to catch fast-moving objects (CCD approximation)
-        const relVx = (physA.vx ?? 0) - (physB.vx ?? 0);
-        const relVy = (physA.vy ?? 0) - (physB.vy ?? 0);
+        const stateA = physA.getState();
+        const stateB = physB.getState();
+        const relVx = (stateA.vx ?? 0) - (stateB.vx ?? 0);
+        const relVy = (stateA.vy ?? 0) - (stateB.vy ?? 0);
         const relSpeedSq = relVx * relVx + relVy * relVy;
         const velocityExpansion = Math.sqrt(relSpeedSq) * effectiveDt;
         const expandedRadiusSum = radiusSum + velocityExpansion;
@@ -184,8 +186,8 @@ export class CollisionHandler {
             for (let s = 1; s <= steps; s++) {
               const t = s / steps;
               // Simple prediction: linear move. Rotation prediction is omitted for performance/simplicity
-              const posA = { x: (ai.Pose?.Position?.x ?? 0) + (physA.vx ?? 0) * t * effectiveDt, y: (ai.Pose?.Position?.y ?? 0) + (physA.vy ?? 0) * t * effectiveDt };
-              const posB = { x: (bj.Pose?.Position?.x ?? 0) + (physB.vx ?? 0) * t * effectiveDt, y: (bj.Pose?.Position?.y ?? 0) + (physB.vy ?? 0) * t * effectiveDt };
+              const posA = { x: (ai.Pose?.Position?.x ?? 0) + (stateA.vx ?? 0) * t * effectiveDt, y: (ai.Pose?.Position?.y ?? 0) + (stateA.vy ?? 0) * t * effectiveDt };
+              const posB = { x: (bj.Pose?.Position?.x ?? 0) + (stateB.vx ?? 0) * t * effectiveDt, y: (bj.Pose?.Position?.y ?? 0) + (stateB.vy ?? 0) * t * effectiveDt };
               
               // We need temporary OBBs for the predicted positions.
               // orientedBoundingBoxFromPose uses a pool, so this is safe as long as we don't exceed pool size too much.
@@ -239,12 +241,14 @@ export class CollisionHandler {
     // Iterative solver over contacts to distribute impulses like a physics engine
     for (let iter = 0; iter < this._iterations; iter++) {
       for (const c of contacts) {
-        const e = Math.min(c.physA.restitution, c.physB.restitution);
+        const stateA = c.physA.getState();
+        const stateB = c.physB.getState();
+        const e = Math.min(stateA.restitution, stateB.restitution);
         resolveItemItemCollision(
           c.a,
           c.b,
-          c.physA,
-          c.physB,
+          stateA,
+          stateB,
           c.aobb,
           c.bobb,
           c.normal,
@@ -261,8 +265,10 @@ export class CollisionHandler {
     for (const c of contacts) {
       if (c.isCCD) continue; // Skip positional correction for predictive CCD hits
 
-      const invMassA = c.physA.mass >= 1e6 ? 0 : 1 / Math.max(1e-6, c.physA.mass);
-      const invMassB = c.physB.mass >= 1e6 ? 0 : 1 / Math.max(1e-6, c.physB.mass);
+      const stateA = c.physA.getState();
+      const stateB = c.physB.getState();
+      const invMassA = stateA.mass >= 1e6 ? 0 : 1 / Math.max(1e-6, stateA.mass);
+      const invMassB = stateB.mass >= 1e6 ? 0 : 1 / Math.max(1e-6, stateB.mass);
       const sum = invMassA + invMassB;
       if (sum <= 0) continue;
 

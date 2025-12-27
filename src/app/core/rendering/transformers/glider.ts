@@ -18,12 +18,11 @@ import { CollisionHandler } from '../collision-handler';
  * - Predictive collision avoidance: checks ahead for obstacles
  */
 import { ITransformer } from './transformer.interface';
-import { PhysicsState } from '../physics/stage-item-physics';
 
 export class Glider implements ITransformer {
   private sub?: Subscription;
   private _item?: StageItem;
-  private _phys?: PhysicsState;
+  private _phys?: StageItemPhysics;
   private _horizontalSpeed = 2.0; // base horizontal speed (cells/s)
   private _glideEfficiency = 0.3; // how efficiently speed converts to lift (0-1)
   private _minSpeedForLift = 1.0; // minimum speed needed to generate lift
@@ -60,7 +59,7 @@ export class Glider implements ITransformer {
   ) {
     if (item) {
       this._item = item;
-      this._phys = StageItemPhysics.get(item);
+      this._phys = StageItemPhysics.for(item);
     }
     this._boundary = boundary;
     this._collisionHandler = collisionHandler;
@@ -90,7 +89,7 @@ export class Glider implements ITransformer {
 
   setItem(item: StageItem | undefined): void {
     this._item = item;
-    this._phys = item ? StageItemPhysics.get(item) : undefined;
+    this._phys = item ? StageItemPhysics.for(item) : undefined;
   }
 
   start(): void {
@@ -107,7 +106,8 @@ export class Glider implements ITransformer {
     if (!this._item || !this._phys || dtSec === 0) return;
     
     const pose = this._item.Pose;
-    const currentVelocity = { vx: this._phys.vx, vy: this._phys.vy };
+    const velocity = this._phys.getVelocity();
+    const currentVelocity = { vx: velocity.vx, vy: velocity.vy };
     const currentSpeed = Math.hypot(currentVelocity.vx, currentVelocity.vy);
     const currentDirection = Math.atan2(currentVelocity.vy, currentVelocity.vx);
     
@@ -127,7 +127,7 @@ export class Glider implements ITransformer {
     this.applyGlidingPhysics(newVelocity);
     this.maintainMinimumSpeed(newVelocity, currentSpeed, dtSec);
     
-    StageItemPhysics.setVelocity(this._phys, newVelocity.vx, newVelocity.vy);
+    this._phys.setVelocity(newVelocity.vx, newVelocity.vy);
     this.updateRotation(pose, newVelocity);
   }
   
@@ -414,8 +414,9 @@ export class Glider implements ITransformer {
     const size = pose.Size;
     
     // Calculate current velocity
-    const vx = this._phys.vx ?? 0;
-    const vy = this._phys.vy ?? 0;
+    const velocity = this._phys.getVelocity();
+    const vx = velocity.vx ?? 0;
+    const vy = velocity.vy ?? 0;
     const speed = Math.hypot(vx, vy);
     
     if (speed < 0.1) {

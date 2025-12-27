@@ -1,7 +1,7 @@
 import { Subscription } from 'rxjs';
 import { StageItem } from '../../models/game-items/stage-item';
 import { TickService } from '../../services/tick.service';
-import { StageItemPhysics, PhysicsState } from '../physics/stage-item-physics';
+import { StageItemPhysics } from '../physics/stage-item-physics';
 import { toNumber } from '../../utils/number-utils';
 
 export interface StayUprightOptions {
@@ -20,7 +20,7 @@ import { ITransformer } from './transformer.interface';
 export class StayUpright implements ITransformer {
   private sub?: Subscription;
   private _item?: StageItem;
-  private _phys?: PhysicsState;
+  private _phys?: StageItemPhysics;
   private _latency: number;
   private _maxAngle: number;
   private _speed: number;
@@ -31,7 +31,7 @@ export class StayUpright implements ITransformer {
   constructor(private ticker: TickService, item?: StageItem, params?: any) {
     this._item = item;
     if (item) {
-      this._phys = StageItemPhysics.get(item);
+      this._phys = StageItemPhysics.for(item);
     }
     this._latency = params?.latency ?? params?.Latency ?? 0.5;
     this._maxAngle = params?.maxAngle ?? params?.MaxAngle ?? 5.0;
@@ -41,7 +41,7 @@ export class StayUpright implements ITransformer {
 
   setItem(item: StageItem | undefined): void {
     this._item = item;
-    this._phys = item ? StageItemPhysics.get(item) : undefined;
+    this._phys = item ? StageItemPhysics.for(item) : undefined;
   }
 
   start(): void {
@@ -77,7 +77,7 @@ export class StayUpright implements ITransformer {
         return;
     }
 
-    let omega = toNumber(this._phys.omega, 0);
+    let omega = toNumber(this._phys.getAngular(), 0);
 
     // Apply angular force to change omega towards 0 rotation
     // We want to apply a torque-like effect.
@@ -99,6 +99,6 @@ export class StayUpright implements ITransformer {
         omega *= damping;
     }
 
-    StageItemPhysics.setAngular(this._phys, omega);
+    this._phys.setAngular(omega);
   }
 }

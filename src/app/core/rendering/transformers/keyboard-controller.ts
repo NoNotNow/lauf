@@ -1,7 +1,7 @@
 import { Subscription } from 'rxjs';
 import { StageItem } from '../../models/game-items/stage-item';
 import { TickService } from '../../services/tick.service';
-import { StageItemPhysics, PhysicsState } from '../physics/stage-item-physics';
+import { StageItemPhysics } from '../physics/stage-item-physics';
 import { toNumber } from '../../utils/number-utils';
 
 export interface KeyboardControllerOptions {
@@ -25,14 +25,14 @@ import { ITransformer } from './transformer.interface';
 export class KeyboardController implements ITransformer {
   private sub?: Subscription;
   private _item?: StageItem;
-  private _phys?: PhysicsState;
+  private _phys?: StageItemPhysics;
   private keys = new Set<string>();
   private opts: Required<KeyboardControllerOptions>;
 
   constructor(private ticker: TickService, item?: StageItem, params?: any) {
     this._item = item;
     if (item) {
-      this._phys = StageItemPhysics.get(item);
+      this._phys = StageItemPhysics.for(item);
     }
     this.opts = {
       linearAccel: params?.linearAccel ?? 2.5,
@@ -47,7 +47,7 @@ export class KeyboardController implements ITransformer {
 
   setItem(item: StageItem | undefined): void {
     this._item = item;
-    this._phys = item ? StageItemPhysics.get(item) : undefined;
+    this._phys = item ? StageItemPhysics.for(item) : undefined;
   }
 
   start(): void {
@@ -81,9 +81,10 @@ export class KeyboardController implements ITransformer {
     if (!this._item || !this._phys || dt === 0) return;
 
     // Read and normalize current values
-    let vx = toNumber(this._phys.vx, 0);
-    let vy = toNumber(this._phys.vy, 0);
-    let omega = toNumber(this._phys.omega, 0); // deg/s
+    const velocity = this._phys.getVelocity();
+    let vx = toNumber(velocity.vx, 0);
+    let vy = toNumber(velocity.vy, 0);
+    let omega = toNumber(this._phys.getAngular(), 0); // deg/s
 
     // Controls
     const forwardHeld = this.keys.has('ArrowUp') || this.keys.has('KeyW');
@@ -151,8 +152,8 @@ export class KeyboardController implements ITransformer {
       omega = Math.sign(omega) * maxW;
     }
 
-    StageItemPhysics.setVelocity(this._phys, vx, vy);
-    StageItemPhysics.setAngular(this._phys, omega);
+    this._phys.setVelocity(vx, vy);
+    this._phys.setAngular(omega);
   }
 }
 

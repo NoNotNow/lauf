@@ -1,7 +1,7 @@
 import { Subscription } from 'rxjs';
 import { StageItem } from '../../models/game-items/stage-item';
 import { TickService } from '../../services/tick.service';
-import { StageItemPhysics, PhysicsState } from '../physics/stage-item-physics';
+import { StageItemPhysics } from '../physics/stage-item-physics';
 
 import { ITransformer } from './transformer.interface';
 
@@ -17,12 +17,12 @@ export interface FollowItemOptions {
  */
 export class FollowItem implements ITransformer {
   private sub?: Subscription;
-  private _phys?: PhysicsState;
+  private _phys?: StageItemPhysics;
   private _options: FollowItemOptions = { distance: 0.4, maxSpeed: 0.2, direction: 'horizontal', force: 0.0001 };
 
   constructor(private ticker: TickService, private _item: StageItem | undefined, private _target: StageItem, params?: any) {
     if (this._item) {
-      this._phys = StageItemPhysics.get(this._item);
+      this._phys = StageItemPhysics.for(this._item);
     }
     if (params) {
       this._options = {
@@ -57,6 +57,6 @@ export class FollowItem implements ITransformer {
     let ay = (dy / dist) * this._options.force;
     if (this._options.direction === 'vertical') ax = 0;
     if (this._options.direction === 'horizontal') ay = 0;
-    StageItemPhysics.accelerate(this._phys, ax, ay, dt);
+    this._phys.accelerate(ax, ay, dt);
   }
 }
