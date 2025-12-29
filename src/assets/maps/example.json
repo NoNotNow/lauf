@@ -12,10 +12,10 @@
     "Zoom": 5.0
   },
   "Design": {
-    "Color": "#118800",
+    "Color": "#000000",
     "Border": {
       "Style": "dashed",
-      "Color": "#FF00FF22",
+      "Color": "transparent",
       "Width": "0.002"
     },
     "Image": "assets/game/backgrounds/evening-stars.svg"
