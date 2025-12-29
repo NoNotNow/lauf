@@ -68,14 +68,28 @@ export class GridComponent implements OnChanges {
       ctx.fillRect(gridRect.x, gridRect.y, gridRect.w, gridRect.h);
     }
 
-    // Draw background image if provided
+    // Draw background image if provided (using cover strategy to maintain aspect ratio)
     if (this.backgroundImage) {
       const img = this.imageCache.get(this.backgroundImage);
       if (img && img.complete && img.naturalWidth > 0) {
         const gridRect = geom.rectForCells(0, 0, geom.cols, geom.rows);
+        const imgAspect = img.naturalWidth / img.naturalHeight;
+        const gridAspect = gridRect.w / gridRect.h;
+        
+        // Calculate scale to cover (use larger scale to ensure full coverage)
+        const scale = imgAspect > gridAspect 
+          ? gridRect.h / img.naturalHeight  // Image is wider, scale by height
+          : gridRect.w / img.naturalWidth;   // Image is taller, scale by width
+        
+        const scaledWidth = img.naturalWidth * scale;
+        const scaledHeight = img.naturalHeight * scale;
+        
+        // Center the image
+        const offsetX = gridRect.x + (gridRect.w - scaledWidth) / 2;
+        const offsetY = gridRect.y + (gridRect.h - scaledHeight) / 2;
+        
         ctx.save();
-        // Draw image to cover the entire grid area
-        ctx.drawImage(img, gridRect.x, gridRect.y, gridRect.w, gridRect.h);
+        ctx.drawImage(img, offsetX, offsetY, scaledWidth, scaledHeight);
         ctx.restore();
       }
     }
