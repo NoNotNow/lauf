@@ -32,9 +32,12 @@ export class CanvasLayerComponent implements AfterViewInit, OnDestroy, OnChanges
   ngAfterViewInit(): void {
     this.resizeObserver = new ResizeObserver(() => this.resizeCanvas());
     this.resizeObserver.observe(this.host.nativeElement);
-    this.resizeCanvas();
+    setTimeout(() => {
+      this.resizeCanvas();
+    }, 100);
     // Listen for global redraw events (e.g., image assets loaded)
     window.addEventListener('app-canvas-redraw', this.onExternalRedraw);
+    
   }
 
   ngOnDestroy(): void {

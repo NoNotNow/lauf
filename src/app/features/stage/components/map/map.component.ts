@@ -23,6 +23,7 @@ export class MapComponent implements AfterViewInit, OnDestroy, MapLoader {
     gridLineWidth = 0.01; // in cell units (1.0 == one cell)
     gridSize: Point = new Point(10, 10);
     gridBorder = "solid";
+    currentZoomIndex: number = 0;
 
     // Camera accessor for template
     get camera() {
@@ -121,16 +122,12 @@ export class MapComponent implements AfterViewInit, OnDestroy, MapLoader {
     }
 
     private currentZoom = 1.0;
+    private zoomLevels = [1.0, 2.0, 3.0, 4.0, 5.0];
     toggleZoom(): void {
-        const camera = this.worldContext?.getCamera();
-        if (!camera) return;
-
-        // If the camera is currently at zoom 1.0, zoom to 5.0. Otherwise (e.g. at 5.0 or even 3.0 initial), zoom to 1.0.
-        // This makes it feel like a "toggle" back to overview.
-        this.currentZoom = camera.getTargetZoom() === 1.0 ? 5.0 : 1.0;
-        
-        // setTarget handles smoothing to the new zoom
-        camera.setTarget(camera.getTargetCenter(), this.currentZoom);
+        this.currentZoom = this.zoomLevels[this.currentZoomIndex];
+        this.currentZoomIndex = (this.currentZoomIndex + 1) % this.zoomLevels.length;
+        this.camera.setTarget(this.camera.getTargetCenter(), this.currentZoom);
+        console.log('currentZoom', this.currentZoom, this.currentZoomIndex);
     }
 
     private applyDesignConfiguration(map: GameMap): void {

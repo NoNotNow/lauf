@@ -11,7 +11,7 @@ export class StartupService {
   constructor(private persistence: PersistenceService) {}
 
   // Triggers after load; fetches map and hands it to the target's loadMap
-  main(target: MapLoader, url: string = 'assets/maps/testratio.json'): void {
+  main(target: MapLoader, url: string = 'assets/maps/example.json'): void {
     this.persistence.getMap(url).subscribe({
       next: (map) => target.loadMap(map),
       error: (err) => console.error('StartupService: Failed to load map', err)
