@@ -70,6 +70,10 @@ export class CanvasLayerComponent implements AfterViewInit, OnDestroy, OnChanges
       canvas.height = displayHeight;
     }
 
+    if (this.camera) {
+      this.camera.setAspectRatio(canvas.width / canvas.height);
+    }
+
     this.drawNow();
   }
 
@@ -84,26 +88,32 @@ export class CanvasLayerComponent implements AfterViewInit, OnDestroy, OnChanges
     // Build geometry helper if gridSize is provided
     const cols = Math.max(1, Math.floor(this.gridSize?.x ?? 1));
     const rows = Math.max(1, Math.floor(this.gridSize?.y ?? 1));
+
     const cellW = canvas.width / cols;
     const cellH = canvas.height / rows;
+    const cellSize = Math.min(cellW, cellH); // Shrink to fit the tighter dimension
+
+    // Default centering offsets for the base geometry
+    const offsetX = (canvas.width - cols * cellSize) / 2;
+    const offsetY = (canvas.height - rows * cellSize) / 2;
 
     let geom: GridGeometry = {
       cols,
       rows,
-      cellW,
-      cellH,
+      cellW: cellSize,
+      cellH: cellSize,
       rectForCells: (col: number, row: number, wCells: number = 1, hCells: number = 1, padRatio: number = 0) => {
-        const minSide = cellW < cellH ? cellW : cellH;
-        const pad = padRatio > 0 ? (minSide * (padRatio > 0.5 ? 0.5 : padRatio)) : 0;
-        const x = col * cellW + pad;
-        const y = row * cellH + pad;
-        const w = wCells * cellW - 2 * pad;
-        const h = hCells * cellH - 2 * pad;
+        const pad = padRatio > 0 ? (cellSize * (padRatio > 0.5 ? 0.5 : padRatio)) : 0;
+        const x = col * cellSize + pad + offsetX;
+        const y = row * cellSize + pad + offsetY;
+        const w = wCells * cellSize - 2 * pad;
+        const h = hCells * cellSize - 2 * pad;
         return { x, y, w: w < 0 ? 0 : w, h: h < 0 ? 0 : h };
       }
     };
 
     if (this.camera) {
+      // The camera transformation will override rectForCells with its own centering logic
       geom = this.camera.transformGeometry(geom, canvas.width, canvas.height);
     }
 

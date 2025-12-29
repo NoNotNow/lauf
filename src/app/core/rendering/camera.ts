@@ -16,6 +16,7 @@ export class Camera {
   private lerpFactor: number = 0.1;
 
   private _dirty = true;
+  private aspectRatio: number = 1.0;
 
   private bounds?: { cols: number, rows: number };
 
@@ -49,11 +50,34 @@ export class Camera {
     this._dirty = true;
   }
 
+  setAspectRatio(ratio: number): void {
+    if (this.aspectRatio !== ratio) {
+      this.aspectRatio = ratio;
+      this.center = this.clampCenter(this.center, this.zoom);
+      this.targetCenter = this.clampCenter(this.targetCenter, this.targetZoom);
+      this._dirty = true;
+    }
+  }
+
+  private calculateViewportSize(cols: number, rows: number, zoom: number): { w: number, h: number } {
+    const gridAspect = cols / rows;
+    if (this.aspectRatio > gridAspect) {
+      // Canvas is wider than grid: height is the constraint
+      const h = rows / zoom;
+      const w = h * this.aspectRatio;
+      return { w, h };
+    } else {
+      // Canvas is taller than grid: width is the constraint
+      const w = cols / zoom;
+      const h = w / this.aspectRatio;
+      return { w, h };
+    }
+  }
+
   private clampCenter(center: Point, zoom: number): Point {
     if (!this.bounds) return center;
 
-    const viewWidth = this.bounds.cols / zoom;
-    const viewHeight = this.bounds.rows / zoom;
+    const { w: viewWidth, h: viewHeight } = this.calculateViewportSize(this.bounds.cols, this.bounds.rows, zoom);
 
     const halfViewWidth = viewWidth / 2;
     const halfViewHeight = viewHeight / 2;
@@ -65,11 +89,11 @@ export class Camera {
 
     // If viewport is larger than the map, center it
     if (viewWidth >= this.bounds.cols) {
-        minX = maxX = this.bounds.cols / 2;
+      minX = maxX = this.bounds.cols / 2;
     }
 
     if (viewHeight >= this.bounds.rows) {
-        minY = maxY = this.bounds.rows / 2;
+      minY = maxY = this.bounds.rows / 2;
     }
 
     const clampedX = Math.max(minX, Math.min(maxX, center.x));
@@ -111,21 +135,10 @@ export class Camera {
   }
 
   transformGeometry(baseGeom: GridGeometry, canvasWidth: number, canvasHeight: number): GridGeometry {
-    // The current GridGeometry assumes 0,0 is top-left and cells fill the canvas.
-    // We want to override rectForCells to account for our camera.
+    const { w: viewWidth, h: viewHeight } = this.calculateViewportSize(baseGeom.cols, baseGeom.rows, this.zoom);
 
-    const aspect = canvasWidth / canvasHeight;
-
-    // When zoom is 1, entirety of the grid is visible.
-    // When zoom is 10, only 10% of it are visible.
-    // This means viewSize = gridSide / zoom.
-    
-    // Effective number of cells visible on screen
-    const viewWidth = baseGeom.cols / this.zoom;
-    const viewHeight = baseGeom.rows / this.zoom;
-
-    const cellW = canvasWidth / viewWidth;
-    const cellH = canvasHeight / viewHeight;
+    // cellSize is now uniform and determined by the viewport-to-canvas ratio
+    const cellSize = canvasWidth / viewWidth;
 
     // Top-left of the viewport in cell coordinates
     const viewX = this.center.x - viewWidth / 2;
@@ -134,18 +147,17 @@ export class Camera {
     return {
       cols: baseGeom.cols,
       rows: baseGeom.rows,
-      cellW,
-      cellH,
+      cellW: cellSize,
+      cellH: cellSize,
       rectForCells: (col: number, row: number, wCells: number = 1, hCells: number = 1, padRatio: number = 0) => {
-        const minSide = cellW < cellH ? cellW : cellH;
-        const pad = padRatio > 0 ? (minSide * (padRatio > 0.5 ? 0.5 : padRatio)) : 0;
-        
+        const pad = padRatio > 0 ? (cellSize * (padRatio > 0.5 ? 0.5 : padRatio)) : 0;
+
         // Transform cell coordinates to screen pixels
-        const x = (col - viewX) * cellW + pad;
-        const y = (row - viewY) * cellH + pad;
-        const w = wCells * cellW - 2 * pad;
-        const h = hCells * cellH - 2 * pad;
-        
+        const x = (col - viewX) * cellSize + pad;
+        const y = (row - viewY) * cellSize + pad;
+        const w = wCells * cellSize - 2 * pad;
+        const h = hCells * cellSize - 2 * pad;
+
         return { x, y, w: w < 0 ? 0 : w, h: h < 0 ? 0 : h };
       }
     };
