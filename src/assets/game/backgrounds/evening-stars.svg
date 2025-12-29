@@ -1,4 +1,35 @@
-<svg width="800" height="600" viewBox="0 0 800 600" xmlns="http://www.w3.org/2000/svg" style="background-color: black;">
+<svg width="800" height="600" viewBox="0 0 800 600" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="eveningSkyGradient" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" style="stop-color:#0a0a13;stop-opacity:0.95" />
+      <stop offset="30%" style="stop-color:#1d253e;stop-opacity:0.95" />
+      <stop offset="60%" style="stop-color:#171d27;stop-opacity:0.9" />
+      <stop offset="100%" style="stop-color:#10181c;stop-opacity:0.85" />
+    </linearGradient>
+  </defs>
+  <rect width="800" height="600" fill="url(#eveningSkyGradient)" />
+  
+  <!-- Translucent Clouds -->
+  <!-- Large cloud top left -->
+  <ellipse cx="150" cy="120" rx="120" ry="10" fill="#4a5078" opacity="0.25" />
+  <ellipse cx="100" cy="110" rx="80" ry="5" fill="#5a6088" opacity="0.2" />
+  <ellipse cx="200" cy="130" rx="90" ry="15" fill="#5a6088" opacity="0.2" />
+  
+  <!-- Medium cloud top right -->
+  <ellipse cx="700" cy="100" rx="100" ry="20" fill="#4a5078" opacity="0.22" />
+  <ellipse cx="650" cy="95" rx="70" ry="15" fill="#5a6088" opacity="0.18" />
+  <ellipse cx="750" cy="115" rx="75" ry="20" fill="#5a6088" opacity="0.18" />
+  
+  <!-- Wispy cloud mid-left -->
+  <ellipse cx="80" cy="250" rx="110" ry="15" fill="#3a4568" opacity="0.2" />
+  <ellipse cx="30" cy="245" rx="60" ry="11" fill="#4a5078" opacity="0.15" />
+  <ellipse cx="140" cy="260" rx="80" ry="5" fill="#4a5078" opacity="0.15" />
+  
+  <!-- Soft cloud bottom right -->
+  <ellipse cx="750" cy="300" rx="130" ry="20" fill="#4a5078" opacity="0.18" />
+  <ellipse cx="690" cy="290" rx="85" ry="30" fill="#5a6088" opacity="0.14" />
+  <ellipse cx="800" cy="290" rx="95" ry="10" fill="#5a6088" opacity="0.14" />
+  
   <!-- Große Sterne mit Lens Flare -->
   <g>
     <circle cx="100" cy="150" r="3" fill="white" />
@@ -149,4 +180,5 @@
       <line x1="0" y1="-8" x2="0" y2="8" />
     </g>
   </g>
+  
 </svg>
