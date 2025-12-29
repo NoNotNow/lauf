@@ -61,18 +61,28 @@ export class GridComponent implements OnChanges {
         return;
     }
 
-    // Draw background color first
-    if (this.backgroundColor !== 'transparent') {
-      const gridRect = geom.rectForCells(0, 0, geom.cols, geom.rows);
-      ctx.fillStyle = this.backgroundColor;
-      ctx.fillRect(gridRect.x, gridRect.y, gridRect.w, gridRect.h);
-    }
-
-    // Draw background image if provided (using cover strategy to maintain aspect ratio)
+    const gridRect = geom.rectForCells(0, 0, geom.cols, geom.rows);
+    
+    // Check if background image is specified and if it loads successfully
+    let imageLoaded = false;
     if (this.backgroundImage) {
       const img = this.imageCache.get(this.backgroundImage);
       if (img && img.complete && img.naturalWidth > 0) {
-        const gridRect = geom.rectForCells(0, 0, geom.cols, geom.rows);
+        imageLoaded = true;
+      }
+    }
+    
+    // Only draw background color if no image is specified, or if image is specified and successfully loaded
+    // This ensures transparent fallback when image fails to load
+    if (this.backgroundColor !== 'transparent' && (!this.backgroundImage || imageLoaded)) {
+      ctx.fillStyle = this.backgroundColor;
+      ctx.fillRect(gridRect.x, gridRect.y, gridRect.w, gridRect.h);
+    }
+    
+    // Draw background image if provided and loaded (using cover strategy to maintain aspect ratio)
+    if (imageLoaded && this.backgroundImage) {
+      const img = this.imageCache.get(this.backgroundImage);
+      if (img && img.complete && img.naturalWidth > 0) {
         const imgAspect = img.naturalWidth / img.naturalHeight;
         const gridAspect = gridRect.w / gridRect.h;
         

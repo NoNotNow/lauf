@@ -18,7 +18,7 @@
       "Color": "#FF00FF22",
       "Width": "0.002"
     },
-    "Image": "assets/game/stars.svg"
+    "Image": "assets/game/backgrounds/stars.svg"
   },
   "Obstacles": [
     {
