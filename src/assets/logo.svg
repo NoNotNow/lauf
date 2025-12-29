@@ -43,8 +43,8 @@
       <circle cx="50" cy="25" r="8" fill="#87ceeb" stroke="#4682b4" stroke-width="1" opacity="0.8"/>
     </g>
     
-    <!-- LAUFF - Neon Blue Gaming Schrift mit Glow -->
-    <text x="200" y="60" font-family="Impact, Arial Black, sans-serif" font-size="56" font-weight="900" fill="none" stroke="#00ffff" stroke-width="3" filter="url(#neonGlow)">LAUFF</text>
+    <!-- LAUF - Neon Blue Gaming Schrift mit Glow -->
+    <text x="200" y="60" font-family="Impact, Arial Black, sans-serif" font-size="56" font-weight="900" fill="none" stroke="#00ffff" stroke-width="3" filter="url(#neonGlow)">LAUF</text>
     <text x="200" y="85" font-family="Arial, sans-serif" font-size="13" font-weight="bold" fill="#00ffff" filter="url(#neonGlow)">FINDE DEINEN WEG</text>
     <text x="320" y="75" font-family="Arial, sans-serif" font-size="16" font-weight="bold" fill="#00ffff" filter="url(#neonGlow)">🌟</text>
   </g>

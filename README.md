@@ -1,4 +1,4 @@
-# Lauff Angular
+# Lauf
 
 An Angular single‑page application (SPA) aimed at creating a playful environment where kids can learn to code. The project favors clean code, small focused classes/components, composition over inheritance, and DRY principles.
 
@@ -11,7 +11,7 @@ An Angular single‑page application (SPA) aimed at creating a playful environme
   - `src/index.html` (HTML shell)
   - Global styles: `src/styles.scss`
   - Assets served from `src/assets/**`
-- Output: production build emitted to `dist/lauff-angular/`
+- Output: production build emitted to `dist/lauf`
 
 Some domain models and stage rendering utilities live under `src/app/core/models` and `src/app/features/stage`, e.g. canvas drawing for stage items and HTML-backed game items.
 
@@ -55,11 +55,11 @@ Defined in `package.json`:
   ```bash
   npx ng build --configuration production
   ```
-  Artifacts are output to `dist/lauff-angular/`.
+  Artifacts are output to `dist/lauf`.
 
 To serve a production build locally, use any static server, for example:
 ```bash
-npx http-server dist/lauff-angular -p 8080
+npx http-server dist/lauf -p 8080
 ```
 
 ## Project Structure (high level)
