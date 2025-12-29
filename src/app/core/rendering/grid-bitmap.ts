@@ -94,11 +94,14 @@ export class GridBitmap {
     lineWidth: number,
     key: string
   ): void {
+    this.pattern = null;
     const unit = Math.min(cellW, cellH);
     const lw = Math.max(1, Math.round(lineWidth * unit));
     
     const roundedW = Math.round(cellW);
     const roundedH = Math.round(cellH);
+
+    if (!(roundedW >= 1 && roundedH >= 1)) return;
 
     const pCanvas = document.createElement("canvas");
     pCanvas.width = roundedW;
