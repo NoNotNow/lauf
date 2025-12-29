@@ -1,0 +1,36 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="150 120 212 305">
+    <g fill="none" stroke-linecap="round" stroke-linejoin="round">
+
+        <!-- central spine -->
+        <path d="M256 160 C256 220, 256 280, 256 340"
+              stroke="#7cff00" stroke-width="6"/>
+
+        <!-- wings as sharp geometry -->
+        <polygon points="256,220 160,180 190,240 170,300"
+                 fill="#00e5ff"/>
+        <polygon points="256,220 352,180 322,240 342,300"
+                 fill="#00e5ff"/>
+
+        <!-- secondary feathers -->
+        <polygon points="256,240 190,260 210,300"
+                 fill="#9b5cff"/>
+        <polygon points="256,240 322,260 302,300"
+                 fill="#9b5cff"/>
+
+        <!-- head -->
+        <circle cx="256" cy="150" r="14" fill="#ffe600"/>
+        <polygon points="270,150 300,158 270,166"
+                 fill="#ff6a00"/>
+
+        <!-- tail (long, directional) -->
+        <polygon points="256,340 236,400 256,420 276,400"
+                 fill="#ff2d95"/>
+
+        <!-- motion shards -->
+        <polygon points="180,160 200,140 210,180"
+                 fill="#00ff9c"/>
+        <polygon points="332,160 312,180 352,170"
+                 fill="#00ff9c"/>
+
+    </g>
+</svg>

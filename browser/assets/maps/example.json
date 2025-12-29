@@ -1,0 +1,409 @@
+{
+  "Name": "Sample Level 1",
+  "Size": {
+    "X": 10,
+    "Y": 10
+  },
+  "Camera": {
+    "Position": {
+      "X": 5,
+      "Y": 5
+    },
+    "Zoom": 3.0
+  },
+  "Design": {
+    "Color": "#118800",
+    "Border": {
+      "Style": "dashed",
+      "Color": "#FF00FF",
+      "Width": "0.002"
+    },
+    "Image": ""
+  },
+  "Obstacles": [
+    {
+      "Pose": {
+        "Position": {
+          "X": 1,
+          "Y": 8
+        },
+        "Size": {
+          "X": 0.3,
+          "Y": 0.2
+        }
+      },
+      "Design": {
+        "Color": "transparent",
+        "Image": "assets/monkey.svg"
+      },
+      "PhysicsConfiguration": {
+        "damping": 0.5,
+        "hasCollision": true,
+        "hasGravity": true
+      },
+      "Transformers": [
+        {
+          "Type": "FollowItem",
+          "Params": {
+            "TargetId": "Avatar",
+            "Distance": 0.4,
+            "maxSpeed": 0.2,
+            "force": 0.3,
+            "direction": "horizontal"
+          }
+        },
+        {
+          "Type": "StayUpright",
+          "Params": {
+            "latency": 2.0,
+            "maxAngle": 10.0,
+            "speed": 1.0,
+            "force": 1
+          }
+        }
+      ]
+    },
+    {
+      "Pose": {
+        "Position": {
+          "X": 2,
+          "Y": 2
+        },
+        "Size": {
+          "X": 0.2,
+          "Y": 0.2
+        }
+      },
+      "Design": {
+        "Color": "#ff33ff",
+        "CornerRadius": 0,
+        "Border": {
+          "Color": "#990099",
+          "Style": "Solid",
+          "Width": "0.003"
+        },
+        "Image": "assets/shapes.svg"
+      },
+      "PhysicsConfiguration": {
+        "damping": 0.5
+      }
+    },
+    {
+      "Pose": {
+        "Position": {
+          "X": 1,
+          "Y": 8
+        },
+        "Size": {
+          "X": 0.4,
+          "Y": 0.4
+        }
+      },
+      "Design": {
+        "Color": "transparent",
+        "Border": {
+          "Style": "none",
+          "Color": "#000000",
+          "Width": 0
+        },
+        "CornerRadius": 0,
+        "Image": "assets/monster.svg"
+      }
+    },
+    {
+      "Pose": {
+        "Position": {
+          "X": 4,
+          "Y": 1
+        },
+        "Size": {
+          "X": 0.4,
+          "Y": 0.4
+        }
+      },
+      "Design": {
+        "Color": "transparent",
+        "Border": {
+          "Style": "none",
+          "Color": "#000000",
+          "Width": 0
+        },
+        "CornerRadius": 0,
+        "Image": "assets/monster.svg",
+        "Transformers": [
+          {
+            "Type": "StayUpright",
+            "Params": {
+              "latency": 2.0,
+              "maxAngle": 10.0,
+              "speed": 1.0,
+              "force": 3
+            }
+
+          }
+        ]
+      }
+    },
+    {
+      "Pose": {
+        "Position": {
+          "X": 9,
+          "Y": 5
+        },
+        "Size": {
+          "X": 0.9,
+          "Y": 0.9
+        }
+      },
+      "Design": {
+        "Color": "transparent",
+        "CornerRadius": 2,
+        "Image": "assets/spiral.svg"
+      }
+    },
+    {
+      "Pose": {
+        "Position": {
+          "X": 3,
+          "Y": 5
+        },
+        "Size": {
+          "X": 0.6,
+          "Y": 0.2
+        }
+      },
+      "Design": {
+        "Color": "transparent",
+        "CornerRadius": 0.2,
+        "Border": {
+          "Style": "dashed",
+          "Color": "#ff9900",
+          "Width": 0.01
+        },
+        "Image": "assets/shapes.svg"
+      }
+    },
+    {
+      "Pose": {
+        "Position": {
+          "X": 6,
+          "Y": 6
+        },
+        "Size": {
+          "X": 0.8,
+          "Y": 0.8
+        }
+      },
+      "Design": {
+        "Color": "transparent",
+        "Border": {
+          "Style": "solid",
+          "Color": "#cc6600",
+          "Width": 0.012
+        },
+        "CornerRadius": 0,
+        "Image": "assets/ufo.svg"
+      }
+    },
+    {
+      "Pose": {
+        "Position": {
+          "X": 8,
+          "Y": 0
+        },
+        "Size": {
+          "X": 0.8,
+          "Y": 0.8
+        }
+      },
+      "Design": {
+        "Color": "transparent",
+        "Border": {
+          "Style": "dashed",
+          "Color": "#0056b3",
+          "Width": 0.012
+        },
+        "CornerRadius": 0.03,
+        "Image": "assets/shapes.svg"
+      }
+    },
+    {
+      "Pose": {
+        "Position": {
+          "X": 7,
+          "Y": 4
+        },
+        "Size": {
+          "X": 0.2,
+          "Y": 0.6
+        }
+      },
+      "Design": {
+        "Color": "#66cc99",
+        "Border": {
+          "Style": "none"
+        }
+      }
+    },
+    {
+      "Pose": {
+        "Position": {
+          "X": 0,
+          "Y": 7
+        },
+        "Size": {
+          "X": 0.04,
+          "Y": 2
+        }
+      },
+      "Design": {
+        "Color": "#ffd6e7",
+        "Border": {
+          "Style": "solid",
+          "Color": "#b30059",
+          "Width": 0.018
+        },
+        "CornerRadius": 0.06
+      },
+      "PhysicsConfiguration": {
+        "restitution": 0.5
+      }
+    },
+    {
+      "Pose": {
+        "Position": {
+          "X": 5,
+          "Y": 2
+        },
+        "Size": {
+          "X": 0.5,
+          "Y": 0.5
+        }
+      },
+      "Design": {
+        "Color": "transparent",
+        "Image": "assets/bird.svg"
+      },
+      "PhysicsConfiguration": {
+        "hasGravity": true,
+        "canMove": true,
+        "mass": 10,
+        "restitution": 0.5
+      },
+      "Transformers": [
+        {
+          "Type": "Glider",
+          "Params": {
+            "horizontalSpeed": 3.0,
+            "glideEfficiency": 0.4,
+            "minSpeedForLift": 1.5,
+            "maxClimbRate": 4.0,
+            "minDistanceToBoundary": 2,
+
+            "boundaryAvoidanceStrength": 10.0,
+            "lookAheadDistance": 2.5,
+            "lookAheadTime": 0.6,
+            "collisionAvoidanceStrength": 4.0
+          }
+        }
+      ]
+    },
+    {
+      "Pose": {
+        "Position": {
+          "X": 4,
+          "Y": 8
+        },
+        "Size": {
+          "X": 1,
+          "Y": 2
+        }
+      },
+      "Design": {
+        "Color": "transparent",
+        "Image": "assets/tree.svg"
+      },
+      "PhysicsConfiguration": {
+        "canMove": false,
+        "canRotate": false,
+        "hasGravity": true,
+        "restitution": 0.2,
+        "damping": 2,
+        "mass": 300,
+        "collisionBox": {
+          "minX": 0.4,
+          "minY": 0.3,
+          "maxX": 0.45,
+          "maxY": 1
+        }
+      }
+    }
+  ],
+  "Targets": [
+    {
+      "Pose": {
+        "Position": {
+          "X": 8,
+          "Y": 8
+        },
+        "Size": {
+          "X": 1,
+          "Y": 1
+        }
+      },
+      "Design": {
+        "Color": "#00aa00"
+      }
+    }
+  ],
+  "Avatar": {
+    "Id": "Avatar",
+    "Pose": {
+      "Position": {
+        "X": 5,
+        "Y": 5
+      },
+      "Size": {
+        "X": 0.26,
+        "Y": 0.36
+      }
+    },
+    "Design": {
+      "Color": "transparent",
+      "Border": {
+        "Style": "none"
+      },
+      "Image": "assets/hero.svg"
+    },
+    "Physics": {
+      "mass": 200,
+      "canMove": true,
+      "canRotate": true,
+      "hasGravity": true,
+      "restitution": 0.7
+    },
+    "Transformers": [
+      {
+        "Type": "UserController",
+        "Params": {
+          "linearAccel": 3.0,
+          "linearBrake": 2.5,
+          "linearDamping": 0.2,
+          "maxSpeed": 10.0,
+          "angularAccel": 700,
+          "angularDamping": 500,
+          "maxOmega": 300
+        }
+      },
+      {
+        "Type": "StayUpright",
+        "Params": {
+          "latency": 20.0,
+          "maxAngle": 10.0,
+          "speed": 5.0,
+          "force": 4
+        }
+      }
+    ]
+  }
+}

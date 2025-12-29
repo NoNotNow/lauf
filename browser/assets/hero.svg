@@ -1,0 +1,46 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="140 100 260 385">
+    <g fill="none" stroke-linecap="round" stroke-linejoin="round">
+
+        <!-- halo / identity spiral -->
+        <path
+                d="M256 150
+         m 0 -6
+         a 6 6 0 1 1 0 12
+         a 14 14 0 1 1 0 -28
+         a 22 22 0 1 1 0 44"
+                stroke="#ff2d95"
+                stroke-width="4"/>
+
+        <!-- eyes (defining feature) -->
+        <circle cx="220" cy="210" r="28" fill="#00e5ff"/>
+        <circle cx="292" cy="210" r="28" fill="#00e5ff"/>
+        <circle cx="226" cy="216" r="10" fill="#ffe600"/>
+        <circle cx="298" cy="216" r="10" fill="#ffe600"/>
+
+        <!-- subtle face hints -->
+        <path d="M256 230 C248 250, 264 260, 256 280"
+              stroke="#7cff00" stroke-width="5"/>
+        <path d="M228 300 C256 320, 284 320, 312 300"
+              stroke="#ff6a00" stroke-width="7"/>
+
+        <!-- body: abstract dress -->
+        <polygon points="256,320 200,420 312,420"
+                 fill="#9b5cff"/>
+
+        <!-- legs -->
+        <polygon points="232,420 244,480 256,420" fill="#00ff9c"/>
+        <polygon points="256,420 268,480 280,420" fill="#00ff9c"/>
+
+        <!-- arms (as spaghetti) -->
+        <path d="M200 340 C140 360, 150 420, 180 460"
+              stroke="#00b3ff" stroke-width="8"/>
+        <path d="M312 340 C372 360, 362 420, 332 460"
+              stroke="#00b3ff" stroke-width="8"/>
+
+        <!-- floating personal symbols -->
+        <polygon points="160,180 200,160 180,220" fill="#ff004c"/>
+        <polygon points="352,180 332,220 392,200" fill="#ffe600"/>
+        <circle cx="256" cy="120" r="10" fill="#7cff00"/>
+
+    </g>
+</svg>

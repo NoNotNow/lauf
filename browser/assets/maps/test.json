@@ -1,0 +1,205 @@
+{
+  "Name": "Test Level",
+  "Size": {
+    "X":100,
+    "Y":100
+  },
+  "Camera": {
+    "Position": {
+      "X": 5,
+      "Y": 5
+    },
+    "Zoom": 1.0
+  },
+  "Design": {
+    "Color": "#118800",
+    "Border": {
+      "Style": "dashed",
+      "Color": "#FFFFFF11",
+      "Width": "0.002"
+    },
+    "Image": ""
+  },
+  "Obstacles": [
+       {
+      "Pose": {
+        "Position": {
+          "X": 60,
+          "Y": 50
+        },
+        "Size": {
+          "X": 1.5,
+          "Y": 1.5
+        }
+      },
+      "Design": {
+        "Color": "transparent",
+        "Image": "assets/bird.svg"
+      },
+      "PhysicsConfiguration": {
+        "hasGravity": true,
+        "canMove": true,
+        "mass": 100,
+        "restitution": 0.5
+      },
+      "Transformers": [
+        {
+          "Type": "Glider",
+          "Params": {
+            "horizontalSpeed": 3.0,
+            "glideEfficiency": 0.4,
+            "minSpeedForLift": 1.5,
+            "maxClimbRate": 4.0,
+            "minDistanceToBoundary": 2,
+
+            "boundaryAvoidanceStrength": 10.0,
+            "lookAheadDistance": 2.5,
+            "lookAheadTime": 0.6,
+            "collisionAvoidanceStrength": 4.0
+          }
+        }
+      ]
+    },
+ 
+      {
+      "Pose": {
+        "Position": {
+          "X": 50,
+          "Y": 80
+        },
+        "Size": {
+          "X": 10,
+          "Y": 20
+        }
+      },
+      "Design": {
+        "Color": "transparent",
+        "Image": "assets/tree.svg"
+      },
+      "PhysicsConfiguration": {
+        "canMove": false,
+        "canRotate": false,
+        "hasGravity": true,
+        "restitution": 0.2,
+        "damping": 2,
+        "mass": 300,
+        "collisionBox": {
+          "minX": 0.4,
+          "minY": 0.3,
+          "maxX": 0.45,
+          "maxY": 1
+        }
+      }
+    },
+    {
+    "Id": "Avatar",
+    "Pose": {
+      "Position": {
+        "X": 5,
+        "Y": 15
+      },
+      "Size": {
+        "X": 0.26,
+        "Y": 0.36
+      }
+    },
+    "Design": {
+      "Color": "transparent",
+      "Border": {
+        "Style": "none"
+      },
+      "Image": "assets/hero.svg"
+    },
+    "Physics": {
+      "mass": 200,
+      "canMove": true,
+      "canRotate": true,
+      "hasGravity": true,
+      "restitution": 0.7
+    },
+    "Transformers": [
+      {
+        "Type": "UserController",
+        "Params": {
+          "linearAccel": 3.0,
+          "linearBrake": 2.5,
+          "linearDamping": 0.2,
+          "maxSpeed": 10.0,
+          "angularAccel": 700,
+          "angularDamping": 500,
+          "maxOmega": 300
+        }
+      },
+      {
+        "Type": "StayUpright",
+        "Params": {
+          "latency": 20.0,
+          "maxAngle": 10.0,
+          "speed": 5.0,
+          "force": 4
+        }
+      }
+    ]
+  }
+    
+  ],
+  "Targets": [],
+  "Avatar":  {
+      "Pose": {
+        "Position": {
+          "X": 1,
+          "Y": 3
+        },
+        "Size": {
+          "X": 2,
+          "Y": 2
+        },
+        "Rotation": 90
+      },
+      "Design": {
+        "Color": "transparent",
+        "Image": "assets/bird.svg"
+      },
+      "PhysicsConfiguration": {
+        "hasGravity": false,
+        "canMove": true,
+        "mass": 10,
+        "restitution": 0.5
+      },
+      "Transformers": [
+        {
+          "Type": "UserController",
+          "Params": {
+            "linearAccel": 2.0,
+            "linearBrake": 1.0,
+            "linearDamping": 0.0,
+            "maxSpeed": 10.0,
+            "angularAccel": 700,
+            "angularDamping": 500,
+            "maxOmega": 300
+          }
+        },
+        {
+          "Type": "GliderInvalid",
+          "Params": {
+            "horizontalSpeed": 3.0,
+            "glideEfficiency": 0.4,
+            "minSpeedForLift": 1.5,
+            "maxClimbRate": 4.0,
+            "minDistanceToBoundary": 2,
+
+            "boundaryAvoidanceStrength": 10.0,
+            "lookAheadDistance": 2.5,
+            "lookAheadTime": 0.6,
+            "collisionAvoidanceStrength": 4.0
+          }
+        },
+        {
+            "Type": "Glider2",
+            "Params": {
+                
+            }
+        }
+      ]
+    }
+}

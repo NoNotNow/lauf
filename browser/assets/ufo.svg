@@ -1,0 +1,37 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="55 40 405 352">
+    <g fill="none" stroke-linecap="round" stroke-linejoin="round">
+
+        <!-- giant central eyes -->
+        <circle cx="180" cy="260" r="80" fill="#00e5ff"/>
+        <circle cx="332" cy="260" r="80" fill="#00e5ff"/>
+
+        <circle cx="190" cy="270" r="26" fill="#ff2d95"/>
+        <circle cx="342" cy="270" r="26" fill="#ff2d95"/>
+
+        <circle cx="196" cy="276" r="10" fill="#fff200"/>
+        <circle cx="348" cy="276" r="10" fill="#fff200"/>
+
+        <!-- extra floating eyes -->
+        <circle cx="256" cy="120" r="34" fill="#7cff00"/>
+        <circle cx="256" cy="120" r="12" fill="#9b5cff"/>
+
+
+        <circle cx="100" cy="360" r="28" fill="#00ff9c"/>
+        <circle cx="100" cy="360" r="10" fill="#ff004c"/>
+
+        <circle cx="412" cy="360" r="28" fill="#ffe600"/>
+        <circle cx="412" cy="360" r="10" fill="#00b3ff"/>
+
+        <!-- thin triangle accents -->
+        <polygon points="256,40 266,180 246,180" fill="#ff6a00"/>
+        <polygon points="60,240 160,260 60,280" fill="#9b5cff"/>
+        <polygon points="452,240 352,260 452,280" fill="#9b5cff"/>
+
+        <!-- spaghetti connections -->
+        <path d="M180 180 C220 140, 290 140, 332 180"
+              stroke="#ff004c" stroke-width="6"/>
+        <path d="M180 340 C220 380, 290 380, 332 340"
+              stroke="#00ff9c" stroke-width="6"/>
+
+    </g>
+</svg>

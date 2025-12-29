@@ -1,0 +1,7 @@
+{
+  "version": 3,
+  "sources": ["src/app/features/builder/builder.component.scss"],
+  "sourcesContent": [".page {\n  h1 { margin-top: 0; }\n  .muted { color: var(--muted); }\n}\n"],
+  "mappings": ";AACE,CAAA,KAAA;AAAK,cAAA;;AACL,CADA,KACA,CAAA;AAAS,SAAA,IAAA;;",
+  "names": []
+}
