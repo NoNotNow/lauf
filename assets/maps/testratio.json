@@ -1,0 +1,55 @@
+{
+  "Name": "Test Level",
+  "Size": {
+    "X":15,
+    "Y":5
+  },
+  "Camera": {
+    "Position": {
+      "X": 5,
+      "Y": 5
+    },
+    "Zoom": 1.0
+  },
+  "Design": {
+    "Color": "#118800",
+    "Border": {
+      "Style": "dashed",
+      "Color": "#FFFFFF11",
+      "Width": "0.002"
+    },
+    "Image": ""
+  },
+  "Obstacles": [
+     
+    
+  ],
+  "Targets": [],
+  "Avatar":  {
+      "Pose": {
+        "Position": {
+          "X": 1,
+          "Y": 3
+        },
+        "Size": {
+          "X": 1,
+          "Y": 1
+        },
+        "Rotation": 0
+      },
+      "Design": {
+        "Color": "transparent",
+        "Image": "assets/game/bird.svg"
+      },
+      "PhysicsConfiguration": {
+        "hasGravity": false,
+        "canMove": true,
+        "mass": 10,
+        "restitution": 0.5
+      },
+      "Transformers": [
+       
+
+      ]
+    }
+}

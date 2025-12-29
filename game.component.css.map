@@ -1,7 +1,7 @@
 {
   "version": 3,
   "sources": ["src/app/features/game/game.component.scss"],
-  "sourcesContent": [".page {\n  h1 { margin-top: 0; }\n  .muted { color: var(--muted); }\n}\n"],
-  "mappings": ";AACE,CAAA,KAAA;AAAK,cAAA;;AACL,CADA,KACA,CAAA;AAAS,SAAA,IAAA;;",
+  "sourcesContent": [":host {\n  display: flex;\n  flex-direction: column;\n  flex: 1;\n  width: 100%;\n}\n\n.page {\n  flex: 1;\n  display: flex;\n  flex-direction: column;\n  width: 100%;\n\n  h1 { margin: 0.5rem 1rem; }\n  .muted { color: var(--muted); }\n\n  .app-map {\n    flex: 1;\n    width: 100%;\n  }\n}\n"],
+  "mappings": ";AAAA;AACE,WAAA;AACA,kBAAA;AACA,QAAA;AACA,SAAA;;AAGF,CAAA;AACE,QAAA;AACA,WAAA;AACA,kBAAA;AACA,SAAA;;AAEA,CANF,KAME;AAAK,UAAA,OAAA;;AACL,CAPF,KAOE,CAAA;AAAS,SAAA,IAAA;;AAET,CATF,KASE,CAAA;AACE,QAAA;AACA,SAAA;;",
   "names": []
 }

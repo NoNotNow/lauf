@@ -35914,7 +35914,7 @@ var AppComponent = class _AppComponent {
         \u0275\u0275advance(5);
         \u0275\u0275property("routerLinkActiveOptions", \u0275\u0275pureFunction0(1, _c0));
       }
-    }, dependencies: [RouterOutlet, RouterLink, RouterLinkActive], styles: ["\n\n.navbar[_ngcontent-%COMP%] {\n  position: sticky;\n  top: 0;\n  background: rgba(2, 6, 23, 0.7);\n  backdrop-filter: blur(8px);\n  border-bottom: 1px solid rgba(148, 163, 184, 0.2);\n}\n.nav-inner[_ngcontent-%COMP%] {\n  display: flex;\n  align-items: center;\n  justify-content: space-between;\n}\n.brand[_ngcontent-%COMP%] {\n  font-weight: 700;\n  letter-spacing: 0.04em;\n}\n.links[_ngcontent-%COMP%] {\n  display: flex;\n  gap: 1rem;\n}\n.links[_ngcontent-%COMP%]   a[_ngcontent-%COMP%] {\n  color: var(--text);\n  opacity: 0.8;\n}\n.links[_ngcontent-%COMP%]   a.active[_ngcontent-%COMP%] {\n  opacity: 1;\n  border-bottom: 2px solid var(--accent);\n}\n.main[_ngcontent-%COMP%] {\n  padding-top: 1.25rem;\n}\n/*# sourceMappingURL=app.component.css.map */"] });
+    }, dependencies: [RouterOutlet, RouterLink, RouterLinkActive], styles: ["\n\n.navbar[_ngcontent-%COMP%] {\n  position: sticky;\n  top: 0;\n  background: rgba(2, 6, 23, 0.7);\n  backdrop-filter: blur(8px);\n  border-bottom: 1px solid rgba(148, 163, 184, 0.2);\n}\n.nav-inner[_ngcontent-%COMP%] {\n  display: flex;\n  align-items: center;\n  justify-content: space-between;\n}\n.brand[_ngcontent-%COMP%] {\n  font-weight: 700;\n  letter-spacing: 0.04em;\n}\n.links[_ngcontent-%COMP%] {\n  display: flex;\n  gap: 1rem;\n}\n.links[_ngcontent-%COMP%]   a[_ngcontent-%COMP%] {\n  color: var(--text);\n  opacity: 0.8;\n}\n.links[_ngcontent-%COMP%]   a.active[_ngcontent-%COMP%] {\n  opacity: 1;\n  border-bottom: 2px solid var(--accent);\n}\n.main[_ngcontent-%COMP%] {\n  flex: 1;\n  display: flex;\n  flex-direction: column;\n  width: 100%;\n}\n/*# sourceMappingURL=app.component.css.map */"] });
   }
 };
 (() => {
@@ -35939,7 +35939,9 @@ var CanvasLayerComponent = class _CanvasLayerComponent {
   ngAfterViewInit() {
     this.resizeObserver = new ResizeObserver(() => this.resizeCanvas());
     this.resizeObserver.observe(this.host.nativeElement);
-    this.resizeCanvas();
+    setTimeout(() => {
+      this.resizeCanvas();
+    }, 100);
     window.addEventListener("app-canvas-redraw", this.onExternalRedraw);
   }
   ngOnDestroy() {
@@ -35967,6 +35969,9 @@ var CanvasLayerComponent = class _CanvasLayerComponent {
       canvas.width = displayWidth;
       canvas.height = displayHeight;
     }
+    if (this.camera) {
+      this.camera.setAspectRatio(canvas.width / canvas.height);
+    }
     this.drawNow();
   }
   drawNow() {
@@ -35979,18 +35984,20 @@ var CanvasLayerComponent = class _CanvasLayerComponent {
     const rows = Math.max(1, Math.floor(this.gridSize?.y ?? 1));
     const cellW = canvas.width / cols;
     const cellH = canvas.height / rows;
+    const cellSize = Math.min(cellW, cellH);
+    const offsetX = (canvas.width - cols * cellSize) / 2;
+    const offsetY = (canvas.height - rows * cellSize) / 2;
     let geom = {
       cols,
       rows,
-      cellW,
-      cellH,
+      cellW: cellSize,
+      cellH: cellSize,
       rectForCells: (col, row, wCells = 1, hCells = 1, padRatio = 0) => {
-        const minSide = cellW < cellH ? cellW : cellH;
-        const pad = padRatio > 0 ? minSide * (padRatio > 0.5 ? 0.5 : padRatio) : 0;
-        const x = col * cellW + pad;
-        const y = row * cellH + pad;
-        const w = wCells * cellW - 2 * pad;
-        const h = hCells * cellH - 2 * pad;
+        const pad = padRatio > 0 ? cellSize * (padRatio > 0.5 ? 0.5 : padRatio) : 0;
+        const x = col * cellSize + pad + offsetX;
+        const y = row * cellSize + pad + offsetY;
+        const w = wCells * cellSize - 2 * pad;
+        const h = hCells * cellSize - 2 * pad;
         return { x, y, w: w < 0 ? 0 : w, h: h < 0 ? 0 : h };
       }
     };
@@ -36105,10 +36112,13 @@ var GridBitmap = class {
     targetCtx.restore();
   }
   createPattern(cellW, cellH, color, lineWidth, key) {
+    this.pattern = null;
     const unit = Math.min(cellW, cellH);
     const lw = Math.max(1, Math.round(lineWidth * unit));
     const roundedW = Math.round(cellW);
     const roundedH = Math.round(cellH);
+    if (!(roundedW >= 1 && roundedH >= 1))
+      return;
     const pCanvas = document.createElement("canvas");
     pCanvas.width = roundedW;
     pCanvas.height = roundedH;
@@ -36127,6 +36137,41 @@ var GridBitmap = class {
   }
 };
 
+// src/app/core/rendering/image-cache.ts
+var ImageCache = class {
+  constructor(redrawEventName = "app-canvas-redraw") {
+    this.redrawEventName = redrawEventName;
+    this._imageCache = /* @__PURE__ */ new Map();
+    this._requested = /* @__PURE__ */ new Set();
+  }
+  get(url) {
+    if (!url)
+      return void 0;
+    let img = this._imageCache.get(url);
+    if (img)
+      return img;
+    img = new Image();
+    img.src = url;
+    if (!this._requested.has(url)) {
+      this._requested.add(url);
+      img.onload = () => {
+        this._imageCache.set(url, img);
+        try {
+          window.dispatchEvent(new CustomEvent(this.redrawEventName));
+        } catch {
+        }
+      };
+      img.onerror = () => {
+        try {
+          window.dispatchEvent(new CustomEvent(this.redrawEventName));
+        } catch {
+        }
+      };
+    }
+    return img;
+  }
+};
+
 // src/app/features/stage/components/grid/grid.component.ts
 var _c03 = ["layer"];
 var GridComponent = class _GridComponent {
@@ -36135,18 +36180,47 @@ var GridComponent = class _GridComponent {
     this.color = "#cccccc";
     this.lineWidth = 0.02;
     this.backgroundColor = "transparent";
+    this.backgroundImage = "";
     this.redrawKey = "";
     this.bitmap = new GridBitmap();
+    this.imageCache = new ImageCache();
     this.drawGrid = (ctx, canvas, geom) => {
       if (!geom) {
         this.drawLegacy(ctx, canvas);
         return;
       }
+      const gridRect = geom.rectForCells(0, 0, geom.cols, geom.rows);
+      let imageLoaded = false;
+      if (this.backgroundImage) {
+        const img = this.imageCache.get(this.backgroundImage);
+        if (img && img.complete && img.naturalWidth > 0) {
+          imageLoaded = true;
+        }
+      }
+      if (this.backgroundColor !== "transparent" && (!this.backgroundImage || imageLoaded)) {
+        ctx.fillStyle = this.backgroundColor;
+        ctx.fillRect(gridRect.x, gridRect.y, gridRect.w, gridRect.h);
+      }
+      if (imageLoaded && this.backgroundImage) {
+        const img = this.imageCache.get(this.backgroundImage);
+        if (img && img.complete && img.naturalWidth > 0) {
+          const imgAspect = img.naturalWidth / img.naturalHeight;
+          const gridAspect = gridRect.w / gridRect.h;
+          const scale = imgAspect > gridAspect ? gridRect.h / img.naturalHeight : gridRect.w / img.naturalWidth;
+          const scaledWidth = img.naturalWidth * scale;
+          const scaledHeight = img.naturalHeight * scale;
+          const offsetX = gridRect.x + (gridRect.w - scaledWidth) / 2;
+          const offsetY = gridRect.y + (gridRect.h - scaledHeight) / 2;
+          ctx.save();
+          ctx.drawImage(img, offsetX, offsetY, scaledWidth, scaledHeight);
+          ctx.restore();
+        }
+      }
       this.bitmap.draw(ctx, canvas.width, canvas.height, geom, this.color, this.lineWidth, this.gridBorder);
     };
   }
   ngOnChanges(changes) {
-    if (changes["gridSize"] || changes["color"] || changes["lineWidth"]) {
+    if (changes["gridSize"] || changes["color"] || changes["lineWidth"] || changes["backgroundImage"]) {
       this.updateRedrawKey();
       this.bitmap.invalidate();
     }
@@ -36154,7 +36228,7 @@ var GridComponent = class _GridComponent {
   updateRedrawKey() {
     const N = Math.max(1, Math.floor(this.gridSize?.x ?? 1));
     const M = Math.max(1, Math.floor(this.gridSize?.y ?? 1));
-    this.redrawKey = `${N}x${M}-${this.color}-${this.lineWidth}`;
+    this.redrawKey = `${N}x${M}-${this.color}-${this.lineWidth}-${this.backgroundImage}`;
   }
   requestRedraw() {
     this.layer?.requestRedraw();
@@ -36216,18 +36290,18 @@ var GridComponent = class _GridComponent {
         let _t;
         \u0275\u0275queryRefresh(_t = \u0275\u0275loadQuery()) && (ctx.layer = _t.first);
       }
-    }, inputs: { gridSize: "gridSize", color: "color", lineWidth: "lineWidth", gridBorder: "gridBorder", backgroundColor: "backgroundColor", camera: "camera" }, standalone: true, features: [\u0275\u0275NgOnChangesFeature, \u0275\u0275StandaloneFeature], decls: 2, vars: 4, consts: [["layer", ""], [3, "draw", "redrawKey", "gridSize", "camera"]], template: function GridComponent_Template(rf, ctx) {
+    }, inputs: { gridSize: "gridSize", color: "color", lineWidth: "lineWidth", gridBorder: "gridBorder", backgroundColor: "backgroundColor", backgroundImage: "backgroundImage", camera: "camera" }, standalone: true, features: [\u0275\u0275NgOnChangesFeature, \u0275\u0275StandaloneFeature], decls: 2, vars: 4, consts: [["layer", ""], [3, "draw", "redrawKey", "gridSize", "camera"]], template: function GridComponent_Template(rf, ctx) {
       if (rf & 1) {
         \u0275\u0275element(0, "app-canvas-layer", 1, 0);
       }
       if (rf & 2) {
         \u0275\u0275property("draw", ctx.drawGrid)("redrawKey", ctx.redrawKey)("gridSize", ctx.gridSize)("camera", ctx.camera);
       }
-    }, dependencies: [CanvasLayerComponent], styles: ["\n\n[_nghost-%COMP%] {\n  display: block;\n  width: 100%;\n  height: 100%;\n}\ncanvas[_ngcontent-%COMP%] {\n  display: block;\n  width: 100%;\n  height: 100%;\n}\n/*# sourceMappingURL=grid.component.css.map */"] });
+    }, dependencies: [CanvasLayerComponent], styles: ["\n\n[_nghost-%COMP%] {\n  display: block;\n  width: 100%;\n  height: 100%;\n}\n/*# sourceMappingURL=grid.component.css.map */"] });
   }
 };
 (() => {
-  (typeof ngDevMode === "undefined" || ngDevMode) && \u0275setClassDebugInfo(GridComponent, { className: "GridComponent", filePath: "src/app/features/stage/components/grid/grid.component.ts", lineNumber: 15 });
+  (typeof ngDevMode === "undefined" || ngDevMode) && \u0275setClassDebugInfo(GridComponent, { className: "GridComponent", filePath: "src/app/features/stage/components/grid/grid.component.ts", lineNumber: 16 });
 })();
 
 // src/app/core/models/design/border.ts
@@ -36444,6 +36518,7 @@ var Camera = class {
     this.targetZoom = 1;
     this.lerpFactor = 0.1;
     this._dirty = true;
+    this.aspectRatio = 1;
     if (initialCenter) {
       this.center = new Point(initialCenter.x, initialCenter.y);
       this.targetCenter = new Point(initialCenter.x, initialCenter.y);
@@ -36468,11 +36543,30 @@ var Camera = class {
     this.targetCenter = this.clampCenter(this.targetCenter, this.targetZoom);
     this._dirty = true;
   }
+  setAspectRatio(ratio) {
+    if (this.aspectRatio !== ratio) {
+      this.aspectRatio = ratio;
+      this.center = this.clampCenter(this.center, this.zoom);
+      this.targetCenter = this.clampCenter(this.targetCenter, this.targetZoom);
+      this._dirty = true;
+    }
+  }
+  calculateViewportSize(cols, rows, zoom) {
+    const gridAspect = cols / rows;
+    if (this.aspectRatio > gridAspect) {
+      const h = rows / zoom;
+      const w = h * this.aspectRatio;
+      return { w, h };
+    } else {
+      const w = cols / zoom;
+      const h = w / this.aspectRatio;
+      return { w, h };
+    }
+  }
   clampCenter(center, zoom) {
     if (!this.bounds)
       return center;
-    const viewWidth = this.bounds.cols / zoom;
-    const viewHeight = this.bounds.rows / zoom;
+    const { w: viewWidth, h: viewHeight } = this.calculateViewportSize(this.bounds.cols, this.bounds.rows, zoom);
     const halfViewWidth = viewWidth / 2;
     const halfViewHeight = viewHeight / 2;
     let minX = halfViewWidth;
@@ -36514,25 +36608,21 @@ var Camera = class {
     this._dirty = true;
   }
   transformGeometry(baseGeom, canvasWidth, canvasHeight) {
-    const aspect = canvasWidth / canvasHeight;
-    const viewWidth = baseGeom.cols / this.zoom;
-    const viewHeight = baseGeom.rows / this.zoom;
-    const cellW = canvasWidth / viewWidth;
-    const cellH = canvasHeight / viewHeight;
+    const { w: viewWidth, h: viewHeight } = this.calculateViewportSize(baseGeom.cols, baseGeom.rows, this.zoom);
+    const cellSize = canvasWidth / viewWidth;
     const viewX = this.center.x - viewWidth / 2;
     const viewY = this.center.y - viewHeight / 2;
     return {
       cols: baseGeom.cols,
       rows: baseGeom.rows,
-      cellW,
-      cellH,
+      cellW: cellSize,
+      cellH: cellSize,
       rectForCells: (col, row, wCells = 1, hCells = 1, padRatio = 0) => {
-        const minSide = cellW < cellH ? cellW : cellH;
-        const pad = padRatio > 0 ? minSide * (padRatio > 0.5 ? 0.5 : padRatio) : 0;
-        const x = (col - viewX) * cellW + pad;
-        const y = (row - viewY) * cellH + pad;
-        const w = wCells * cellW - 2 * pad;
-        const h = hCells * cellH - 2 * pad;
+        const pad = padRatio > 0 ? cellSize * (padRatio > 0.5 ? 0.5 : padRatio) : 0;
+        const x = (col - viewX) * cellSize + pad;
+        const y = (row - viewY) * cellSize + pad;
+        const w = wCells * cellSize - 2 * pad;
+        const h = hCells * cellSize - 2 * pad;
         return { x, y, w: w < 0 ? 0 : w, h: h < 0 ? 0 : h };
       }
     };
@@ -36632,7 +36722,7 @@ var StartupService = class _StartupService {
     this.persistence = persistence;
   }
   // Triggers after load; fetches map and hands it to the target's loadMap
-  main(target, url = "assets/maps/test.json") {
+  main(target, url = "assets/maps/example.json") {
     this.persistence.getMap(url).subscribe({
       next: (map2) => target.loadMap(map2),
       error: (err) => console.error("StartupService: Failed to load map", err)
@@ -36645,41 +36735,6 @@ var StartupService = class _StartupService {
   }
   static {
     this.\u0275prov = /* @__PURE__ */ \u0275\u0275defineInjectable({ token: _StartupService, factory: _StartupService.\u0275fac, providedIn: "root" });
-  }
-};
-
-// src/app/core/rendering/image-cache.ts
-var ImageCache = class {
-  constructor(redrawEventName = "app-canvas-redraw") {
-    this.redrawEventName = redrawEventName;
-    this._imageCache = /* @__PURE__ */ new Map();
-    this._requested = /* @__PURE__ */ new Set();
-  }
-  get(url) {
-    if (!url)
-      return void 0;
-    let img = this._imageCache.get(url);
-    if (img)
-      return img;
-    img = new Image();
-    img.src = url;
-    if (!this._requested.has(url)) {
-      this._requested.add(url);
-      img.onload = () => {
-        this._imageCache.set(url, img);
-        try {
-          window.dispatchEvent(new CustomEvent(this.redrawEventName));
-        } catch {
-        }
-      };
-      img.onerror = () => {
-        try {
-          window.dispatchEvent(new CustomEvent(this.redrawEventName));
-        } catch {
-        }
-      };
-    }
-    return img;
   }
 };
 
@@ -38138,6 +38193,8 @@ var Glider = class {
     this._maxClimbRate = 3;
     this._directionPhase = 0;
     this._baseDirectionAngle = Math.random() * Math.PI * 2;
+    this._maxAcceleration = 25;
+    this._responseTime = 0.08;
     this._evasionState = null;
     this._evasionDuration = 1;
     this._minDistanceToBoundary = 1;
@@ -38161,6 +38218,8 @@ var Glider = class {
       this._lookAheadDistance = params.lookAheadDistance ?? this._lookAheadDistance;
       this._lookAheadTime = params.lookAheadTime ?? this._lookAheadTime;
       this._collisionAvoidanceStrength = params.collisionAvoidanceStrength ?? this._collisionAvoidanceStrength;
+      this._maxAcceleration = params.maxAcceleration ?? this._maxAcceleration;
+      this._responseTime = params.responseTime ?? this._responseTime;
     }
     this._glideEfficiency = Math.max(0, Math.min(1, this._glideEfficiency));
   }
@@ -38194,11 +38253,12 @@ var Glider = class {
     this.updateEvasionState(dtSec);
     const headingResult = this.determineDesiredHeading(currentVelocity, dtSec);
     const { desiredHeading, urgency } = this.applyEvasionState(headingResult);
-    const newVelocity = this.rotateMomentumTowardHeading(currentDirection, desiredHeading, currentSpeed, urgency, dtSec);
-    this.applyGlidingPhysics(newVelocity);
-    this.maintainMinimumSpeed(newVelocity, currentSpeed, dtSec);
-    this._phys.setVelocity(newVelocity.vx, newVelocity.vy);
-    this.updateRotation(pose, newVelocity);
+    const desiredVelocity = this.calculateDesiredVelocity(currentDirection, desiredHeading, currentSpeed, urgency, dtSec);
+    this.applyGlidingPhysics(desiredVelocity, currentVelocity);
+    this.maintainMinimumSpeed(desiredVelocity, currentSpeed, dtSec);
+    const acceleration = this.calculateAcceleration(currentVelocity, desiredVelocity, urgency);
+    this._phys.accelerate(acceleration.ax, acceleration.ay, dtSec);
+    this.updateRotation(pose, currentVelocity);
   }
   updateEvasionState(dtSec) {
     if (this._evasionState) {
@@ -38363,7 +38423,7 @@ var Glider = class {
       urgency: headingResult.urgency
     };
   }
-  rotateMomentumTowardHeading(currentDirection, desiredHeading, currentSpeed, urgency, dtSec) {
+  calculateDesiredVelocity(currentDirection, desiredHeading, currentSpeed, urgency, dtSec) {
     let angleDiff = desiredHeading - currentDirection;
     while (angleDiff > Math.PI)
       angleDiff -= 2 * Math.PI;
@@ -38378,25 +38438,39 @@ var Glider = class {
       vy: Math.sin(newDirection) * targetSpeed
     };
   }
+  calculateAcceleration(currentVelocity, desiredVelocity, urgency) {
+    const dvx = desiredVelocity.vx - currentVelocity.vx;
+    const dvy = desiredVelocity.vy - currentVelocity.vy;
+    const effectiveResponseTime = this._responseTime / (1 + urgency * 3);
+    let ax = dvx / effectiveResponseTime;
+    let ay = dvy / effectiveResponseTime;
+    const accelMagnitude = Math.hypot(ax, ay);
+    if (accelMagnitude > this._maxAcceleration) {
+      const scale = this._maxAcceleration / accelMagnitude;
+      ax *= scale;
+      ay *= scale;
+    }
+    return { ax, ay };
+  }
   calculateTurnRate(urgency) {
-    const baseTurnRate = 1.5;
-    const maxTurnRate = 6;
+    const baseTurnRate = 2.5;
+    const maxTurnRate = 8;
     return baseTurnRate + (maxTurnRate - baseTurnRate) * urgency;
   }
-  applyGlidingPhysics(velocity) {
-    const horizontalSpeed = Math.abs(velocity.vx);
-    const isClimbing = velocity.vy < 0;
+  applyGlidingPhysics(desiredVelocity, currentVelocity) {
+    const horizontalSpeed = Math.abs(desiredVelocity.vx);
+    const isClimbing = desiredVelocity.vy < 0;
     if (isClimbing && horizontalSpeed >= this._minSpeedForLift) {
       const availableLift = Math.min(horizontalSpeed * this._glideEfficiency, this._maxClimbRate);
-      velocity.vy = Math.max(velocity.vy, -availableLift);
+      desiredVelocity.vy = Math.max(desiredVelocity.vy, -availableLift);
     }
   }
-  maintainMinimumSpeed(velocity, currentSpeed, dtSec) {
+  maintainMinimumSpeed(desiredVelocity, currentSpeed, dtSec) {
     if (currentSpeed < this._horizontalSpeed * 0.5) {
-      const newDirection = Math.atan2(velocity.vy, velocity.vx);
-      const speedBoost = 1;
-      velocity.vx += Math.cos(newDirection) * speedBoost * dtSec;
-      velocity.vy += Math.sin(newDirection) * speedBoost * dtSec;
+      const currentDirection = Math.atan2(desiredVelocity.vy, desiredVelocity.vx);
+      const minSpeed = this._horizontalSpeed * 0.7;
+      desiredVelocity.vx = Math.cos(currentDirection) * minSpeed;
+      desiredVelocity.vy = Math.sin(currentDirection) * minSpeed;
     }
   }
   updateRotation(pose, velocity) {
@@ -38463,7 +38537,6 @@ var Glider = class {
           steerY = -1;
         const steerLen = Math.hypot(steerX, steerY);
         if (steerLen > 0) {
-          console.log(`Collision ahead: steering away from boundary (${steerX}, ${steerY}), rotation = ${pose.Rotation}`);
           return { avoid: true, steerX: steerX / steerLen, steerY: steerY / steerLen };
         }
       }
@@ -39110,6 +39183,7 @@ var MapComponent = class _MapComponent {
     this.gridLineWidth = 0.01;
     this.gridSize = new Point(10, 10);
     this.gridBorder = "solid";
+    this.currentZoomIndex = 0;
     this.drawFrame = (ctx, _canvas, geom) => {
       if (!geom)
         return;
@@ -39122,7 +39196,9 @@ var MapComponent = class _MapComponent {
     };
     this.enableItemCollisions = true;
     this.gridBackgroundColor = "transparent";
+    this.gridBackgroundImage = "";
     this.currentZoom = 1;
+    this.zoomLevels = [1, 2, 3, 4, 5];
   }
   ngAfterViewInit() {
     this.startup.main(this);
@@ -39169,16 +39245,15 @@ var MapComponent = class _MapComponent {
     this.worldContext.start();
   }
   toggleZoom() {
-    const camera = this.worldContext?.getCamera();
-    if (!camera)
-      return;
-    this.currentZoom = camera.getTargetZoom() === 1 ? 5 : 1;
-    camera.setTarget(camera.getTargetCenter(), this.currentZoom);
+    this.currentZoom = this.zoomLevels[this.currentZoomIndex];
+    this.currentZoomIndex = (this.currentZoomIndex + 1) % this.zoomLevels.length;
+    this.camera.setTarget(this.camera.getTargetCenter(), this.currentZoom);
+    console.log("currentZoom", this.currentZoom, this.currentZoomIndex);
   }
   applyDesignConfiguration(map2) {
     if (!map2.design)
       return;
-    const { Border: Border2, Color } = map2.design;
+    const { Border: Border2, Color, Image: Image2 } = map2.design;
     if (Border2.Width)
       this.gridLineWidth = Border2.Width;
     if (Border2.Color)
@@ -39187,6 +39262,8 @@ var MapComponent = class _MapComponent {
       this.gridBorder = Border2.Style;
     if (Color)
       this.gridBackgroundColor = Color;
+    if (Image2)
+      this.gridBackgroundImage = Image2;
   }
   static {
     this.\u0275fac = function MapComponent_Factory(__ngFactoryType__) {
@@ -39206,7 +39283,7 @@ var MapComponent = class _MapComponent {
         \u0275\u0275queryRefresh(_t = \u0275\u0275loadQuery()) && (ctx.animLayer = _t.first);
         \u0275\u0275queryRefresh(_t = \u0275\u0275loadQuery()) && (ctx.avatarsCanvas = _t.first);
       }
-    }, standalone: true, features: [\u0275\u0275ProvidersFeature([]), \u0275\u0275StandaloneFeature], decls: 8, vars: 12, consts: [["avatarsCanvas", ""], [1, "container", 3, "click"], [1, "layer"], [3, "gridSize", "backgroundColor", "color", "gridBorder", "lineWidth", "camera"], [1, "layer", "obstacles"], [3, "gridSize", "draw", "camera"], [1, "layer", "avatars"]], template: function MapComponent_Template(rf, ctx) {
+    }, standalone: true, features: [\u0275\u0275ProvidersFeature([]), \u0275\u0275StandaloneFeature], decls: 8, vars: 13, consts: [["avatarsCanvas", ""], [1, "container", 3, "click"], [1, "layer"], [3, "gridSize", "backgroundColor", "backgroundImage", "color", "gridBorder", "lineWidth", "camera"], [1, "layer", "obstacles"], [3, "gridSize", "draw", "camera"], [1, "layer", "avatars"]], template: function MapComponent_Template(rf, ctx) {
       if (rf & 1) {
         const _r1 = \u0275\u0275getCurrentView();
         \u0275\u0275elementStart(0, "div", 1);
@@ -39226,13 +39303,13 @@ var MapComponent = class _MapComponent {
       }
       if (rf & 2) {
         \u0275\u0275advance(2);
-        \u0275\u0275property("gridSize", ctx.gridSize)("backgroundColor", ctx.gridBackgroundColor)("color", ctx.gridColor)("gridBorder", ctx.gridBorder)("lineWidth", ctx.gridLineWidth)("camera", ctx.camera);
+        \u0275\u0275property("gridSize", ctx.gridSize)("backgroundColor", ctx.gridBackgroundColor)("backgroundImage", ctx.gridBackgroundImage)("color", ctx.gridColor)("gridBorder", ctx.gridBorder)("lineWidth", ctx.gridLineWidth)("camera", ctx.camera);
         \u0275\u0275advance(2);
         \u0275\u0275property("gridSize", ctx.gridSize)("draw", ctx.drawFrame)("camera", ctx.camera);
         \u0275\u0275advance(2);
         \u0275\u0275property("gridSize", ctx.gridSize)("draw", ctx.drawAvatarFrame)("camera", ctx.camera);
       }
-    }, dependencies: [GridComponent, CanvasLayerComponent], styles: ["\n\n.container[_ngcontent-%COMP%] {\n  position: relative;\n  border: 1px dashed red;\n  width: 100%;\n  aspect-ratio: 1/1;\n  padding: 0;\n  overflow: hidden;\n}\n.layer[_ngcontent-%COMP%] {\n  position: absolute;\n  inset: 0;\n}\n.layer.obstacles[_ngcontent-%COMP%] {\n  z-index: 2;\n}\n.layer.targets[_ngcontent-%COMP%] {\n  z-index: 3;\n}\n.layer.avatars[_ngcontent-%COMP%] {\n  z-index: 4;\n}\n/*# sourceMappingURL=map.component.css.map */"] });
+    }, dependencies: [GridComponent, CanvasLayerComponent], styles: ["\n\n[_nghost-%COMP%] {\n  display: flex;\n  flex-direction: column;\n  flex: 1;\n  width: 100%;\n}\n.container[_ngcontent-%COMP%] {\n  position: relative;\n  flex: 1;\n  width: 100%;\n  padding: 0;\n  overflow: hidden;\n}\n.layer[_ngcontent-%COMP%] {\n  position: absolute;\n  inset: 0;\n}\n.layer.obstacles[_ngcontent-%COMP%] {\n  z-index: 2;\n}\n.layer.targets[_ngcontent-%COMP%] {\n  z-index: 3;\n}\n.layer.avatars[_ngcontent-%COMP%] {\n  z-index: 4;\n}\n/*# sourceMappingURL=map.component.css.map */"] });
   }
 };
 (() => {
@@ -39247,15 +39324,13 @@ var GameComponent = class _GameComponent {
     };
   }
   static {
-    this.\u0275cmp = /* @__PURE__ */ \u0275\u0275defineComponent({ type: _GameComponent, selectors: [["app-game"]], standalone: true, features: [\u0275\u0275StandaloneFeature], decls: 4, vars: 0, consts: [[1, "page"]], template: function GameComponent_Template(rf, ctx) {
+    this.\u0275cmp = /* @__PURE__ */ \u0275\u0275defineComponent({ type: _GameComponent, selectors: [["app-game"]], standalone: true, features: [\u0275\u0275StandaloneFeature], decls: 2, vars: 0, consts: [[1, "page"], [1, "app-map"]], template: function GameComponent_Template(rf, ctx) {
       if (rf & 1) {
-        \u0275\u0275elementStart(0, "section", 0)(1, "h1");
-        \u0275\u0275text(2, "Game");
-        \u0275\u0275elementEnd();
-        \u0275\u0275element(3, "app-map");
+        \u0275\u0275elementStart(0, "section", 0);
+        \u0275\u0275element(1, "app-map", 1);
         \u0275\u0275elementEnd();
       }
-    }, dependencies: [MapComponent], styles: ["\n\n.page[_ngcontent-%COMP%]   h1[_ngcontent-%COMP%] {\n  margin-top: 0;\n}\n.page[_ngcontent-%COMP%]   .muted[_ngcontent-%COMP%] {\n  color: var(--muted);\n}\n/*# sourceMappingURL=game.component.css.map */"] });
+    }, dependencies: [MapComponent], styles: ["\n\n[_nghost-%COMP%] {\n  display: flex;\n  flex-direction: column;\n  flex: 1;\n  width: 100%;\n}\n.page[_ngcontent-%COMP%] {\n  flex: 1;\n  display: flex;\n  flex-direction: column;\n  width: 100%;\n}\n.page[_ngcontent-%COMP%]   h1[_ngcontent-%COMP%] {\n  margin: 0.5rem 1rem;\n}\n.page[_ngcontent-%COMP%]   .muted[_ngcontent-%COMP%] {\n  color: var(--muted);\n}\n.page[_ngcontent-%COMP%]   .app-map[_ngcontent-%COMP%] {\n  flex: 1;\n  width: 100%;\n}\n/*# sourceMappingURL=game.component.css.map */"] });
   }
 };
 (() => {
@@ -39279,7 +39354,7 @@ var BuilderComponent = class _BuilderComponent {
         \u0275\u0275text(4, "This is the builder page. Compose levels and assets here.");
         \u0275\u0275elementEnd()();
       }
-    }, styles: ["\n\n.page[_ngcontent-%COMP%]   h1[_ngcontent-%COMP%] {\n  margin-top: 0;\n}\n.page[_ngcontent-%COMP%]   .muted[_ngcontent-%COMP%] {\n  color: var(--muted);\n}\n/*# sourceMappingURL=builder.component.css.map */"] });
+    }, styles: ["\n\n[_nghost-%COMP%] {\n  display: flex;\n  flex-direction: column;\n  flex: 1;\n  width: 100%;\n}\n.page[_ngcontent-%COMP%] {\n  flex: 1;\n  display: flex;\n  flex-direction: column;\n  width: 100%;\n}\n.page[_ngcontent-%COMP%]   h1[_ngcontent-%COMP%] {\n  margin: 0.5rem 1rem;\n}\n.page[_ngcontent-%COMP%]   .muted[_ngcontent-%COMP%] {\n  color: var(--muted);\n  margin: 0 1rem;\n}\n/*# sourceMappingURL=builder.component.css.map */"] });
   }
 };
 (() => {
