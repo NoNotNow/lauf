@@ -4,6 +4,7 @@ import { CanvasLayerComponent } from '../../../../shared/components/common/canva
 import { Camera } from '../../../../core/rendering/camera';
 import { GridGeometry } from '../../../../core/models/canvas-geometry';
 import { GridBitmap } from '../../../../core/rendering/grid-bitmap';
+import { ImageCache } from '../../../../core/rendering/image-cache';
 
 @Component({
   selector: 'app-grid',
@@ -22,6 +23,7 @@ export class GridComponent implements OnChanges {
   @Input() lineWidth: number = 0.02;
   @Input() gridBorder!: string;
   @Input() backgroundColor: string = 'transparent';
+  @Input() backgroundImage: string = '';
 
   @Input() camera?: Camera;
 
@@ -32,9 +34,10 @@ export class GridComponent implements OnChanges {
   redrawKey = '';
 
   private bitmap = new GridBitmap();
+  private imageCache = new ImageCache();
 
   ngOnChanges(changes: SimpleChanges): void {
-    if (changes['gridSize'] || changes['color'] || changes['lineWidth']) {
+    if (changes['gridSize'] || changes['color'] || changes['lineWidth'] || changes['backgroundImage']) {
       this.updateRedrawKey();
       this.bitmap.invalidate();
     }
@@ -43,7 +46,7 @@ export class GridComponent implements OnChanges {
   updateRedrawKey(): void {
     const N = Math.max(1, Math.floor(this.gridSize?.x ?? 1));
     const M = Math.max(1, Math.floor(this.gridSize?.y ?? 1));
-    this.redrawKey = `${N}x${M}-${this.color}-${this.lineWidth}`;
+    this.redrawKey = `${N}x${M}-${this.color}-${this.lineWidth}-${this.backgroundImage}`;
   }
 
   requestRedraw(): void {
@@ -58,6 +61,26 @@ export class GridComponent implements OnChanges {
         return;
     }
 
+    // Draw background color first
+    if (this.backgroundColor !== 'transparent') {
+      const gridRect = geom.rectForCells(0, 0, geom.cols, geom.rows);
+      ctx.fillStyle = this.backgroundColor;
+      ctx.fillRect(gridRect.x, gridRect.y, gridRect.w, gridRect.h);
+    }
+
+    // Draw background image if provided
+    if (this.backgroundImage) {
+      const img = this.imageCache.get(this.backgroundImage);
+      if (img && img.complete && img.naturalWidth > 0) {
+        const gridRect = geom.rectForCells(0, 0, geom.cols, geom.rows);
+        ctx.save();
+        // Draw image to cover the entire grid area
+        ctx.drawImage(img, gridRect.x, gridRect.y, gridRect.w, gridRect.h);
+        ctx.restore();
+      }
+    }
+
+    // Draw grid lines on top
     this.bitmap.draw(ctx, canvas.width, canvas.height, geom, this.color, this.lineWidth, this.gridBorder);
   };
 

@@ -1,24 +1,24 @@
 {
   "Name": "Sample Level 1",
   "Size": {
-    "X": 10,
-    "Y": 10
+    "X": 25,
+    "Y": 8
   },
   "Camera": {
     "Position": {
       "X": 5,
       "Y": 5
     },
-    "Zoom": 3.0
+    "Zoom": 5.0
   },
   "Design": {
     "Color": "#118800",
     "Border": {
       "Style": "dashed",
-      "Color": "#FF00FF",
+      "Color": "#FF00FF22",
       "Width": "0.002"
     },
-    "Image": ""
+    "Image": "assets/game/stars.svg"
   },
   "Obstacles": [
     {
@@ -66,7 +66,7 @@
     {
       "Pose": {
         "Position": {
-          "X": 2,
+          "X": 9,
           "Y": 2
         },
         "Size": {
@@ -91,7 +91,7 @@
     {
       "Pose": {
         "Position": {
-          "X": 1,
+          "X": 20,
           "Y": 8
         },
         "Size": {
@@ -108,12 +108,33 @@
         },
         "CornerRadius": 0,
         "Image": "assets/game/monster.svg"
-      }
+      },
+      "Transformers": [
+        {
+          "Type": "FollowItem",
+          "Params": {
+            "TargetId": "Avatar",
+            "Distance": 0.4,
+            "maxSpeed": 1,
+            "force": 0.5,
+            "direction": "horizontal"
+          }
+        },
+        {
+          "Type": "StayUpright",
+          "Params": {
+            "latency": 2.0,
+            "maxAngle": 10.0,
+            "speed": 1.0,
+            "force": 5
+          }
+        }
+      ]
     },
     {
       "Pose": {
         "Position": {
-          "X": 4,
+          "X": 6,
           "Y": 1
         },
         "Size": {
@@ -164,7 +185,7 @@
     {
       "Pose": {
         "Position": {
-          "X": 3,
+          "X": 10,
           "Y": 5
         },
         "Size": {
@@ -186,7 +207,7 @@
     {
       "Pose": {
         "Position": {
-          "X": 6,
+          "X": 13,
           "Y": 6
         },
         "Size": {
@@ -208,7 +229,7 @@
     {
       "Pose": {
         "Position": {
-          "X": 8,
+          "X": 15,
           "Y": 0
         },
         "Size": {
@@ -230,7 +251,7 @@
     {
       "Pose": {
         "Position": {
-          "X": 7,
+          "X": 14,
           "Y": 4
         },
         "Size": {
@@ -248,7 +269,7 @@
     {
       "Pose": {
         "Position": {
-          "X": 0,
+          "X": 7,
           "Y": 7
         },
         "Size": {
@@ -272,7 +293,7 @@
     {
       "Pose": {
         "Position": {
-          "X": 5,
+          "X": 12,
           "Y": 2
         },
         "Size": {
@@ -301,7 +322,7 @@
             "minDistanceToBoundary": 2,
 
             "boundaryAvoidanceStrength": 10.0,
-            "lookAheadDistance": 2.5,
+            "lookAheadDistance": 1.5,
             "lookAheadTime": 0.6,
             "collisionAvoidanceStrength": 4.0
           }
@@ -311,8 +332,47 @@
     {
       "Pose": {
         "Position": {
-          "X": 4,
-          "Y": 8
+          "X": 22,
+          "Y": 4
+        },
+        "Size": {
+          "X": 0.4,
+          "Y": 0.4
+        }
+      },
+      "Design": {
+        "Color": "transparent",
+        "Image": "assets/game/bird.svg"
+      },
+      "PhysicsConfiguration": {
+        "hasGravity": true,
+        "canMove": true,
+        "mass": 10,
+        "restitution": 0.5
+      },
+      "Transformers": [
+        {
+          "Type": "Glider",
+          "Params": {
+            "horizontalSpeed": 3.0,
+            "glideEfficiency": 0.4,
+            "minSpeedForLift": 1.5,
+            "maxClimbRate": 4.0,
+            "minDistanceToBoundary": 2,
+
+            "boundaryAvoidanceStrength": 10.0,
+            "lookAheadDistance": 0.5,
+            "lookAheadTime": 0.6,
+            "collisionAvoidanceStrength": 4.0
+          }
+        }
+      ]
+    },
+    {
+      "Pose": {
+        "Position": {
+          "X": 7,
+          "Y": 6
         },
         "Size": {
           "X": 1,
@@ -360,7 +420,7 @@
     "Id": "Avatar",
     "Pose": {
       "Position": {
-        "X": 5,
+        "X": 1,
         "Y": 5
       },
       "Size": {
