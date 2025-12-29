@@ -34,7 +34,7 @@
       },
       "Design": {
         "Color": "transparent",
-        "Image": "assets/bird.svg"
+        "Image": "assets/game/bird.svg"
       },
       "PhysicsConfiguration": {
         "hasGravity": true,
@@ -74,7 +74,7 @@
       },
       "Design": {
         "Color": "transparent",
-        "Image": "assets/tree.svg"
+        "Image": "assets/game/tree.svg"
       },
       "PhysicsConfiguration": {
         "canMove": false,
@@ -108,7 +108,7 @@
       "Border": {
         "Style": "none"
       },
-      "Image": "assets/hero.svg"
+      "Image": "assets/game/hero.svg"
     },
     "Physics": {
       "mass": 200,
@@ -158,7 +158,7 @@
       },
       "Design": {
         "Color": "transparent",
-        "Image": "assets/bird.svg"
+        "Image": "assets/game/bird.svg"
       },
       "PhysicsConfiguration": {
         "hasGravity": false,
