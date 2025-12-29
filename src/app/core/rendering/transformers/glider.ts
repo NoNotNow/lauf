@@ -29,6 +29,8 @@ export class Glider implements ITransformer {
   private _maxClimbRate = 3.0; // maximum climb rate (cells/s)
   private _directionPhase = 0;
   private _baseDirectionAngle = Math.random() * Math.PI * 2; // Random initial horizontal direction
+  private _maxAcceleration = 25.0; // maximum acceleration (cells/s^2)
+  private _responseTime = 0.08; // time to reach desired velocity (seconds)
   
   // Evasion state: remember last evasion decision to prevent twitching
   private _evasionState: {
@@ -74,6 +76,8 @@ export class Glider implements ITransformer {
       this._lookAheadDistance = params.lookAheadDistance ?? this._lookAheadDistance;
       this._lookAheadTime = params.lookAheadTime ?? this._lookAheadTime;
       this._collisionAvoidanceStrength = params.collisionAvoidanceStrength ?? this._collisionAvoidanceStrength;
+      this._maxAcceleration = params.maxAcceleration ?? this._maxAcceleration;
+      this._responseTime = params.responseTime ?? this._responseTime;
     }
     
     this._glideEfficiency = Math.max(0, Math.min(1, this._glideEfficiency));
@@ -116,7 +120,7 @@ export class Glider implements ITransformer {
     const headingResult = this.determineDesiredHeading(currentVelocity, dtSec);
     const { desiredHeading, urgency } = this.applyEvasionState(headingResult);
     
-    const newVelocity = this.rotateMomentumTowardHeading(
+    const desiredVelocity = this.calculateDesiredVelocity(
       currentDirection,
       desiredHeading,
       currentSpeed,
@@ -124,11 +128,17 @@ export class Glider implements ITransformer {
       dtSec
     );
     
-    this.applyGlidingPhysics(newVelocity);
-    this.maintainMinimumSpeed(newVelocity, currentSpeed, dtSec);
+    this.applyGlidingPhysics(desiredVelocity, currentVelocity);
+    this.maintainMinimumSpeed(desiredVelocity, currentSpeed, dtSec);
     
-    this._phys.setVelocity(newVelocity.vx, newVelocity.vy);
-    this.updateRotation(pose, newVelocity);
+    // Calculate acceleration needed to reach desired velocity
+    const acceleration = this.calculateAcceleration(currentVelocity, desiredVelocity, urgency);
+    
+    // Apply acceleration
+    this._phys.accelerate(acceleration.ax, acceleration.ay, dtSec);
+    
+    // Update rotation based on current velocity (will be updated next frame)
+    this.updateRotation(pose, currentVelocity);
   }
   
   private updateEvasionState(dtSec: number): void {
@@ -339,7 +349,7 @@ export class Glider implements ITransformer {
     };
   }
   
-  private rotateMomentumTowardHeading(
+  private calculateDesiredVelocity(
     currentDirection: number,
     desiredHeading: number,
     currentSpeed: number,
@@ -363,32 +373,63 @@ export class Glider implements ITransformer {
     };
   }
   
+  private calculateAcceleration(
+    currentVelocity: { vx: number; vy: number },
+    desiredVelocity: { vx: number; vy: number },
+    urgency: number
+  ): { ax: number; ay: number } {
+    // Calculate velocity difference
+    const dvx = desiredVelocity.vx - currentVelocity.vx;
+    const dvy = desiredVelocity.vy - currentVelocity.vy;
+    
+    // Calculate acceleration needed to reach desired velocity within response time
+    // Higher urgency means faster response (shorter effective response time)
+    const effectiveResponseTime = this._responseTime / (1 + urgency * 3);
+    let ax = dvx / effectiveResponseTime;
+    let ay = dvy / effectiveResponseTime;
+    
+    // Clamp acceleration to maximum
+    const accelMagnitude = Math.hypot(ax, ay);
+    if (accelMagnitude > this._maxAcceleration) {
+      const scale = this._maxAcceleration / accelMagnitude;
+      ax *= scale;
+      ay *= scale;
+    }
+    
+    return { ax, ay };
+  }
+  
   private calculateTurnRate(urgency: number): number {
-    const baseTurnRate = 1.5; // radians per second
-    const maxTurnRate = 6.0; // radians per second
+    const baseTurnRate = 2.5; // radians per second
+    const maxTurnRate = 8.0; // radians per second
     return baseTurnRate + (maxTurnRate - baseTurnRate) * urgency;
   }
   
-  private applyGlidingPhysics(velocity: { vx: number; vy: number }): void {
-    const horizontalSpeed = Math.abs(velocity.vx);
-    const isClimbing = velocity.vy < 0;
+  private applyGlidingPhysics(
+    desiredVelocity: { vx: number; vy: number },
+    currentVelocity: { vx: number; vy: number }
+  ): void {
+    const horizontalSpeed = Math.abs(desiredVelocity.vx);
+    const isClimbing = desiredVelocity.vy < 0;
     
     if (isClimbing && horizontalSpeed >= this._minSpeedForLift) {
       const availableLift = Math.min(horizontalSpeed * this._glideEfficiency, this._maxClimbRate);
-      velocity.vy = Math.max(velocity.vy, -availableLift);
+      // Limit desired vertical velocity based on lift capability
+      desiredVelocity.vy = Math.max(desiredVelocity.vy, -availableLift);
     }
   }
   
   private maintainMinimumSpeed(
-    velocity: { vx: number; vy: number },
+    desiredVelocity: { vx: number; vy: number },
     currentSpeed: number,
     dtSec: number
   ): void {
     if (currentSpeed < this._horizontalSpeed * 0.5) {
-      const newDirection = Math.atan2(velocity.vy, velocity.vx);
-      const speedBoost = 1.0;
-      velocity.vx += Math.cos(newDirection) * speedBoost * dtSec;
-      velocity.vy += Math.sin(newDirection) * speedBoost * dtSec;
+      // Boost desired speed in current direction
+      const currentDirection = Math.atan2(desiredVelocity.vy, desiredVelocity.vx);
+      const minSpeed = this._horizontalSpeed * 0.7;
+      desiredVelocity.vx = Math.cos(currentDirection) * minSpeed;
+      desiredVelocity.vy = Math.sin(currentDirection) * minSpeed;
     }
   }
   
