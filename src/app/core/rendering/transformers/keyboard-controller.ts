@@ -151,9 +151,10 @@ export class KeyboardController implements ITransformer {
     if (Math.abs(omega) > maxW) {
       omega = Math.sign(omega) * maxW;
     }
-
-    this._phys.setVelocity(vx, vy);
-    this._phys.setAngularVelocity(omega);
+    this._phys.accelerate(ax, ay, dt);
+    //this._phys.setVelocity(vx, vy);
+    this._phys.accelerateAngular(alpha, dt);
+    //this._phys.setAngularVelocity(omega);
   }
 }
 

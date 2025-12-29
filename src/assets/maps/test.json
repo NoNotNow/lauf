@@ -1,8 +1,8 @@
 {
   "Name": "Test Level",
   "Size": {
-    "X": 30,
-    "Y": 30
+    "X":100,
+    "Y":100
   },
   "Camera": {
     "Position": {
@@ -21,32 +21,30 @@
     "Image": ""
   },
   "Obstacles": [
- 
-    {
+       {
       "Pose": {
         "Position": {
-          "X": 1,
-          "Y": 3
+          "X": 60,
+          "Y": 50
         },
         "Size": {
-          "X": 0.5,
-          "Y": 0.5
-        },
-        "Rotation": 180
+          "X": 1.5,
+          "Y": 1.5
+        }
       },
       "Design": {
         "Color": "transparent",
         "Image": "assets/bird.svg"
       },
       "PhysicsConfiguration": {
-        "hasGravity": false,
+        "hasGravity": true,
         "canMove": true,
-        "mass": 10,
+        "mass": 100,
         "restitution": 0.5
       },
       "Transformers": [
         {
-          "Type": "GliderInvalid",
+          "Type": "Glider",
           "Params": {
             "horizontalSpeed": 3.0,
             "glideEfficiency": 0.4,
@@ -59,19 +57,41 @@
             "lookAheadTime": 0.6,
             "collisionAvoidanceStrength": 4.0
           }
-        },
-        {
-            "Type": "Glider2",
-            "Params": {
-                
-            }
         }
       ]
-    }
-    
-  ],
-  "Targets": [],
-  "Avatar": {
+    },
+ 
+      {
+      "Pose": {
+        "Position": {
+          "X": 50,
+          "Y": 80
+        },
+        "Size": {
+          "X": 10,
+          "Y": 20
+        }
+      },
+      "Design": {
+        "Color": "transparent",
+        "Image": "assets/tree.svg"
+      },
+      "PhysicsConfiguration": {
+        "canMove": false,
+        "canRotate": false,
+        "hasGravity": true,
+        "restitution": 0.2,
+        "damping": 2,
+        "mass": 300,
+        "collisionBox": {
+          "minX": 0.4,
+          "minY": 0.3,
+          "maxX": 0.45,
+          "maxY": 1
+        }
+      }
+    },
+    {
     "Id": "Avatar",
     "Pose": {
       "Position": {
@@ -121,4 +141,65 @@
       }
     ]
   }
+    
+  ],
+  "Targets": [],
+  "Avatar":  {
+      "Pose": {
+        "Position": {
+          "X": 1,
+          "Y": 3
+        },
+        "Size": {
+          "X": 2,
+          "Y": 2
+        },
+        "Rotation": 90
+      },
+      "Design": {
+        "Color": "transparent",
+        "Image": "assets/bird.svg"
+      },
+      "PhysicsConfiguration": {
+        "hasGravity": false,
+        "canMove": true,
+        "mass": 10,
+        "restitution": 0.5
+      },
+      "Transformers": [
+        {
+          "Type": "UserController",
+          "Params": {
+            "linearAccel": 2.0,
+            "linearBrake": 1.0,
+            "linearDamping": 0.0,
+            "maxSpeed": 10.0,
+            "angularAccel": 700,
+            "angularDamping": 500,
+            "maxOmega": 300
+          }
+        },
+        {
+          "Type": "GliderInvalid",
+          "Params": {
+            "horizontalSpeed": 3.0,
+            "glideEfficiency": 0.4,
+            "minSpeedForLift": 1.5,
+            "maxClimbRate": 4.0,
+            "minDistanceToBoundary": 2,
+
+            "boundaryAvoidanceStrength": 10.0,
+            "lookAheadDistance": 2.5,
+            "lookAheadTime": 0.6,
+            "collisionAvoidanceStrength": 4.0
+          }
+        },
+        {
+            "Type": "Glider2",
+            "Params": {
+                
+            }
+        }
+      ]
+    }
 }
