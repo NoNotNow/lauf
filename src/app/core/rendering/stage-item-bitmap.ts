@@ -135,7 +135,8 @@ export class StageItemBitmap {
       d.BorderColor,
       d.BorderWidth,
       d.CornerRadius,
-      d.Image
+      d.Image,
+      d.Opacity
     ].join("|");
 
     if (key === this.currentKey && this.offscreenCanvas) return;

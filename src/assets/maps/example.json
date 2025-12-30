@@ -12,7 +12,7 @@
     "Zoom": 5.0
   },
   "Design": {
-    "Color": "#000000",
+    "Color": "#00ff00",
     "Border": {
       "Style": "dashed",
       "Color": "transparent",
@@ -34,7 +34,8 @@
       },
       "Design": {
         "Color": "transparent",
-        "Image": "assets/game/mountain.svg"
+        "Image": "assets/game/mountain.svg",
+        "Opacity": 0.2
       },
       "PhysicsConfiguration": {
         "canMove": false,
@@ -554,7 +555,7 @@
       "Border": {
         "Style": "none"
       },
-      "Image": "assets/game/hero.svg"
+      "Image": "assets/game/rocket.svg"
     },
     "Physics": {
       "mass": 200,

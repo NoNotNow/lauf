@@ -25,6 +25,7 @@ export class StageItemRenderer {
         const radiusCells = Math.max(0, Number(item.Design?.CornerRadius ?? 0));
         const radius = radiusCells * Math.min(geom.cellW, geom.cellH);
         const imageUrl = item.Design?.Image ?? '';
+        const opacity = Math.max(0, Math.min(1, Number(item.Design?.Opacity ?? 1.0)));
 
         // Calculate the base rectangle without padding first
         const base = geom.rectForCells(posX, posY, wCells, hCells, 0);
@@ -51,6 +52,7 @@ export class StageItemRenderer {
 
         // Draw filled rounded rect
         ctx.save();
+        ctx.globalAlpha = opacity;
         pathRoundedRect(ctx, x, y, w, h, radius);
         ctx.fillStyle = fill;
         ctx.fill();

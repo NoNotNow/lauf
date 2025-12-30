@@ -1,10 +1,12 @@
 <?xml version="1.0" encoding="UTF-8" standalone="no"?>
 <svg
-   viewBox="193 100 133 250"
+   viewBox="193 100 241 250"
    version="1.1"
    id="svg10268"
    sodipodi:docname="rocket.svg"
    inkscape:version="1.2.2 (b0a8486541, 2022-12-01)"
+   width="241"
+   height="250"
    xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape"
    xmlns:sodipodi="http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd"
    xmlns="http://www.w3.org/2000/svg"
@@ -23,7 +25,7 @@
      showgrid="false"
      inkscape:zoom="2.5125"
      inkscape:cx="79.800995"
-     inkscape:cy="160"
+     inkscape:cy="159.60199"
      inkscape:window-width="1920"
      inkscape:window-height="1013"
      inkscape:window-x="1920"
@@ -35,62 +37,55 @@
      stroke-linecap="round"
      stroke-linejoin="round"
      id="g10266">
+    <path
+       d="m 303.67103,147.59642 10.46455,-43.31781 10.46456,43.31781 z"
+       fill="#ff2d95"
+       id="path10254-9"
+       style="fill:#ff0000;stroke-width:0.614616" />
     <!-- body -->
     <ellipse
-       cx="260"
-       cy="200"
-       rx="30"
-       ry="80"
+       cx="314.04047"
+       cy="230.40286"
+       rx="26.271166"
+       ry="96.208626"
        fill="#00e5ff"
-       id="ellipse10252" />
+       id="ellipse10252"
+       style="stroke-width:1.02622" />
     <!-- nose cone -->
     <path
-       d="m 241.14428,137.91045 19.45273,-36.0199 19.45274,36.0199 z"
+       d="m 287.18385,342.88557 28.61288,-43.31781 28.6129,43.31781 z"
        fill="#ff2d95"
        id="path10254"
-       style="stroke-width:0.764137;fill:#ff0000" />
+       style="fill:#ff0000;stroke-width:1.0163" />
     <!-- window -->
-    <circle
-       cx="260"
-       cy="190"
-       r="12"
+    <ellipse
+       cx="314.33316"
+       cy="215.02623"
        fill="#fff200"
-       id="circle10256" />
-    <circle
-       cx="260"
-       cy="156.81593"
-       r="12"
+       id="circle10256"
+       rx="17.650713"
+       ry="14.431293"
+       style="stroke-width:1.33" />
+    <ellipse
+       cx="314.33316"
+       cy="175.1188"
        fill="#fff200"
-       id="circle10256-5" />
+       id="circle10256-5"
+       rx="17.650713"
+       ry="14.431293"
+       style="stroke-width:1.33" />
     <!-- fins -->
-    <path
-       d="m 240.74627,255.22388 -45.9204,50.34826 45.9204,-12.58706 z"
-       fill="#ff6a00"
-       id="path10258"
-       style="fill:#ff0000;stroke-width:1.38805" />
-    <path
-       d="m 278.84577,254.32836 44.02985,50.34826 -44.02985,-12.58706 z"
-       fill="#ff6a00"
-       id="path10258-3"
-       style="fill:#ff0000;stroke-width:1.35917" />
     <!-- engine -->
-    <rect
-       x="245"
-       y="270"
-       width="30"
-       height="20"
-       fill="#9b5cff"
-       id="rect10262" />
     <!-- flame -->
     <path
-       d="m 270.34826,295.27363 c -36.54496,30 36.54496,30 0,50"
-       fill="#ffe600"
-       id="path10264"
-       style="stroke-width:1.35176" />
+       style="fill:#ff0000;stroke:none;stroke-width:1.33;stroke-opacity:1"
+       d="m 201.14762,289.15713 -0.58543,-125.40628 88.98534,38.292 0.58544,55.52339 z"
+       id="path13760"
+       sodipodi:nodetypes="ccccc" />
     <path
-       d="m 249.45274,293.80597 c -30.34061,30 30.3406,30 0,50"
-       fill="#ffe600"
-       id="path10264-3"
-       style="stroke-width:1.23168" />
+       style="fill:#ff0000;stroke:none;stroke-width:1.3169;stroke-opacity:1"
+       d="m 426.25691,291.55038 0.57393,-125.40628 -87.24052,38.29199 -0.57396,55.5234 z"
+       id="path13760-7"
+       sodipodi:nodetypes="ccccc" />
   </g>
 </svg>
