@@ -87,6 +87,7 @@ export class MapComponent implements AfterViewInit, OnDestroy, MapLoader {
         this.updateGridFromMap(map);
         this.applyDesignConfiguration(map);
         this.animator.setMap(map);
+        this.animator.setCamera(this.camera);
         this.rebuildWorld(map);
     }
 
@@ -94,13 +95,23 @@ export class MapComponent implements AfterViewInit, OnDestroy, MapLoader {
         this.worldContext?.updateCamera();
         const cameraDirty = this.worldContext?.isCameraDirty() ?? false;
 
-        if (cameraDirty) {
-            this.grid?.requestRedraw();
+        // Update animator camera reference if it changed
+        if (this.camera) {
+            this.animator.setCamera(this.camera);
         }
 
-        // Obstacles and avatars are dynamic now, redraw every frame
-        this.animLayer?.requestRedraw();
-        this.avatarsCanvas?.requestRedraw();
+        if (cameraDirty) {
+            this.grid?.requestRedraw();
+            // Camera changed, so viewport changed - need to redraw layers
+            this.animLayer?.requestRedraw();
+            this.avatarsCanvas?.requestRedraw();
+        } else {
+            // Only redraw if items might have moved (physics/transformers update)
+            // For now, redraw every frame since items can be dynamic
+            // TODO: Track item movement to optimize further
+            this.animLayer?.requestRedraw();
+            this.avatarsCanvas?.requestRedraw();
+        }
 
         if (cameraDirty) {
             this.worldContext?.clearCameraDirty();

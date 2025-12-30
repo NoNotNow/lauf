@@ -67,11 +67,6 @@ export class StageItemBitmap {
   draw(targetCtx: CanvasRenderingContext2D, pose: Pose, geom: GridGeometry): void {
     if (!this.item || !pose || !geom) return;
 
-    // Ensure prerender exists and is up-to-date for the desired size/design/geom.
-    this.ensurePrerender(pose, geom);
-
-    if (!this.offscreenCanvas) return;
-
     const wCells = Math.max(0.01, pose?.Size?.x ?? this.item.Pose?.Size?.x ?? 1);
     const hCells = Math.max(0.01, pose?.Size?.y ?? this.item.Pose?.Size?.y ?? 1);
 
@@ -83,6 +78,21 @@ export class StageItemBitmap {
       hCells,
       0
     );
+
+    // Early exit: skip if item is completely off-screen
+    // Check if the item is outside the canvas bounds (with small margin for safety)
+    // This avoids expensive prerender operations for off-screen items
+    const canvas = targetCtx.canvas;
+    const margin = 10; // pixels margin
+    if (x + w < -margin || x > canvas.width + margin ||
+        y + h < -margin || y > canvas.height + margin) {
+      return; // Item is completely off-screen
+    }
+
+    // Ensure prerender exists and is up-to-date for the desired size/design/geom.
+    this.ensurePrerender(pose, geom);
+
+    if (!this.offscreenCanvas) return;
 
     const cx = x + w / 2;
     const cy = y + h / 2;

@@ -170,4 +170,24 @@ export class Camera {
   getZoom(): number {
     return this.zoom;
   }
+
+  // Returns the viewport bounds in cell coordinates (minX, minY, maxX, maxY)
+  // Useful for culling items that are outside the visible area
+  getViewportBounds(cols: number, rows: number): { minX: number; minY: number; maxX: number; maxY: number } | null {
+    // Use provided cols/rows if bounds not set (fallback)
+    const effectiveCols = this.bounds?.cols ?? cols;
+    const effectiveRows = this.bounds?.rows ?? rows;
+
+    const { w: viewWidth, h: viewHeight } = this.calculateViewportSize(effectiveCols, effectiveRows, this.zoom);
+    
+    const viewX = this.center.x - viewWidth / 2;
+    const viewY = this.center.y - viewHeight / 2;
+
+    return {
+      minX: viewX,
+      minY: viewY,
+      maxX: viewX + viewWidth,
+      maxY: viewY + viewHeight
+    };
+  }
 }

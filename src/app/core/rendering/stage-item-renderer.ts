@@ -29,6 +29,15 @@ export class StageItemRenderer {
         // Calculate the base rectangle without padding first
         const base = geom.rectForCells(posX, posY, wCells, hCells, 0);
         
+        // Early exit: skip if item is completely off-screen
+        // Check if the item is outside the canvas bounds (with small margin for safety)
+        const canvas = ctx.canvas;
+        const margin = 10; // pixels margin
+        if (base.x + base.w < -margin || base.x > canvas.width + margin ||
+            base.y + base.h < -margin || base.y > canvas.height + margin) {
+            return; // Item is completely off-screen
+        }
+        
         // We want the border to be "inside" the base rectangle (border-box).
         // If the border is thicker than the item, we cap it and center it.
         const effectiveBw = (borderStyle === 'none') ? 0 : Math.min(bw, base.w, base.h);
