@@ -1,25 +1,96 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="180 80 160 320">
-<g fill="none" stroke-linecap="round" stroke-linejoin="round">
-
-<!-- body -->
-<ellipse cx="260" cy="200" rx="30" ry="80" fill="#00e5ff"/>
-
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<svg
+   viewBox="193 100 133 250"
+   version="1.1"
+   id="svg10268"
+   sodipodi:docname="rocket.svg"
+   inkscape:version="1.2.2 (b0a8486541, 2022-12-01)"
+   xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape"
+   xmlns:sodipodi="http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd"
+   xmlns="http://www.w3.org/2000/svg"
+   xmlns:svg="http://www.w3.org/2000/svg">
+  <defs
+     id="defs10272" />
+  <sodipodi:namedview
+     id="namedview10270"
+     pagecolor="#505050"
+     bordercolor="#ffffff"
+     borderopacity="1"
+     inkscape:showpageshadow="0"
+     inkscape:pageopacity="0"
+     inkscape:pagecheckerboard="1"
+     inkscape:deskcolor="#505050"
+     showgrid="false"
+     inkscape:zoom="2.5125"
+     inkscape:cx="79.800995"
+     inkscape:cy="160"
+     inkscape:window-width="1920"
+     inkscape:window-height="1013"
+     inkscape:window-x="1920"
+     inkscape:window-y="34"
+     inkscape:window-maximized="1"
+     inkscape:current-layer="g10266" />
+  <g
+     fill="none"
+     stroke-linecap="round"
+     stroke-linejoin="round"
+     id="g10266">
+    <!-- body -->
+    <ellipse
+       cx="260"
+       cy="200"
+       rx="30"
+       ry="80"
+       fill="#00e5ff"
+       id="ellipse10252" />
     <!-- nose cone -->
-<path d="M230 120 L260 80 L290 120 Z" fill="#ff2d95"/>
-
-<!-- window -->
-<circle cx="260" cy="190" r="12" fill="#fff200"/>
-
-<!-- fins -->
-<path d="M230 260 L200 300 L230 290 Z" fill="#ff6a00"/>
-<path d="M290 260 L320 300 L290 290 Z" fill="#ff6a00"/>
-
-<!-- engine -->
-<rect x="245" y="270" width="30" height="20" fill="#9b5cff"/>
-
-<!-- flame -->
-<path d="M260 310 C240 340, 280 340, 260 360"
-fill="#ffe600"/>
-
-    </g>
-    </svg>
+    <path
+       d="m 241.14428,137.91045 19.45273,-36.0199 19.45274,36.0199 z"
+       fill="#ff2d95"
+       id="path10254"
+       style="stroke-width:0.764137;fill:#ff0000" />
+    <!-- window -->
+    <circle
+       cx="260"
+       cy="190"
+       r="12"
+       fill="#fff200"
+       id="circle10256" />
+    <circle
+       cx="260"
+       cy="156.81593"
+       r="12"
+       fill="#fff200"
+       id="circle10256-5" />
+    <!-- fins -->
+    <path
+       d="m 240.74627,255.22388 -45.9204,50.34826 45.9204,-12.58706 z"
+       fill="#ff6a00"
+       id="path10258"
+       style="fill:#ff0000;stroke-width:1.38805" />
+    <path
+       d="m 278.84577,254.32836 44.02985,50.34826 -44.02985,-12.58706 z"
+       fill="#ff6a00"
+       id="path10258-3"
+       style="fill:#ff0000;stroke-width:1.35917" />
+    <!-- engine -->
+    <rect
+       x="245"
+       y="270"
+       width="30"
+       height="20"
+       fill="#9b5cff"
+       id="rect10262" />
+    <!-- flame -->
+    <path
+       d="m 270.34826,295.27363 c -36.54496,30 36.54496,30 0,50"
+       fill="#ffe600"
+       id="path10264"
+       style="stroke-width:1.35176" />
+    <path
+       d="m 249.45274,293.80597 c -30.34061,30 30.3406,30 0,50"
+       fill="#ffe600"
+       id="path10264-3"
+       style="stroke-width:1.23168" />
+  </g>
+</svg>
