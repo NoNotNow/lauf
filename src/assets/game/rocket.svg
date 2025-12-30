@@ -1,0 +1,25 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="180 80 160 320">
+<g fill="none" stroke-linecap="round" stroke-linejoin="round">
+
+<!-- body -->
+<ellipse cx="260" cy="200" rx="30" ry="80" fill="#00e5ff"/>
+
+    <!-- nose cone -->
+<path d="M230 120 L260 80 L290 120 Z" fill="#ff2d95"/>
+
+<!-- window -->
+<circle cx="260" cy="190" r="12" fill="#fff200"/>
+
+<!-- fins -->
+<path d="M230 260 L200 300 L230 290 Z" fill="#ff6a00"/>
+<path d="M290 260 L320 300 L290 290 Z" fill="#ff6a00"/>
+
+<!-- engine -->
+<rect x="245" y="270" width="30" height="20" fill="#9b5cff"/>
+
+<!-- flame -->
+<path d="M260 310 C240 340, 280 340, 260 360"
+fill="#ffe600"/>
+
+    </g>
+    </svg>
