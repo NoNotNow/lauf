@@ -1,0 +1,28 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="50 -30 320 460">
+  <g fill="none" stroke-linecap="round" stroke-linejoin="round">
+
+    <!-- trunk -->
+    <path d="M200 420
+             C180 340, 210 260, 195 180
+             C185 120, 205 80, 200 40"
+          stroke="#ff8c00" stroke-width="14"/>
+
+    <!-- leaves -->
+    <path d="M200 60 C120 40, 80 20, 60 30"
+          stroke="#00e676" stroke-width="10"/>
+    <path d="M200 60 C260 40, 320 30, 360 50"
+          stroke="#00e676" stroke-width="10"/>
+    <path d="M200 60 C140 80, 100 110, 80 150"
+          stroke="#00e676" stroke-width="10"/>
+    <path d="M200 60 C260 90, 300 120, 330 160"
+          stroke="#00e676" stroke-width="10"/>
+    <path d="M200 60 C200 20, 210 0, 230 -20"
+          stroke="#00e676" stroke-width="10"/>
+
+    <!-- coconuts -->
+    <circle cx="185" cy="80" r="8" fill="#9b5cff"/>
+    <circle cx="205" cy="85" r="8" fill="#9b5cff"/>
+    <circle cx="195" cy="95" r="8" fill="#9b5cff"/>
+
+  </g>
+</svg>

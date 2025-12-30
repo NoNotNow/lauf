@@ -1,0 +1,33 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="170 150 166 230">
+  <g fill="none" stroke-linecap="round" stroke-linejoin="round">
+
+    <!-- body -->
+    <ellipse cx="256" cy="280" rx="60" ry="80" fill="#ff6a00"/>
+
+    <!-- head -->
+    <circle cx="256" cy="200" r="40" fill="#ffe600"/>
+
+    <!-- eyes -->
+    <circle cx="236" cy="200" r="10" fill="#fff200"/>
+    <circle cx="276" cy="200" r="10" fill="#fff200"/>
+    <circle cx="236" cy="200" r="4" fill="#ff2d95"/>
+    <circle cx="276" cy="200" r="4" fill="#ff2d95"/>
+
+    <!-- beak -->
+    <polygon points="246,220 256,230 266,220" fill="#ff004c"/>
+
+
+    <!-- arms -->
+    <path d="M196 260 C180 280, 196 320, 256 280" fill="#7cff00"/>
+    <path d="M316 260 C332 280, 316 320, 256 280" fill="#7cff00"/>
+
+    <!-- feet -->
+    <path d="M236 360 L236 340 L240 340" stroke="#00e5ff" stroke-width="4"/>
+    <path d="M276 360 L276 340 L280 340" stroke="#00e5ff" stroke-width="4"/>
+
+    <!-- head accents -->
+    <path d="M220 200 Q236 180, 252 200" stroke="#00ff9c" stroke-width="4"/>
+    <path d="M260 200 Q276 180, 292 200" stroke="#00ff9c" stroke-width="4"/>
+
+  </g>
+</svg>

@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="150 195 211 170">
+  <g fill="none" stroke-linecap="round" stroke-linejoin="round">
+
+    <!-- main mountain -->
+    <polygon points="180,360 256,200 332,360" fill="#9b5cff"/>
+
+    <!-- smaller adjacent peaks -->
+    <polygon points="160,360 220,240 280,360" fill="#00e5ff"/>
+    <polygon points="232,360 292,240 352,360" fill="#00ff9c"/>
+
+    <!-- snow caps -->
+    <polygon points="256,200 240,220 256,240 272,220" fill="#eeeeee"/>
+    <polygon points="220,240 210,250 220,260" fill="#dddddd"/>
+    <polygon points="292,240 282,250 292,260" fill="#cccccc"/>
+  </g>
+</svg>

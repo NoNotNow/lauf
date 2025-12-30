@@ -37087,8 +37087,6 @@ var TickService = class _TickService {
     this.frame++;
     const now = time ?? performance.now();
     let dtSec = Math.max(0, (now - this.lastTime) / 1e3);
-    if (dtSec > 0.05)
-      dtSec = 0.016;
     this.lastTime = now;
     this.tickObject.time = now;
     this.tickObject.frame = this.frame;
