@@ -357,8 +357,8 @@
           "Y": 4
         },
         "Size": {
-          "X": 0.1,
-          "Y": 0.2
+          "X": 0.15,
+          "Y": 0.3
         }
       },
       "Design": {
@@ -572,11 +572,11 @@
       {
         "Type": "UserController",
         "Params": {
-          "linearAccel": 3.0,
+          "linearAccel": 2.5,
           "linearBrake": 2.5,
           "linearDamping": 0.2,
           "maxSpeed": 10.0,
-          "angularAccel": 700,
+          "angularAccel": 1200,
           "angularDamping": 500,
           "maxOmega": 300
         }
