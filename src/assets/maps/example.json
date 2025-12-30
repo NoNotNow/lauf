@@ -21,6 +21,27 @@
     "Image": "assets/game/backgrounds/evening-stars.svg"
   },
   "Obstacles": [
+       {
+      "Pose": {
+        "Position": {
+          "X": 2,
+          "Y": 4
+        },
+        "Size": {
+          "X": 3,
+          "Y": 4
+        }
+      },
+      "Design": {
+        "Color": "transparent",
+        "Image": "assets/game/mountain.svg"
+      },
+      "PhysicsConfiguration": {
+        "canMove": false,
+        "canRotate": false,
+        "hasCollision": false
+      }
+    },
     {
       "Pose": {
         "Position": {
@@ -316,13 +337,52 @@
           "Type": "Glider",
           "Params": {
             "horizontalSpeed": 3.0,
-            "glideEfficiency": 0.4,
+            "glideEfficiency": 0.2,
             "minSpeedForLift": 1.5,
             "maxClimbRate": 4.0,
             "minDistanceToBoundary": 2,
 
             "boundaryAvoidanceStrength": 10.0,
-            "lookAheadDistance": 1.5,
+            "lookAheadDistance": 3.5,
+            "lookAheadTime": 0.6,
+            "collisionAvoidanceStrength": 4.0
+          }
+        }
+      ]
+    },
+        {
+      "Pose": {
+        "Position": {
+          "X": 28,
+          "Y": 4
+        },
+        "Size": {
+          "X": 0.1,
+          "Y": 0.2
+        }
+      },
+      "Design": {
+        "Color": "transparent",
+        "Image": "assets/game/owl.svg"
+      },
+      "PhysicsConfiguration": {
+        "hasGravity": true,
+        "canMove": true,
+        "mass": 10,
+        "restitution": 0.5
+      },
+      "Transformers": [
+        {
+          "Type": "Glider",
+          "Params": {
+            "horizontalSpeed": 4.0,
+            "glideEfficiency": 0.4,
+            "minSpeedForLift": 1.5,
+            "maxClimbRate": 5.0,
+            "minDistanceToBoundary": 2,
+
+            "boundaryAvoidanceStrength": 10.0,
+            "lookAheadDistance": 2.5,
             "lookAheadTime": 0.6,
             "collisionAvoidanceStrength": 4.0
           }
@@ -397,7 +457,68 @@
           "maxY": 1
         }
       }
+    },
+       {
+      "Pose": {
+        "Position": {
+          "X": 15,
+          "Y": 7
+        },
+        "Size": {
+          "X": 0.5,
+          "Y": 1
+        }
+      },
+      "Design": {
+        "Color": "transparent",
+        "Image": "assets/game/palm-tree.svg"
+      },
+      "PhysicsConfiguration": {
+        "canMove": false,
+        "canRotate": false,
+        "hasGravity": true,
+        "restitution": 0.2,
+        "damping": 2,
+        "mass": 300,
+        "collisionBox": {
+          "minX": 0.4,
+          "minY": 0.3,
+          "maxX": 0.45,
+          "maxY": 1
+        }
+      }
+    },
+    {
+      "Pose": {
+        "Position": {
+          "X": 22,
+          "Y": 5
+        },
+        "Size": {
+          "X": 3,
+          "Y": 3
+        }
+      },
+      "Design": {
+        "Color": "transparent",
+        "Image": "assets/game/wood.svg"
+      },
+      "PhysicsConfiguration": {
+        "canMove": false,
+        "canRotate": false,
+        "hasGravity": true,
+        "restitution": 0.2,
+        "damping": 2,
+        "mass": 300,
+        "collisionBox": {
+          "minX": 0.1,
+          "minY": 0.1,
+          "maxX": 0.9,
+          "maxY": 1
+        }
+      }
     }
+ 
   ],
   "Targets": [
     {
@@ -443,6 +564,11 @@
       "restitution": 0.7
     },
     "Transformers": [
+        {
+          "Type": "Glider2",
+          "Params": {           
+            }
+        },
       {
         "Type": "UserController",
         "Params": {
@@ -454,16 +580,7 @@
           "angularDamping": 500,
           "maxOmega": 300
         }
-      },
-      {
-        "Type": "StayUpright",
-        "Params": {
-          "latency": 20.0,
-          "maxAngle": 10.0,
-          "speed": 5.0,
-          "force": 4
-        }
-      }
+      }  
     ]
   }
 }
