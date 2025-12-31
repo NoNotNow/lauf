@@ -1,33 +1,125 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="170 150 166 230">
-  <g fill="none" stroke-linecap="round" stroke-linejoin="round">
-
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<svg
+   viewBox="170 150 166 230"
+   version="1.1"
+   id="svg122"
+   sodipodi:docname="owl.svg"
+   inkscape:version="1.2.2 (b0a8486541, 2022-12-01)"
+   xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape"
+   xmlns:sodipodi="http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd"
+   xmlns="http://www.w3.org/2000/svg"
+   xmlns:svg="http://www.w3.org/2000/svg">
+  <defs
+     id="defs126" />
+  <sodipodi:namedview
+     id="namedview124"
+     pagecolor="#505050"
+     bordercolor="#ffffff"
+     borderopacity="1"
+     inkscape:showpageshadow="0"
+     inkscape:pageopacity="0"
+     inkscape:pagecheckerboard="1"
+     inkscape:deskcolor="#505050"
+     showgrid="false"
+     inkscape:zoom="3.7565217"
+     inkscape:cx="80.260417"
+     inkscape:cy="115.2662"
+     inkscape:window-width="1920"
+     inkscape:window-height="1013"
+     inkscape:window-x="1920"
+     inkscape:window-y="34"
+     inkscape:window-maximized="1"
+     inkscape:current-layer="g120" />
+  <g
+     fill="none"
+     stroke-linecap="round"
+     stroke-linejoin="round"
+     id="g120">
     <!-- body -->
-    <ellipse cx="256" cy="280" rx="60" ry="80" fill="#ff6a00"/>
-
+    <ellipse
+       cx="256"
+       cy="282.12964"
+       rx="60"
+       ry="82.129631"
+       fill="#ff6a00"
+       id="ellipse94"
+       style="stroke-width:1.01322" />
     <!-- head -->
-    <circle cx="256" cy="200" r="40" fill="#ffe600"/>
-
+    <circle
+       cx="256"
+       cy="204"
+       fill="#ffe600"
+       id="circle96"
+       r="40" />
     <!-- eyes -->
-    <circle cx="236" cy="200" r="10" fill="#fff200"/>
-    <circle cx="276" cy="200" r="10" fill="#fff200"/>
-    <circle cx="236" cy="200" r="4" fill="#ff2d95"/>
-    <circle cx="276" cy="200" r="4" fill="#ff2d95"/>
-
+    <circle
+       cx="236"
+       cy="200"
+       r="10"
+       fill="#fff200"
+       id="circle98" />
+    <circle
+       cx="276"
+       cy="200"
+       r="10"
+       fill="#fff200"
+       id="circle100" />
+    <ellipse
+       cx="242.52202"
+       cy="208.11922"
+       fill="#ff2d95"
+       id="circle102"
+       rx="11.320601"
+       ry="14.78125"
+       style="stroke-width:3.23393;fill:#550000" />
+    <ellipse
+       cx="272.35532"
+       cy="207.7662"
+       fill="#ff2d95"
+       id="circle102-6"
+       rx="11.853009"
+       ry="15.579862"
+       style="stroke-width:3.39732;fill:#550000" />
     <!-- beak -->
-    <polygon points="246,220 256,230 266,220" fill="#ff004c"/>
-
-
+    <polygon
+       points="266,220 246,220 256,230 "
+       fill="#ff004c"
+       id="polygon106"
+       transform="matrix(1,0,0,2.7037037,-0.2662037,-367.89352)" />
     <!-- arms -->
-    <path d="M196 260 C180 280, 196 320, 256 280" fill="#7cff00"/>
-    <path d="M316 260 C332 280, 316 320, 256 280" fill="#7cff00"/>
-
+    <path
+       d="m 290.03612,234.28352 c 22.64383,-21.80258 58.9372,20.47994 8.40287,114.18623"
+       fill="#7cff00"
+       id="path110"
+       style="stroke-width:1.34967" />
+    <path
+       d="m 223.5813,233.08154 c -22.48702,-21.80258 -58.52907,20.47994 -8.34468,114.18623"
+       fill="#7cff00"
+       id="path110-7"
+       style="stroke-width:1.34499" />
     <!-- feet -->
-    <path d="M236 360 L236 340 L240 340" stroke="#00e5ff" stroke-width="4"/>
-    <path d="M276 360 L276 340 L280 340" stroke="#00e5ff" stroke-width="4"/>
-
+    <path
+       d="m 244.7641,346.14374 v 28.74263 h 3.50884"
+       stroke="#00e5ff"
+       stroke-width="4.49117"
+       id="path112" />
+    <path
+       d="m 267.71486,346.13153 v 28.23463 h 3.53324"
+       stroke="#00e5ff"
+       stroke-width="4.46676"
+       id="path114" />
     <!-- head accents -->
-    <path d="M220 200 Q236 180, 252 200" stroke="#00ff9c" stroke-width="4"/>
-    <path d="M260 200 Q276 180, 292 200" stroke="#00ff9c" stroke-width="4"/>
-
+    <path
+       d="m 262.46858,193.20967 q 12.81501,-39.73685 25.63,0"
+       stroke="#00ff9c"
+       stroke-width="5.04593"
+       id="path116-3"
+       style="stroke:#00a468;stroke-opacity:1" />
+    <path
+       d="m 229.3262,192.41106 q 12.81501,-39.73685 25.63,0"
+       stroke="#00ff9c"
+       stroke-width="5.04593"
+       id="path116-3-5"
+       style="stroke:#00a468;stroke-opacity:1" />
   </g>
 </svg>

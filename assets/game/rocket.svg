@@ -1,0 +1,91 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<svg
+   viewBox="193 100 241 250"
+   version="1.1"
+   id="svg10268"
+   sodipodi:docname="rocket.svg"
+   inkscape:version="1.2.2 (b0a8486541, 2022-12-01)"
+   width="241"
+   height="250"
+   xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape"
+   xmlns:sodipodi="http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd"
+   xmlns="http://www.w3.org/2000/svg"
+   xmlns:svg="http://www.w3.org/2000/svg">
+  <defs
+     id="defs10272" />
+  <sodipodi:namedview
+     id="namedview10270"
+     pagecolor="#505050"
+     bordercolor="#ffffff"
+     borderopacity="1"
+     inkscape:showpageshadow="0"
+     inkscape:pageopacity="0"
+     inkscape:pagecheckerboard="1"
+     inkscape:deskcolor="#505050"
+     showgrid="false"
+     inkscape:zoom="2.5125"
+     inkscape:cx="79.800995"
+     inkscape:cy="159.60199"
+     inkscape:window-width="1920"
+     inkscape:window-height="1013"
+     inkscape:window-x="1920"
+     inkscape:window-y="34"
+     inkscape:window-maximized="1"
+     inkscape:current-layer="g10266" />
+  <g
+     fill="none"
+     stroke-linecap="round"
+     stroke-linejoin="round"
+     id="g10266">
+    <path
+       d="m 303.67103,147.59642 10.46455,-43.31781 10.46456,43.31781 z"
+       fill="#ff2d95"
+       id="path10254-9"
+       style="fill:#ff0000;stroke-width:0.614616" />
+    <!-- body -->
+    <ellipse
+       cx="314.04047"
+       cy="230.40286"
+       rx="26.271166"
+       ry="96.208626"
+       fill="#00e5ff"
+       id="ellipse10252"
+       style="stroke-width:1.02622" />
+    <!-- nose cone -->
+    <path
+       d="m 287.18385,342.88557 28.61288,-43.31781 28.6129,43.31781 z"
+       fill="#ff2d95"
+       id="path10254"
+       style="fill:#ff0000;stroke-width:1.0163" />
+    <!-- window -->
+    <ellipse
+       cx="314.33316"
+       cy="215.02623"
+       fill="#fff200"
+       id="circle10256"
+       rx="17.650713"
+       ry="14.431293"
+       style="stroke-width:1.33" />
+    <ellipse
+       cx="314.33316"
+       cy="175.1188"
+       fill="#fff200"
+       id="circle10256-5"
+       rx="17.650713"
+       ry="14.431293"
+       style="stroke-width:1.33" />
+    <!-- fins -->
+    <!-- engine -->
+    <!-- flame -->
+    <path
+       style="fill:#ff0000;stroke:none;stroke-width:1.33;stroke-opacity:1"
+       d="m 201.14762,289.15713 -0.58543,-125.40628 88.98534,38.292 0.58544,55.52339 z"
+       id="path13760"
+       sodipodi:nodetypes="ccccc" />
+    <path
+       style="fill:#ff0000;stroke:none;stroke-width:1.3169;stroke-opacity:1"
+       d="m 426.25691,291.55038 0.57393,-125.40628 -87.24052,38.29199 -0.57396,55.5234 z"
+       id="path13760-7"
+       sodipodi:nodetypes="ccccc" />
+  </g>
+</svg>

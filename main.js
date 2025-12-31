@@ -36181,6 +36181,7 @@ var GridComponent = class _GridComponent {
     this.lineWidth = 0.02;
     this.backgroundColor = "transparent";
     this.backgroundImage = "";
+    this.backgroundRepeat = null;
     this.redrawKey = "";
     this.bitmap = new GridBitmap();
     this.imageCache = new ImageCache();
@@ -36204,15 +36205,34 @@ var GridComponent = class _GridComponent {
       if (imageLoaded && this.backgroundImage) {
         const img = this.imageCache.get(this.backgroundImage);
         if (img && img.complete && img.naturalWidth > 0) {
-          const imgAspect = img.naturalWidth / img.naturalHeight;
-          const gridAspect = gridRect.w / gridRect.h;
-          const scale = imgAspect > gridAspect ? gridRect.h / img.naturalHeight : gridRect.w / img.naturalWidth;
-          const scaledWidth = img.naturalWidth * scale;
-          const scaledHeight = img.naturalHeight * scale;
-          const offsetX = gridRect.x + (gridRect.w - scaledWidth) / 2;
-          const offsetY = gridRect.y + (gridRect.h - scaledHeight) / 2;
           ctx.save();
-          ctx.drawImage(img, offsetX, offsetY, scaledWidth, scaledHeight);
+          if (this.backgroundRepeat && this.backgroundRepeat.Mode !== "no-repeat") {
+            const mode = this.backgroundRepeat.Mode.toLowerCase();
+            const tileSizeX = Math.max(0.1, this.backgroundRepeat.TileSize.X);
+            const tileSizeY = Math.max(0.1, this.backgroundRepeat.TileSize.Y);
+            const tilePxW = Math.round(tileSizeX * geom.cellW);
+            const tilePxH = Math.round(tileSizeY * geom.cellH);
+            const startX = Math.round(gridRect.x);
+            const startY = Math.round(gridRect.y);
+            const tilesX = mode === "repeat-y" ? 1 : Math.ceil(gridRect.w / tilePxW) + 1;
+            const tilesY = mode === "repeat-x" ? 1 : Math.ceil(gridRect.h / tilePxH) + 1;
+            for (let ty = 0; ty < tilesY; ty++) {
+              for (let tx = 0; tx < tilesX; tx++) {
+                const x = startX + tx * tilePxW;
+                const y = startY + ty * tilePxH;
+                ctx.drawImage(img, x, y, tilePxW, tilePxH);
+              }
+            }
+          } else {
+            const imgAspect = img.naturalWidth / img.naturalHeight;
+            const gridAspect = gridRect.w / gridRect.h;
+            const scale = imgAspect > gridAspect ? gridRect.h / img.naturalHeight : gridRect.w / img.naturalWidth;
+            const scaledWidth = img.naturalWidth * scale;
+            const scaledHeight = img.naturalHeight * scale;
+            const offsetX = gridRect.x + (gridRect.w - scaledWidth) / 2;
+            const offsetY = gridRect.y + (gridRect.h - scaledHeight) / 2;
+            ctx.drawImage(img, offsetX, offsetY, scaledWidth, scaledHeight);
+          }
           ctx.restore();
         }
       }
@@ -36220,7 +36240,7 @@ var GridComponent = class _GridComponent {
     };
   }
   ngOnChanges(changes) {
-    if (changes["gridSize"] || changes["color"] || changes["lineWidth"] || changes["backgroundImage"]) {
+    if (changes["gridSize"] || changes["color"] || changes["lineWidth"] || changes["backgroundImage"] || changes["backgroundRepeat"]) {
       this.updateRedrawKey();
       this.bitmap.invalidate();
     }
@@ -36228,7 +36248,8 @@ var GridComponent = class _GridComponent {
   updateRedrawKey() {
     const N = Math.max(1, Math.floor(this.gridSize?.x ?? 1));
     const M = Math.max(1, Math.floor(this.gridSize?.y ?? 1));
-    this.redrawKey = `${N}x${M}-${this.color}-${this.lineWidth}-${this.backgroundImage}`;
+    const bgRepeatKey = this.backgroundRepeat ? `${this.backgroundRepeat.Mode}-${this.backgroundRepeat.TileSize.X}-${this.backgroundRepeat.TileSize.Y}` : "none";
+    this.redrawKey = `${N}x${M}-${this.color}-${this.lineWidth}-${this.backgroundImage}-${bgRepeatKey}`;
   }
   requestRedraw() {
     this.layer?.requestRedraw();
@@ -36290,7 +36311,7 @@ var GridComponent = class _GridComponent {
         let _t;
         \u0275\u0275queryRefresh(_t = \u0275\u0275loadQuery()) && (ctx.layer = _t.first);
       }
-    }, inputs: { gridSize: "gridSize", color: "color", lineWidth: "lineWidth", gridBorder: "gridBorder", backgroundColor: "backgroundColor", backgroundImage: "backgroundImage", camera: "camera" }, standalone: true, features: [\u0275\u0275NgOnChangesFeature, \u0275\u0275StandaloneFeature], decls: 2, vars: 4, consts: [["layer", ""], [3, "draw", "redrawKey", "gridSize", "camera"]], template: function GridComponent_Template(rf, ctx) {
+    }, inputs: { gridSize: "gridSize", color: "color", lineWidth: "lineWidth", gridBorder: "gridBorder", backgroundColor: "backgroundColor", backgroundImage: "backgroundImage", backgroundRepeat: "backgroundRepeat", camera: "camera" }, standalone: true, features: [\u0275\u0275NgOnChangesFeature, \u0275\u0275StandaloneFeature], decls: 2, vars: 4, consts: [["layer", ""], [3, "draw", "redrawKey", "gridSize", "camera"]], template: function GridComponent_Template(rf, ctx) {
       if (rf & 1) {
         \u0275\u0275element(0, "app-canvas-layer", 1, 0);
       }
@@ -36325,6 +36346,29 @@ var Border = class {
   }
 };
 
+// src/app/core/models/design/background-repeat.ts
+var BackgroundRepeat = class {
+  constructor() {
+    this.Mode = "no-repeat";
+    this.TileSize = { X: 1, Y: 1 };
+  }
+  FromJson(data) {
+    if (!data)
+      return this;
+    const g = (k, alt) => data[k] ?? (alt ? data[alt] : void 0);
+    if (g("Mode", "mode") !== void 0)
+      this.Mode = g("Mode", "mode");
+    const ts = g("TileSize", "tileSize");
+    if (ts) {
+      if (ts.X !== void 0 || ts.x !== void 0)
+        this.TileSize.X = Number(ts.X ?? ts.x ?? 1);
+      if (ts.Y !== void 0 || ts.y !== void 0)
+        this.TileSize.Y = Number(ts.Y ?? ts.y ?? 1);
+    }
+    return this;
+  }
+};
+
 // src/app/core/models/design/design.ts
 var Design = class {
   constructor() {
@@ -36332,6 +36376,8 @@ var Design = class {
     this.Border = new Border();
     this.CornerRadius = 0;
     this.Image = "";
+    this.Opacity = 1;
+    this.BackgroundRepeat = new BackgroundRepeat();
   }
   // Fills current instance from a plain JSON/object without replacing it
   FromJson(data) {
@@ -36347,6 +36393,11 @@ var Design = class {
       this.CornerRadius = Number(g("CornerRadius", "CornerRadius"));
     if (g("Image", "image") !== void 0)
       this.Image = g("Image", "image");
+    if (g("Opacity", "opacity") !== void 0)
+      this.Opacity = Number(g("Opacity", "opacity"));
+    if (g("BackgroundRepeat", "backgroundRepeat") !== void 0) {
+      this.BackgroundRepeat.FromJson(g("BackgroundRepeat", "backgroundRepeat"));
+    }
     return this;
   }
 };
@@ -36633,6 +36684,21 @@ var Camera = class {
   getZoom() {
     return this.zoom;
   }
+  // Returns the viewport bounds in cell coordinates (minX, minY, maxX, maxY)
+  // Useful for culling items that are outside the visible area
+  getViewportBounds(cols, rows) {
+    const effectiveCols = this.bounds?.cols ?? cols;
+    const effectiveRows = this.bounds?.rows ?? rows;
+    const { w: viewWidth, h: viewHeight } = this.calculateViewportSize(effectiveCols, effectiveRows, this.zoom);
+    const viewX = this.center.x - viewWidth / 2;
+    const viewY = this.center.y - viewHeight / 2;
+    return {
+      minX: viewX,
+      minY: viewY,
+      maxX: viewX + viewWidth,
+      maxY: viewY + viewHeight
+    };
+  }
 };
 
 // src/app/core/models/map.ts
@@ -36759,7 +36825,13 @@ var StageItemRenderer = class {
     const radiusCells = Math.max(0, Number(item.Design?.CornerRadius ?? 0));
     const radius = radiusCells * Math.min(geom.cellW, geom.cellH);
     const imageUrl = item.Design?.Image ?? "";
+    const opacity = Math.max(0, Math.min(1, Number(item.Design?.Opacity ?? 1)));
     const base = geom.rectForCells(posX, posY, wCells, hCells, 0);
+    const canvas = ctx.canvas;
+    const margin = 10;
+    if (base.x + base.w < -margin || base.x > canvas.width + margin || base.y + base.h < -margin || base.y > canvas.height + margin) {
+      return;
+    }
     const effectiveBw = borderStyle === "none" ? 0 : Math.min(bw, base.w, base.h);
     const padX = effectiveBw / 2;
     const padY = effectiveBw / 2;
@@ -36768,6 +36840,7 @@ var StageItemRenderer = class {
     const w = Math.max(0, base.w - effectiveBw);
     const h = Math.max(0, base.h - effectiveBw);
     ctx.save();
+    ctx.globalAlpha = opacity;
     pathRoundedRect(ctx, x, y, w, h, radius);
     ctx.fillStyle = fill;
     ctx.fill();
@@ -36849,12 +36922,17 @@ var StageItemBitmap = class {
   draw(targetCtx, pose, geom) {
     if (!this.item || !pose || !geom)
       return;
-    this.ensurePrerender(pose, geom);
-    if (!this.offscreenCanvas)
-      return;
     const wCells = Math.max(0.01, pose?.Size?.x ?? this.item.Pose?.Size?.x ?? 1);
     const hCells = Math.max(0.01, pose?.Size?.y ?? this.item.Pose?.Size?.y ?? 1);
     const { x, y, w, h } = geom.rectForCells(pose?.Position?.x ?? 0, pose?.Position?.y ?? 0, wCells, hCells, 0);
+    const canvas = targetCtx.canvas;
+    const margin = 10;
+    if (x + w < -margin || x > canvas.width + margin || y + h < -margin || y > canvas.height + margin) {
+      return;
+    }
+    this.ensurePrerender(pose, geom);
+    if (!this.offscreenCanvas)
+      return;
     const cx = x + w / 2;
     const cy = y + h / 2;
     const rotation = Number(pose?.Rotation ?? 0) * Math.PI / 180;
@@ -36891,7 +36969,8 @@ var StageItemBitmap = class {
       d.BorderColor,
       d.BorderWidth,
       d.CornerRadius,
-      d.Image
+      d.Image,
+      d.Opacity
     ].join("|");
     if (key === this.currentKey && this.offscreenCanvas)
       return;
@@ -36976,6 +37055,9 @@ var AnimatorService = class _AnimatorService {
     this.map = map2;
     this.rebuildBitmaps();
   }
+  setCamera(camera) {
+    this.camera = camera;
+  }
   setSupersample(factor) {
     const f = Math.max(1, Math.floor(factor || 1));
     if (f === this.supersample)
@@ -36987,11 +37069,34 @@ var AnimatorService = class _AnimatorService {
       this.adhocBitmaps.forEach?.((bmp) => bmp.setSupersample(f));
     }
   }
+  // Check if an item is within the viewport bounds
+  // Uses current item positions, so it's always accurate even when items move
+  isItemInViewport(item, viewportBounds) {
+    if (!viewportBounds)
+      return true;
+    const posX = item.Pose?.Position?.x ?? 0;
+    const posY = item.Pose?.Position?.y ?? 0;
+    const wCells = item.Pose?.Size?.x ?? 1;
+    const hCells = item.Pose?.Size?.y ?? 1;
+    const itemMinX = posX - wCells / 2;
+    const itemMaxX = posX + wCells / 2;
+    const itemMinY = posY - hCells / 2;
+    const itemMaxY = posY + hCells / 2;
+    const margin = Math.max(2, Math.max(wCells, hCells) * 0.5);
+    return !(itemMaxX < viewportBounds.minX - margin || itemMinX > viewportBounds.maxX + margin || itemMaxY < viewportBounds.minY - margin || itemMinY > viewportBounds.maxY + margin);
+  }
   // Draw current frame into given context using grid geometry
   draw(ctx, geom) {
     if (!this.map || !geom)
       return;
+    let viewportBounds = null;
+    if (this.camera) {
+      viewportBounds = this.camera.getViewportBounds(geom.cols, geom.rows);
+    }
     for (const { item, bmp } of this.bitmaps) {
+      if (!this.isItemInViewport(item, viewportBounds)) {
+        continue;
+      }
       try {
         bmp.draw(ctx, item.Pose, geom);
       } catch (e) {
@@ -37035,7 +37140,8 @@ var AnimatorService = class _AnimatorService {
     this.bitmaps = [];
     const obstacles = this.map?.obstacles ?? [];
     for (const item of obstacles) {
-      this.bitmaps.push({ item, bmp: new StageItemBitmap(item, void 0, this.supersample) });
+      const entry = { item, bmp: new StageItemBitmap(item, void 0, this.supersample) };
+      this.bitmaps.push(entry);
     }
   }
   static {
@@ -39195,6 +39301,7 @@ var MapComponent = class _MapComponent {
     this.enableItemCollisions = true;
     this.gridBackgroundColor = "transparent";
     this.gridBackgroundImage = "";
+    this.gridBackgroundRepeat = null;
     this.currentZoom = 1;
     this.zoomLevels = [1, 2, 3, 4, 5];
   }
@@ -39216,16 +39323,23 @@ var MapComponent = class _MapComponent {
     this.updateGridFromMap(map2);
     this.applyDesignConfiguration(map2);
     this.animator.setMap(map2);
+    this.animator.setCamera(this.camera);
     this.rebuildWorld(map2);
   }
   onTick() {
     this.worldContext?.updateCamera();
     const cameraDirty = this.worldContext?.isCameraDirty() ?? false;
+    if (this.camera) {
+      this.animator.setCamera(this.camera);
+    }
     if (cameraDirty) {
       this.grid?.requestRedraw();
+      this.animLayer?.requestRedraw();
+      this.avatarsCanvas?.requestRedraw();
+    } else {
+      this.animLayer?.requestRedraw();
+      this.avatarsCanvas?.requestRedraw();
     }
-    this.animLayer?.requestRedraw();
-    this.avatarsCanvas?.requestRedraw();
     if (cameraDirty) {
       this.worldContext?.clearCameraDirty();
     }
@@ -39251,7 +39365,7 @@ var MapComponent = class _MapComponent {
   applyDesignConfiguration(map2) {
     if (!map2.design)
       return;
-    const { Border: Border2, Color, Image: Image2 } = map2.design;
+    const { Border: Border2, Color, Image: Image2, BackgroundRepeat: BackgroundRepeat2 } = map2.design;
     if (Border2.Width)
       this.gridLineWidth = Border2.Width;
     if (Border2.Color)
@@ -39262,6 +39376,17 @@ var MapComponent = class _MapComponent {
       this.gridBackgroundColor = Color;
     if (Image2)
       this.gridBackgroundImage = Image2;
+    if (BackgroundRepeat2 && BackgroundRepeat2.Mode) {
+      this.gridBackgroundRepeat = {
+        Mode: BackgroundRepeat2.Mode,
+        TileSize: {
+          X: BackgroundRepeat2.TileSize?.X ?? 1,
+          Y: BackgroundRepeat2.TileSize?.Y ?? 1
+        }
+      };
+    } else {
+      this.gridBackgroundRepeat = null;
+    }
   }
   static {
     this.\u0275fac = function MapComponent_Factory(__ngFactoryType__) {
@@ -39281,7 +39406,7 @@ var MapComponent = class _MapComponent {
         \u0275\u0275queryRefresh(_t = \u0275\u0275loadQuery()) && (ctx.animLayer = _t.first);
         \u0275\u0275queryRefresh(_t = \u0275\u0275loadQuery()) && (ctx.avatarsCanvas = _t.first);
       }
-    }, standalone: true, features: [\u0275\u0275ProvidersFeature([]), \u0275\u0275StandaloneFeature], decls: 8, vars: 13, consts: [["avatarsCanvas", ""], [1, "container", 3, "click"], [1, "layer"], [3, "gridSize", "backgroundColor", "backgroundImage", "color", "gridBorder", "lineWidth", "camera"], [1, "layer", "obstacles"], [3, "gridSize", "draw", "camera"], [1, "layer", "avatars"]], template: function MapComponent_Template(rf, ctx) {
+    }, standalone: true, features: [\u0275\u0275ProvidersFeature([]), \u0275\u0275StandaloneFeature], decls: 8, vars: 14, consts: [["avatarsCanvas", ""], [1, "container", 3, "click"], [1, "layer"], [3, "gridSize", "backgroundColor", "backgroundImage", "backgroundRepeat", "color", "gridBorder", "lineWidth", "camera"], [1, "layer", "obstacles"], [3, "gridSize", "draw", "camera"], [1, "layer", "avatars"]], template: function MapComponent_Template(rf, ctx) {
       if (rf & 1) {
         const _r1 = \u0275\u0275getCurrentView();
         \u0275\u0275elementStart(0, "div", 1);
@@ -39301,7 +39426,7 @@ var MapComponent = class _MapComponent {
       }
       if (rf & 2) {
         \u0275\u0275advance(2);
-        \u0275\u0275property("gridSize", ctx.gridSize)("backgroundColor", ctx.gridBackgroundColor)("backgroundImage", ctx.gridBackgroundImage)("color", ctx.gridColor)("gridBorder", ctx.gridBorder)("lineWidth", ctx.gridLineWidth)("camera", ctx.camera);
+        \u0275\u0275property("gridSize", ctx.gridSize)("backgroundColor", ctx.gridBackgroundColor)("backgroundImage", ctx.gridBackgroundImage)("backgroundRepeat", ctx.gridBackgroundRepeat)("color", ctx.gridColor)("gridBorder", ctx.gridBorder)("lineWidth", ctx.gridLineWidth)("camera", ctx.camera);
         \u0275\u0275advance(2);
         \u0275\u0275property("gridSize", ctx.gridSize)("draw", ctx.drawFrame)("camera", ctx.camera);
         \u0275\u0275advance(2);

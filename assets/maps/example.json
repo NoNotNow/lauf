@@ -12,13 +12,20 @@
     "Zoom": 5.0
   },
   "Design": {
-    "Color": "#000000",
+    "Color": "#transparent",
     "Border": {
       "Style": "dashed",
       "Color": "transparent",
       "Width": "0.002"
     },
-    "Image": "assets/game/backgrounds/evening-stars.svg"
+    "Image": "assets/game/backgrounds/evening-stars.svg",
+    "BackgroundRepeat": {
+      "Mode": "repeat-x",
+      "TileSize": {
+        "X": 10,
+        "Y": 8
+      }
+    }
   },
   "Obstacles": [
        {
@@ -34,7 +41,8 @@
       },
       "Design": {
         "Color": "transparent",
-        "Image": "assets/game/mountain.svg"
+        "Image": "assets/game/mountain.svg",
+        "Opacity": 0.2
       },
       "PhysicsConfiguration": {
         "canMove": false,
@@ -45,12 +53,12 @@
     {
       "Pose": {
         "Position": {
-          "X": 1,
+          "X": 7,
           "Y": 8
         },
         "Size": {
-          "X": 0.3,
-          "Y": 0.2
+          "X": 0.5,
+          "Y": 0.5
         }
       },
       "Design": {
@@ -229,7 +237,7 @@
       "Pose": {
         "Position": {
           "X": 13,
-          "Y": 6
+          "Y": 2
         },
         "Size": {
           "X": 0.8,
@@ -238,14 +246,33 @@
       },
       "Design": {
         "Color": "transparent",
-        "Border": {
-          "Style": "solid",
-          "Color": "#cc6600",
-          "Width": 0.012
-        },
-        "CornerRadius": 0,
         "Image": "assets/game/ufo.svg"
-      }
+      },
+        "PhysicsConfiguration": {
+        "canMove": true,
+        "canRotate": true,
+        "hasCollision": true,
+        "mass": 100,
+        "restitution": 0.5
+      },
+      "Transformers": [
+        {
+          "Type": "Drifter",
+          "Params": {
+            "maxSpeed": 0.3,
+            "direction": "horizontal"
+          }
+        },
+        {
+          "Type": "StayUpright",
+          "Params": {
+            "latency": 0.2,
+            "maxAngle": 10.0,
+            "speed": 0.1,
+            "force": 3
+          }
+        }
+      ]
     },
     {
       "Pose": {
@@ -357,8 +384,8 @@
           "Y": 4
         },
         "Size": {
-          "X": 0.1,
-          "Y": 0.2
+          "X": 0.15,
+          "Y": 0.3
         }
       },
       "Design": {
@@ -465,7 +492,7 @@
           "Y": 7
         },
         "Size": {
-          "X": 0.5,
+          "X": 0.7,
           "Y": 1
         }
       },
@@ -554,7 +581,7 @@
       "Border": {
         "Style": "none"
       },
-      "Image": "assets/game/hero.svg"
+      "Image": "assets/game/rocket.svg"
     },
     "Physics": {
       "mass": 200,
@@ -572,11 +599,11 @@
       {
         "Type": "UserController",
         "Params": {
-          "linearAccel": 3.0,
+          "linearAccel": 2.5,
           "linearBrake": 2.5,
           "linearDamping": 0.2,
           "maxSpeed": 10.0,
-          "angularAccel": 700,
+          "angularAccel": 1200,
           "angularDamping": 500,
           "maxOmega": 300
         }
