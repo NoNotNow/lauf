@@ -19,8 +19,8 @@ export interface TouchControllerOptions {
 
 // TouchController: adjusts a StageItem's linear and angular velocities
 // based on touch gestures. When a touch point moves, it applies:
-// - Up: accelerate forward (strength based on vertical distance)
-// - Down: accelerate backward (strength based on vertical distance)
+// - Down: accelerate forward (strength based on vertical distance)
+// - Up: accelerate backward/decelerate (strength based on vertical distance)
 // - Left/Right: apply angular acceleration (strength based on horizontal distance)
 // - Diagonal swipes activate both linear and angular simultaneously
 // Strength scales with distance from touch start point.
@@ -149,11 +149,11 @@ export class TouchController implements ITransformer {
       const horizontalStrengthFactor = Math.min(horizontalDistance / this.opts.maxDistance, 1.0);
 
       // Determine directions and apply strength
-      if (dy < 0) {
-        // Moving up (negative Y in screen coordinates) = forward
+      if (dy > 0) {
+        // Moving down (positive Y in screen coordinates) = forward
         forwardStrength = verticalStrengthFactor;
-      } else if (dy > 0) {
-        // Moving down (positive Y in screen coordinates) = backward
+      } else if (dy < 0) {
+        // Moving up (negative Y in screen coordinates) = backward
         backwardStrength = verticalStrengthFactor;
       }
 
