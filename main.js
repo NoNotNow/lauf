@@ -35889,13 +35889,40 @@ var VERSION4 = new Version("18.2.14");
 // src/app/app.component.ts
 var _c0 = () => ({ exact: true });
 var AppComponent = class _AppComponent {
+  constructor() {
+    this.isFullscreen = false;
+    this.onFullscreenChange = () => {
+      this.updateFullscreenState();
+    };
+  }
+  ngOnInit() {
+    document.addEventListener("fullscreenchange", this.onFullscreenChange);
+    document.addEventListener("webkitfullscreenchange", this.onFullscreenChange);
+    document.addEventListener("mozfullscreenchange", this.onFullscreenChange);
+    document.addEventListener("MSFullscreenChange", this.onFullscreenChange);
+    this.updateFullscreenState();
+  }
+  ngOnDestroy() {
+    document.removeEventListener("fullscreenchange", this.onFullscreenChange);
+    document.removeEventListener("webkitfullscreenchange", this.onFullscreenChange);
+    document.removeEventListener("mozfullscreenchange", this.onFullscreenChange);
+    document.removeEventListener("MSFullscreenChange", this.onFullscreenChange);
+  }
+  updateFullscreenState() {
+    const isFullscreen = !!(document.fullscreenElement || document.webkitFullscreenElement || document.mozFullScreenElement || document.msFullscreenElement);
+    this.isFullscreen = isFullscreen;
+  }
   static {
     this.\u0275fac = function AppComponent_Factory(__ngFactoryType__) {
       return new (__ngFactoryType__ || _AppComponent)();
     };
   }
   static {
-    this.\u0275cmp = /* @__PURE__ */ \u0275\u0275defineComponent({ type: _AppComponent, selectors: [["app-root"]], standalone: true, features: [\u0275\u0275StandaloneFeature], decls: 11, vars: 2, consts: [[1, "navbar"], [1, "container", "nav-inner"], [1, "brand"], [1, "links"], ["routerLink", "/game", "routerLinkActive", "active", 3, "routerLinkActiveOptions"], ["routerLink", "/builder", "routerLinkActive", "active"], [1, "container", "main"]], template: function AppComponent_Template(rf, ctx) {
+    this.\u0275cmp = /* @__PURE__ */ \u0275\u0275defineComponent({ type: _AppComponent, selectors: [["app-root"]], hostVars: 2, hostBindings: function AppComponent_HostBindings(rf, ctx) {
+      if (rf & 2) {
+        \u0275\u0275classProp("fullscreen", ctx.isFullscreen);
+      }
+    }, standalone: true, features: [\u0275\u0275StandaloneFeature], decls: 11, vars: 6, consts: [[1, "navbar"], [1, "container", "nav-inner"], [1, "brand"], [1, "links"], ["routerLink", "/game", "routerLinkActive", "active", 3, "routerLinkActiveOptions"], ["routerLink", "/builder", "routerLinkActive", "active"], [1, "container", "main"]], template: function AppComponent_Template(rf, ctx) {
       if (rf & 1) {
         \u0275\u0275elementStart(0, "header", 0)(1, "div", 1)(2, "div", 2);
         \u0275\u0275text(3, "Lauf");
@@ -35911,10 +35938,13 @@ var AppComponent = class _AppComponent {
         \u0275\u0275elementEnd();
       }
       if (rf & 2) {
+        \u0275\u0275classProp("hidden", ctx.isFullscreen);
         \u0275\u0275advance(5);
-        \u0275\u0275property("routerLinkActiveOptions", \u0275\u0275pureFunction0(1, _c0));
+        \u0275\u0275property("routerLinkActiveOptions", \u0275\u0275pureFunction0(5, _c0));
+        \u0275\u0275advance(4);
+        \u0275\u0275classProp("fullscreen", ctx.isFullscreen);
       }
-    }, dependencies: [RouterOutlet, RouterLink, RouterLinkActive], styles: ["\n\n.navbar[_ngcontent-%COMP%] {\n  position: sticky;\n  top: 0;\n  background: rgba(2, 6, 23, 0.7);\n  backdrop-filter: blur(8px);\n  border-bottom: 1px solid rgba(148, 163, 184, 0.2);\n}\n.nav-inner[_ngcontent-%COMP%] {\n  display: flex;\n  align-items: center;\n  justify-content: space-between;\n}\n.brand[_ngcontent-%COMP%] {\n  font-weight: 700;\n  letter-spacing: 0.04em;\n}\n.links[_ngcontent-%COMP%] {\n  display: flex;\n  gap: 1rem;\n}\n.links[_ngcontent-%COMP%]   a[_ngcontent-%COMP%] {\n  color: var(--text);\n  opacity: 0.8;\n}\n.links[_ngcontent-%COMP%]   a.active[_ngcontent-%COMP%] {\n  opacity: 1;\n  border-bottom: 2px solid var(--accent);\n}\n.main[_ngcontent-%COMP%] {\n  flex: 1;\n  display: flex;\n  flex-direction: column;\n  width: 100%;\n}\n/*# sourceMappingURL=app.component.css.map */"] });
+    }, dependencies: [RouterOutlet, RouterLink, RouterLinkActive], styles: ["\n\n.navbar[_ngcontent-%COMP%] {\n  position: sticky;\n  top: 0;\n  background: rgba(2, 6, 23, 0.7);\n  backdrop-filter: blur(8px);\n  border-bottom: 1px solid rgba(148, 163, 184, 0.2);\n  transition:\n    opacity 0.2s,\n    transform 0.2s,\n    height 0.2s;\n}\n.navbar.hidden[_ngcontent-%COMP%] {\n  opacity: 0;\n  transform: translateY(-100%);\n  height: 0;\n  overflow: hidden;\n  pointer-events: none;\n}\n.nav-inner[_ngcontent-%COMP%] {\n  display: flex;\n  align-items: center;\n  justify-content: space-between;\n}\n.brand[_ngcontent-%COMP%] {\n  font-weight: 700;\n  letter-spacing: 0.04em;\n}\n.links[_ngcontent-%COMP%] {\n  display: flex;\n  gap: 1rem;\n}\n.links[_ngcontent-%COMP%]   a[_ngcontent-%COMP%] {\n  color: var(--text);\n  opacity: 0.8;\n}\n.links[_ngcontent-%COMP%]   a.active[_ngcontent-%COMP%] {\n  opacity: 1;\n  border-bottom: 2px solid var(--accent);\n}\n.main[_ngcontent-%COMP%] {\n  flex: 1;\n  display: flex;\n  flex-direction: column;\n  width: 100%;\n}\n.main.fullscreen[_ngcontent-%COMP%] {\n  position: fixed;\n  top: 0;\n  left: 0;\n  right: 0;\n  bottom: 0;\n  width: 100vw;\n  height: 100vh;\n  z-index: 1;\n}\n/*# sourceMappingURL=app.component.css.map */"] });
   }
 };
 (() => {
@@ -39143,9 +39173,9 @@ var TouchController = class {
       const horizontalDistance = Math.abs(dx);
       const verticalStrengthFactor = Math.min(verticalDistance / this.opts.maxDistance, 1);
       const horizontalStrengthFactor = Math.min(horizontalDistance / this.opts.maxDistance, 1);
-      if (dy < 0) {
+      if (dy > 0) {
         forwardStrength = verticalStrengthFactor;
-      } else if (dy > 0) {
+      } else if (dy < 0) {
         backwardStrength = verticalStrengthFactor;
       }
       if (dx < 0) {
@@ -39654,7 +39684,7 @@ var MapComponent = class _MapComponent {
         \u0275\u0275advance(2);
         \u0275\u0275property("gridSize", ctx.gridSize)("draw", ctx.drawAvatarFrame)("camera", ctx.camera);
       }
-    }, dependencies: [GridComponent, CanvasLayerComponent], styles: ["\n\n[_nghost-%COMP%] {\n  display: flex;\n  flex-direction: column;\n  flex: 1;\n  width: 100%;\n}\n.container[_ngcontent-%COMP%] {\n  position: relative;\n  flex: 1;\n  width: 100%;\n  padding: 0;\n  overflow: hidden;\n}\n.layer[_ngcontent-%COMP%] {\n  position: absolute;\n  inset: 0;\n}\n.layer.obstacles[_ngcontent-%COMP%] {\n  z-index: 2;\n}\n.layer.targets[_ngcontent-%COMP%] {\n  z-index: 3;\n}\n.layer.avatars[_ngcontent-%COMP%] {\n  z-index: 4;\n}\n/*# sourceMappingURL=map.component.css.map */"] });
+    }, dependencies: [GridComponent, CanvasLayerComponent], styles: ["\n\n[_nghost-%COMP%] {\n  display: flex;\n  flex-direction: column;\n  flex: 1;\n  width: 100%;\n  height: 100%;\n}\n.container[_ngcontent-%COMP%] {\n  position: relative;\n  flex: 1;\n  width: 100%;\n  height: 100%;\n  padding: 0;\n  overflow: hidden;\n}\n.layer[_ngcontent-%COMP%] {\n  position: absolute;\n  inset: 0;\n}\n.layer.obstacles[_ngcontent-%COMP%] {\n  z-index: 2;\n}\n.layer.targets[_ngcontent-%COMP%] {\n  z-index: 3;\n}\n.layer.avatars[_ngcontent-%COMP%] {\n  z-index: 4;\n}\n/*# sourceMappingURL=map.component.css.map */"] });
   }
 };
 (() => {
@@ -39675,7 +39705,7 @@ var GameComponent = class _GameComponent {
         \u0275\u0275element(1, "app-map", 1);
         \u0275\u0275elementEnd();
       }
-    }, dependencies: [MapComponent], styles: ["\n\n[_nghost-%COMP%] {\n  display: flex;\n  flex-direction: column;\n  flex: 1;\n  width: 100%;\n}\n.page[_ngcontent-%COMP%] {\n  flex: 1;\n  display: flex;\n  flex-direction: column;\n  width: 100%;\n}\n.page[_ngcontent-%COMP%]   h1[_ngcontent-%COMP%] {\n  margin: 0.5rem 1rem;\n}\n.page[_ngcontent-%COMP%]   .muted[_ngcontent-%COMP%] {\n  color: var(--muted);\n}\n.page[_ngcontent-%COMP%]   .app-map[_ngcontent-%COMP%] {\n  flex: 1;\n  width: 100%;\n}\n/*# sourceMappingURL=game.component.css.map */"] });
+    }, dependencies: [MapComponent], styles: ["\n\n[_nghost-%COMP%] {\n  display: flex;\n  flex-direction: column;\n  flex: 1;\n  width: 100%;\n  height: 100%;\n}\n.page[_ngcontent-%COMP%] {\n  flex: 1;\n  display: flex;\n  flex-direction: column;\n  width: 100%;\n  height: 100%;\n}\n.page[_ngcontent-%COMP%]   h1[_ngcontent-%COMP%] {\n  margin: 0.5rem 1rem;\n}\n.page[_ngcontent-%COMP%]   .muted[_ngcontent-%COMP%] {\n  color: var(--muted);\n}\n.page[_ngcontent-%COMP%]   .app-map[_ngcontent-%COMP%] {\n  flex: 1;\n  width: 100%;\n  height: 100%;\n}\n/*# sourceMappingURL=game.component.css.map */"] });
   }
 };
 (() => {
