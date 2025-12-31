@@ -565,7 +565,7 @@
       "canMove": true,
       "canRotate": true,
       "hasGravity": true,
-      "restitution": 0.7
+      "restitution": 5
     },
     "Transformers": [
         {
