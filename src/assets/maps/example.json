@@ -1,31 +1,40 @@
 {
   "Name": "Sample Level 1",
   "Size": {
-    "X": 25,
-    "Y": 8
+    "X": 250,
+    "Y": 15
   },
   "Camera": {
     "Position": {
       "X": 5,
       "Y": 5
     },
-    "Zoom": 5.0
+    "Zoom": 20.0,
+    "ZoomLevels": [5, 10.0, 15.0, 20.0, 30.0, 50.0, 75]
+  
   },
   "Design": {
-    "Color": "#00ff00",
+    "Color": "#transparent",
     "Border": {
       "Style": "dashed",
       "Color": "transparent",
       "Width": "0.002"
     },
-    "Image": "assets/game/backgrounds/evening-stars.svg"
+    "Image": "assets/game/backgrounds/evening-stars.svg",
+    "BackgroundRepeat": {
+      "Mode": "repeat-x",
+      "TileSize": {
+        "X": 20,
+        "Y": 15
+      }
+    }
   },
   "Obstacles": [
        {
       "Pose": {
         "Position": {
-          "X": 2,
-          "Y": 4
+          "X": 125,
+          "Y": 11
         },
         "Size": {
           "X": 3,
@@ -46,12 +55,12 @@
     {
       "Pose": {
         "Position": {
-          "X": 1,
-          "Y": 8
+          "X": 7,
+          "Y": 15
         },
         "Size": {
-          "X": 0.3,
-          "Y": 0.2
+          "X": 0.5,
+          "Y": 0.5
         }
       },
       "Design": {
@@ -85,32 +94,7 @@
         }
       ]
     },
-    {
-      "Pose": {
-        "Position": {
-          "X": 9,
-          "Y": 2
-        },
-        "Size": {
-          "X": 0.2,
-          "Y": 0.2
-        }
-      },
-      "Design": {
-        "Color": "#ff33ff",
-        "CornerRadius": 0,
-        "Border": {
-          "Color": "#990099",
-          "Style": "Solid",
-          "Width": "0.003"
-        },
-        "Image": "assets/game/shapes.svg"
-      },
-      "PhysicsConfiguration": {
-        "damping": 0.5
-      }
-    },
-    {
+      {
       "Pose": {
         "Position": {
           "X": 20,
@@ -230,7 +214,7 @@
       "Pose": {
         "Position": {
           "X": 13,
-          "Y": 6
+          "Y": 2
         },
         "Size": {
           "X": 0.8,
@@ -239,14 +223,33 @@
       },
       "Design": {
         "Color": "transparent",
-        "Border": {
-          "Style": "solid",
-          "Color": "#cc6600",
-          "Width": 0.012
-        },
-        "CornerRadius": 0,
         "Image": "assets/game/ufo.svg"
-      }
+      },
+        "PhysicsConfiguration": {
+        "canMove": true,
+        "canRotate": true,
+        "hasCollision": true,
+        "mass": 100,
+        "restitution": 0.5
+      },
+      "Transformers": [
+        {
+          "Type": "Drifter",
+          "Params": {
+            "maxSpeed": 0.3,
+            "direction": "horizontal"
+          }
+        },
+        {
+          "Type": "StayUpright",
+          "Params": {
+            "latency": 0.2,
+            "maxAngle": 10.0,
+            "speed": 0.1,
+            "force": 3
+          }
+        }
+      ]
     },
     {
       "Pose": {
@@ -376,7 +379,7 @@
         {
           "Type": "Glider",
           "Params": {
-            "horizontalSpeed": 4.0,
+            "horizontalSpeed": 5.0,
             "glideEfficiency": 0.4,
             "minSpeedForLift": 1.5,
             "maxClimbRate": 5.0,
@@ -432,8 +435,8 @@
     {
       "Pose": {
         "Position": {
-          "X": 7,
-          "Y": 6
+          "X": 50,
+          "Y": 13
         },
         "Size": {
           "X": 1,
@@ -462,11 +465,11 @@
        {
       "Pose": {
         "Position": {
-          "X": 15,
-          "Y": 7
+          "X": 45,
+          "Y": 14
         },
         "Size": {
-          "X": 0.5,
+          "X": 0.7,
           "Y": 1
         }
       },
@@ -492,8 +495,8 @@
     {
       "Pose": {
         "Position": {
-          "X": 22,
-          "Y": 5
+          "X": 150,
+          "Y": 12
         },
         "Size": {
           "X": 3,
