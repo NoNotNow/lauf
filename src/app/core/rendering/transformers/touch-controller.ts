@@ -14,6 +14,7 @@ export interface TouchControllerOptions {
   angularDamping?: number;   // deg / s^2 to bleed spin when no input
   maxOmega?: number;         // deg / s cap for |omega|
   maxDistance?: number;      // pixels distance for full strength (default: 100)
+  minMovementThreshold?: number; // pixels of movement required before controller activates (default: 15)
 }
 
 // TouchController: adjusts a StageItem's linear and angular velocities
@@ -29,6 +30,7 @@ export class TouchController implements ITransformer {
   private _phys?: StageItemPhysics;
   private touchStart: { x: number; y: number } | null = null;
   private currentTouch: { x: number; y: number } | null = null;
+  private isActive: boolean = false; // Track if touch has moved enough to activate
   private opts: Required<TouchControllerOptions>;
 
   constructor(private ticker: TickService, item?: StageItem, params?: any) {
@@ -44,7 +46,8 @@ export class TouchController implements ITransformer {
       angularAccel: params?.angularAccel ?? 600,
       angularDamping: params?.angularDamping ?? 600,
       maxOmega: params?.maxOmega ?? 240,
-      maxDistance: params?.maxDistance ?? 100
+      maxDistance: params?.maxDistance ?? 100,
+      minMovementThreshold: params?.minMovementThreshold ?? 15
     };
   }
 
@@ -73,6 +76,7 @@ export class TouchController implements ITransformer {
     window.removeEventListener('touchcancel', this.onTouchEnd);
     this.touchStart = null;
     this.currentTouch = null;
+    this.isActive = false;
   }
 
   private onTouchStart = (e: TouchEvent) => {
@@ -80,7 +84,8 @@ export class TouchController implements ITransformer {
       const touch = e.touches[0];
       this.touchStart = { x: touch.clientX, y: touch.clientY };
       this.currentTouch = { x: touch.clientX, y: touch.clientY };
-      e.preventDefault();
+      this.isActive = false;
+      // Don't prevent default on touchstart - let taps pass through for zoom
     }
   };
 
@@ -89,13 +94,30 @@ export class TouchController implements ITransformer {
     
     const touch = e.touches[0];
     this.currentTouch = { x: touch.clientX, y: touch.clientY };
-    e.preventDefault();
+    
+    // Check if movement exceeds threshold
+    const dx = this.currentTouch.x - this.touchStart.x;
+    const dy = this.currentTouch.y - this.touchStart.y;
+    const distance = Math.hypot(dx, dy);
+    
+    if (distance >= this.opts.minMovementThreshold) {
+      // Movement is significant enough - activate controller and prevent default
+      if (!this.isActive) {
+        this.isActive = true;
+      }
+      e.preventDefault();
+    }
+    // If movement is below threshold, don't prevent default - let it pass through for zoom
   };
 
   private onTouchEnd = (e: TouchEvent) => {
+    // Only prevent default if controller was active (swipe), not if it was just a tap
+    if (this.isActive) {
+      e.preventDefault();
+    }
     this.touchStart = null;
     this.currentTouch = null;
-    e.preventDefault();
+    this.isActive = false;
   };
 
   private onTick(dt: number): void {
@@ -113,7 +135,8 @@ export class TouchController implements ITransformer {
     let leftStrength = 0;
     let rightStrength = 0;
 
-    if (this.touchStart && this.currentTouch) {
+    // Only process if touch is active (moved beyond threshold)
+    if (this.isActive && this.touchStart && this.currentTouch) {
       const dx = this.currentTouch.x - this.touchStart.x;
       const dy = this.currentTouch.y - this.touchStart.y;
 

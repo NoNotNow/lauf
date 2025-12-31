@@ -1,4 +1,4 @@
-<div class="container" (click)="toggleZoom()">
+<div class="container" (click)="toggleZoom()" (touchstart)="onTouchStart($event)">
   <div class="layer">
     <app-grid [gridSize]="gridSize" [backgroundColor]="gridBackgroundColor" [backgroundImage]="gridBackgroundImage" [backgroundRepeat]="gridBackgroundRepeat" [color]="gridColor" [gridBorder]="gridBorder"    [lineWidth]="gridLineWidth" [camera]="camera"></app-grid>
   </div>

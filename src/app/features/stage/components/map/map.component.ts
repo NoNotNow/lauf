@@ -137,11 +137,62 @@ export class MapComponent implements AfterViewInit, OnDestroy, MapLoader {
 
     private currentZoom = 1.0;
     private zoomLevels: number[] = [1.0, 2.0, 3.0, 4.0, 5.0]; // Default fallback
+    
+    // Double-tap detection for fullscreen
+    private lastTapTime: number = 0;
+    private lastTapPosition: { x: number; y: number } | null = null;
+    private readonly DOUBLE_TAP_DELAY = 300; // ms
+    private readonly DOUBLE_TAP_DISTANCE = 50; // pixels
+
     toggleZoom(): void {
         this.currentZoom = this.zoomLevels[this.currentZoomIndex];
         this.currentZoomIndex = (this.currentZoomIndex + 1) % this.zoomLevels.length;
         this.camera.setTarget(this.camera.getTargetCenter(), this.currentZoom);
         console.log('currentZoom', this.currentZoom, this.currentZoomIndex);
+    }
+
+    onTouchStart(event: TouchEvent): void {
+        if (event.touches.length !== 1) return;
+        
+        const touch = event.touches[0];
+        const currentTime = Date.now();
+        const currentPosition = { x: touch.clientX, y: touch.clientY };
+
+        // Check if this is a double-tap
+        if (this.lastTapTime > 0 && 
+            (currentTime - this.lastTapTime) < this.DOUBLE_TAP_DELAY &&
+            this.lastTapPosition &&
+            Math.hypot(currentPosition.x - this.lastTapPosition.x, 
+                      currentPosition.y - this.lastTapPosition.y) < this.DOUBLE_TAP_DISTANCE) {
+            // Double-tap detected - toggle fullscreen
+            this.toggleFullscreen();
+            event.preventDefault();
+            this.lastTapTime = 0; // Reset to prevent triple-tap
+            this.lastTapPosition = null;
+        } else {
+            // Store tap info for potential double-tap
+            this.lastTapTime = currentTime;
+            this.lastTapPosition = currentPosition;
+        }
+    }
+
+    private toggleFullscreen(): void {
+        if (!document.fullscreenElement) {
+            // Enter fullscreen
+            const element = document.documentElement;
+            if (element.requestFullscreen) {
+                element.requestFullscreen().catch(err => {
+                    console.error('Error attempting to enable fullscreen:', err);
+                });
+            }
+        } else {
+            // Exit fullscreen
+            if (document.exitFullscreen) {
+                document.exitFullscreen().catch(err => {
+                    console.error('Error attempting to exit fullscreen:', err);
+                });
+            }
+        }
     }
 
     private updateZoomLevelsFromMap(map: GameMap): void {
