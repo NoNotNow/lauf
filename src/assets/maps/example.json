@@ -9,7 +9,7 @@
       "X": 5,
       "Y": 5
     },
-    "Zoom": 20.0,
+    "Zoom": 75.0,
     "ZoomLevels": [5, 10.0, 15.0, 20.0, 30.0, 50.0, 75]
   
   },
@@ -583,6 +583,19 @@
           "angularAccel": 1200,
           "angularDamping": 500,
           "maxOmega": 300
+        }
+      },
+      {
+        "Type": "TouchController",
+        "Params": {
+          "linearAccel": 3.5,
+          "linearBrake": 2.5,
+          "linearDamping": 0.2,
+          "maxSpeed": 10.0,
+          "angularAccel": 1200,
+          "angularDamping": 500,
+          "maxOmega": 300,
+          "movementThreshold": 10
         }
       }  
     ]

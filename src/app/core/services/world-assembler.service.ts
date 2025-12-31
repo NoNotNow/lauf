@@ -13,6 +13,7 @@ import { Gravity } from '../rendering/transformers/gravity';
 import { FollowItem } from '../rendering/transformers/follow-item';
 import { StayUpright } from '../rendering/transformers/stay-upright';
 import { KeyboardController } from '../rendering/transformers/keyboard-controller';
+import { TouchController } from '../rendering/transformers/touch-controller';
 import { StageItem } from '../models/game-items/stage-item';
 import { Point } from '../models/point';
 import { Camera } from '../rendering/camera';
@@ -36,6 +37,8 @@ export class WorldAssemblerService {
   > = {
     UserController: (item, context, params) =>
       context.addTransformer(new KeyboardController(this.ticker, item, params)),
+    TouchController: (item, context, params) =>
+      context.addTransformer(new TouchController(this.ticker, item, params)),
     FollowItem: (item, context, params) => {
       const target = params?.TargetId === 'Avatar' ? context.getAvatar() : undefined;
       if (target) {
