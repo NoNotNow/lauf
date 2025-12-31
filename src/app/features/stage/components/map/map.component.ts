@@ -79,6 +79,7 @@ export class MapComponent implements AfterViewInit, OnDestroy, MapLoader {
 
     protected gridBackgroundColor: string = 'transparent';
     protected gridBackgroundImage: string = '';
+    protected gridBackgroundRepeat: { Mode: string, TileSize: { X: number, Y: number } } | null = null;
 
     loadMap(map: GameMap): void {
         if (!map) return;
@@ -145,12 +146,23 @@ export class MapComponent implements AfterViewInit, OnDestroy, MapLoader {
     private applyDesignConfiguration(map: GameMap): void {
         if (!map.design) return;
 
-        const { Border, Color, Image } = map.design;
+        const { Border, Color, Image, BackgroundRepeat } = map.design;
 
         if (Border.Width) this.gridLineWidth = Border.Width;
         if (Border.Color) this.gridColor = Border.Color;
         if (Border.Style) this.gridBorder = Border.Style;
         if (Color) this.gridBackgroundColor = Color;
         if (Image) this.gridBackgroundImage = Image;
+        if (BackgroundRepeat && BackgroundRepeat.Mode) {
+            this.gridBackgroundRepeat = {
+                Mode: BackgroundRepeat.Mode,
+                TileSize: {
+                    X: BackgroundRepeat.TileSize?.X ?? 1,
+                    Y: BackgroundRepeat.TileSize?.Y ?? 1
+                }
+            };
+        } else {
+            this.gridBackgroundRepeat = null;
+        }
     }
 }

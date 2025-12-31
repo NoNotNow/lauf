@@ -24,6 +24,7 @@ export class GridComponent implements OnChanges {
   @Input() gridBorder!: string;
   @Input() backgroundColor: string = 'transparent';
   @Input() backgroundImage: string = '';
+  @Input() backgroundRepeat: { Mode: string, TileSize: { X: number, Y: number } } | null = null;
 
   @Input() camera?: Camera;
 
@@ -37,7 +38,7 @@ export class GridComponent implements OnChanges {
   private imageCache = new ImageCache();
 
   ngOnChanges(changes: SimpleChanges): void {
-    if (changes['gridSize'] || changes['color'] || changes['lineWidth'] || changes['backgroundImage']) {
+    if (changes['gridSize'] || changes['color'] || changes['lineWidth'] || changes['backgroundImage'] || changes['backgroundRepeat']) {
       this.updateRedrawKey();
       this.bitmap.invalidate();
     }
@@ -46,7 +47,8 @@ export class GridComponent implements OnChanges {
   updateRedrawKey(): void {
     const N = Math.max(1, Math.floor(this.gridSize?.x ?? 1));
     const M = Math.max(1, Math.floor(this.gridSize?.y ?? 1));
-    this.redrawKey = `${N}x${M}-${this.color}-${this.lineWidth}-${this.backgroundImage}`;
+    const bgRepeatKey = this.backgroundRepeat ? `${this.backgroundRepeat.Mode}-${this.backgroundRepeat.TileSize.X}-${this.backgroundRepeat.TileSize.Y}` : 'none';
+    this.redrawKey = `${N}x${M}-${this.color}-${this.lineWidth}-${this.backgroundImage}-${bgRepeatKey}`;
   }
 
   requestRedraw(): void {
@@ -79,27 +81,59 @@ export class GridComponent implements OnChanges {
       ctx.fillRect(gridRect.x, gridRect.y, gridRect.w, gridRect.h);
     }
     
-    // Draw background image if provided and loaded (using cover strategy to maintain aspect ratio)
+    // Draw background image if provided and loaded
     if (imageLoaded && this.backgroundImage) {
       const img = this.imageCache.get(this.backgroundImage);
       if (img && img.complete && img.naturalWidth > 0) {
-        const imgAspect = img.naturalWidth / img.naturalHeight;
-        const gridAspect = gridRect.w / gridRect.h;
-        
-        // Calculate scale to cover (use larger scale to ensure full coverage)
-        const scale = imgAspect > gridAspect 
-          ? gridRect.h / img.naturalHeight  // Image is wider, scale by height
-          : gridRect.w / img.naturalWidth;   // Image is taller, scale by width
-        
-        const scaledWidth = img.naturalWidth * scale;
-        const scaledHeight = img.naturalHeight * scale;
-        
-        // Center the image
-        const offsetX = gridRect.x + (gridRect.w - scaledWidth) / 2;
-        const offsetY = gridRect.y + (gridRect.h - scaledHeight) / 2;
-        
         ctx.save();
-        ctx.drawImage(img, offsetX, offsetY, scaledWidth, scaledHeight);
+        
+        // Check if background repeat is configured
+        if (this.backgroundRepeat && this.backgroundRepeat.Mode !== 'no-repeat') {
+          // Repeating background
+          const mode = this.backgroundRepeat.Mode.toLowerCase();
+          const tileSizeX = Math.max(0.1, this.backgroundRepeat.TileSize.X);
+          const tileSizeY = Math.max(0.1, this.backgroundRepeat.TileSize.Y);
+          
+          // Calculate tile size in pixels and round to integers for seamless tiling
+          const tilePxW = Math.round(tileSizeX * geom.cellW);
+          const tilePxH = Math.round(tileSizeY * geom.cellH);
+          
+          // Round starting position to integer pixels for seamless alignment
+          const startX = Math.round(gridRect.x);
+          const startY = Math.round(gridRect.y);
+          
+          // Calculate how many tiles we need to cover the grid
+          const tilesX = mode === 'repeat-y' ? 1 : Math.ceil(gridRect.w / tilePxW) + 1;
+          const tilesY = mode === 'repeat-x' ? 1 : Math.ceil(gridRect.h / tilePxH) + 1;
+          
+          // Draw repeating tiles at integer pixel boundaries
+          for (let ty = 0; ty < tilesY; ty++) {
+            for (let tx = 0; tx < tilesX; tx++) {
+              const x = startX + tx * tilePxW;
+              const y = startY + ty * tilePxH;
+              ctx.drawImage(img, x, y, tilePxW, tilePxH);
+            }
+          }
+        } else {
+          // Default cover strategy (maintain aspect ratio, cover entire area)
+          const imgAspect = img.naturalWidth / img.naturalHeight;
+          const gridAspect = gridRect.w / gridRect.h;
+          
+          // Calculate scale to cover (use larger scale to ensure full coverage)
+          const scale = imgAspect > gridAspect 
+            ? gridRect.h / img.naturalHeight  // Image is wider, scale by height
+            : gridRect.w / img.naturalWidth;   // Image is taller, scale by width
+          
+          const scaledWidth = img.naturalWidth * scale;
+          const scaledHeight = img.naturalHeight * scale;
+          
+          // Center the image
+          const offsetX = gridRect.x + (gridRect.w - scaledWidth) / 2;
+          const offsetY = gridRect.y + (gridRect.h - scaledHeight) / 2;
+          
+          ctx.drawImage(img, offsetX, offsetY, scaledWidth, scaledHeight);
+        }
+        
         ctx.restore();
       }
     }

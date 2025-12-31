@@ -1,4 +1,5 @@
 import { Border } from "./border";
+import { BackgroundRepeat } from "./background-repeat";
 
 export class Design {
     public Color: string = 'transparent';
@@ -6,6 +7,7 @@ export class Design {
     public CornerRadius: number = 0;
     public Image: string = '';
     public Opacity: number = 1.0;
+    public BackgroundRepeat: BackgroundRepeat = new BackgroundRepeat();
 
     // Fills current instance from a plain JSON/object without replacing it
     public FromJson(data: any): this {
@@ -19,6 +21,9 @@ export class Design {
         if (g('CornerRadius','CornerRadius') !== undefined) this.CornerRadius = Number(g('CornerRadius','CornerRadius'));
         if (g('Image','image') !== undefined) this.Image = g('Image','image');
         if (g('Opacity', 'opacity') !== undefined) this.Opacity = Number(g('Opacity', 'opacity'));
+        if (g('BackgroundRepeat', 'backgroundRepeat') !== undefined) {
+            this.BackgroundRepeat.FromJson(g('BackgroundRepeat', 'backgroundRepeat'));
+        }
         return this;
     }
 }
