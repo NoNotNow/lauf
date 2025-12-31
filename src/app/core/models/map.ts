@@ -11,6 +11,7 @@ export class Map{
     public avatar: Avatar;
     public design: Design;
     public camera: Camera;
+    public zoomLevels: number[] = [];
 
     // Fills the current instance from a plain JSON/object without replacing it
     public FromJson(data: any): this {
@@ -66,6 +67,12 @@ export class Map{
             const initialPos = pos ? new Point(pos.x ?? pos.X, pos.y ?? pos.Y) : undefined;
             const zoom = camera.zoom ?? camera.Zoom ?? 1.0;
             this.camera = new Camera(initialPos, zoom);
+            
+            // Parse zoom levels from Camera.ZoomLevels
+            const zoomLevels = camera.zoomLevels ?? camera.ZoomLevels;
+            if (Array.isArray(zoomLevels)) {
+                this.zoomLevels = zoomLevels.map(z => Number(z));
+            }
         }
 
         return this;

@@ -87,6 +87,7 @@ export class MapComponent implements AfterViewInit, OnDestroy, MapLoader {
         this.currentMap = map;
         this.updateGridFromMap(map);
         this.applyDesignConfiguration(map);
+        this.updateZoomLevelsFromMap(map);
         this.animator.setMap(map);
         this.animator.setCamera(this.camera);
         this.rebuildWorld(map);
@@ -135,12 +136,24 @@ export class MapComponent implements AfterViewInit, OnDestroy, MapLoader {
     }
 
     private currentZoom = 1.0;
-    private zoomLevels = [1.0, 2.0, 3.0, 4.0, 5.0];
+    private zoomLevels: number[] = [1.0, 2.0, 3.0, 4.0, 5.0]; // Default fallback
     toggleZoom(): void {
         this.currentZoom = this.zoomLevels[this.currentZoomIndex];
         this.currentZoomIndex = (this.currentZoomIndex + 1) % this.zoomLevels.length;
         this.camera.setTarget(this.camera.getTargetCenter(), this.currentZoom);
         console.log('currentZoom', this.currentZoom, this.currentZoomIndex);
+    }
+
+    private updateZoomLevelsFromMap(map: GameMap): void {
+        if (map.zoomLevels && map.zoomLevels.length > 0) {
+            this.zoomLevels = map.zoomLevels;
+            // Find the index of the current zoom level in the zoom levels array
+            // Use map.camera if available (from JSON), otherwise fall back to this.camera
+            const currentZoomValue = map.camera?.getZoom() ?? this.camera?.getZoom() ?? 1.0;
+            const index = this.zoomLevels.findIndex(z => Math.abs(z - currentZoomValue) < 0.01);
+            this.currentZoomIndex = index >= 0 ? index : 0;
+            this.currentZoom = this.zoomLevels[this.currentZoomIndex];
+        }
     }
 
     private applyDesignConfiguration(map: GameMap): void {
