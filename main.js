@@ -36706,6 +36706,7 @@ var Map2 = class {
   constructor() {
     this.obstacles = [];
     this.targets = [];
+    this.zoomLevels = [];
   }
   // Fills the current instance from a plain JSON/object without replacing it
   FromJson(data) {
@@ -36758,6 +36759,10 @@ var Map2 = class {
       const initialPos = pos ? new Point(pos.x ?? pos.X, pos.y ?? pos.Y) : void 0;
       const zoom = camera.zoom ?? camera.Zoom ?? 1;
       this.camera = new Camera(initialPos, zoom);
+      const zoomLevels = camera.zoomLevels ?? camera.ZoomLevels;
+      if (Array.isArray(zoomLevels)) {
+        this.zoomLevels = zoomLevels.map((z) => Number(z));
+      }
     }
     return this;
   }
@@ -39042,6 +39047,164 @@ function normalizeKey(e) {
   }
 }
 
+// src/app/core/rendering/transformers/touch-controller.ts
+var TouchController = class {
+  constructor(ticker, item, params) {
+    this.ticker = ticker;
+    this.touchStart = null;
+    this.currentDirection = {
+      forward: false,
+      backward: false,
+      left: false,
+      right: false
+    };
+    this.onTouchStart = (e) => {
+      if (e.touches.length > 0) {
+        const touch = e.touches[0];
+        this.touchStart = { x: touch.clientX, y: touch.clientY };
+        this.currentDirection = { forward: false, backward: false, left: false, right: false };
+        e.preventDefault();
+      }
+    };
+    this.onTouchMove = (e) => {
+      if (!this.touchStart || e.touches.length === 0)
+        return;
+      const touch = e.touches[0];
+      const dx = touch.clientX - this.touchStart.x;
+      const dy = touch.clientY - this.touchStart.y;
+      const distance = Math.hypot(dx, dy);
+      if (distance < this.opts.movementThreshold) {
+        this.currentDirection = { forward: false, backward: false, left: false, right: false };
+        return;
+      }
+      const absDx = Math.abs(dx);
+      const absDy = Math.abs(dy);
+      this.currentDirection = { forward: false, backward: false, left: false, right: false };
+      if (absDy > absDx) {
+        if (dy < 0) {
+          this.currentDirection.forward = true;
+        } else {
+          this.currentDirection.backward = true;
+        }
+      } else {
+        if (dx < 0) {
+          this.currentDirection.left = true;
+        } else {
+          this.currentDirection.right = true;
+        }
+      }
+      e.preventDefault();
+    };
+    this.onTouchEnd = (e) => {
+      this.touchStart = null;
+      this.currentDirection = { forward: false, backward: false, left: false, right: false };
+      e.preventDefault();
+    };
+    this._item = item;
+    if (item) {
+      this._phys = StageItemPhysics.for(item);
+    }
+    this.opts = {
+      linearAccel: params?.linearAccel ?? 2.5,
+      linearBrake: params?.linearBrake ?? 2,
+      linearDamping: params?.linearDamping ?? 0.2,
+      maxSpeed: params?.maxSpeed ?? 8,
+      angularAccel: params?.angularAccel ?? 600,
+      angularDamping: params?.angularDamping ?? 600,
+      maxOmega: params?.maxOmega ?? 240,
+      movementThreshold: params?.movementThreshold ?? 10
+    };
+  }
+  setItem(item) {
+    this._item = item;
+    this._phys = item ? StageItemPhysics.for(item) : void 0;
+  }
+  start() {
+    if (this.sub)
+      return;
+    this.sub = this.ticker.ticks$.subscribe(({ dtSec }) => this.onTick(dtSec));
+    window.addEventListener("touchstart", this.onTouchStart, { passive: false });
+    window.addEventListener("touchmove", this.onTouchMove, { passive: false });
+    window.addEventListener("touchend", this.onTouchEnd, { passive: false });
+    window.addEventListener("touchcancel", this.onTouchEnd, { passive: false });
+  }
+  stop() {
+    this.sub?.unsubscribe();
+    this.sub = void 0;
+    window.removeEventListener("touchstart", this.onTouchStart);
+    window.removeEventListener("touchmove", this.onTouchMove);
+    window.removeEventListener("touchend", this.onTouchEnd);
+    window.removeEventListener("touchcancel", this.onTouchEnd);
+    this.touchStart = null;
+    this.currentDirection = { forward: false, backward: false, left: false, right: false };
+  }
+  onTick(dt) {
+    if (!this._item || !this._phys || dt === 0)
+      return;
+    const velocity = this._phys.getVelocity();
+    let vx = toNumber(velocity.vx, 0);
+    let vy = toNumber(velocity.vy, 0);
+    let omega = toNumber(this._phys.getAngularVelocity(), 0);
+    const forwardHeld = this.currentDirection.forward;
+    const backHeld = this.currentDirection.backward;
+    const leftHeld = this.currentDirection.left;
+    const rightHeld = this.currentDirection.right;
+    const pose = this._item.Pose ?? (this._item.Pose = {});
+    const rotDeg = toNumber(pose.Rotation, 0);
+    const rotRad = rotDeg * Math.PI / 180;
+    const fx = Math.sin(rotRad);
+    const fy = -Math.cos(rotRad);
+    let ax = 0, ay = 0;
+    if (forwardHeld) {
+      ax += this.opts.linearAccel * fx;
+      ay += this.opts.linearAccel * fy;
+    }
+    if (backHeld) {
+      ax -= this.opts.linearBrake * fx;
+      ay -= this.opts.linearBrake * fy;
+    }
+    let alpha = 0;
+    if (leftHeld)
+      alpha -= this.opts.angularAccel;
+    if (rightHeld)
+      alpha += this.opts.angularAccel;
+    if (!forwardHeld && !backHeld) {
+      const speed2 = Math.hypot(vx, vy);
+      if (speed2 > 0) {
+        const dec = this.opts.linearDamping * dt;
+        const newSpeed = Math.max(0, speed2 - dec);
+        const s = newSpeed / speed2;
+        vx *= s;
+        vy *= s;
+      }
+    } else {
+      vx += ax * dt;
+      vy += ay * dt;
+    }
+    if (!leftHeld && !rightHeld) {
+      const sign = Math.sign(omega);
+      const mag = Math.abs(omega);
+      const dec = this.opts.angularDamping * dt;
+      const newMag = Math.max(0, mag - dec);
+      omega = sign * newMag;
+    } else {
+      omega += alpha * dt;
+    }
+    const speed = Math.hypot(vx, vy);
+    if (speed > this.opts.maxSpeed) {
+      const s = this.opts.maxSpeed / (speed || 1);
+      vx *= s;
+      vy *= s;
+    }
+    const maxW = this.opts.maxOmega;
+    if (Math.abs(omega) > maxW) {
+      omega = Math.sign(omega) * maxW;
+    }
+    this._phys.accelerate(ax, ay, dt);
+    this._phys.accelerateAngular(alpha, dt);
+  }
+};
+
 // src/app/core/rendering/transformers/glider2.ts
 var Glider2 = class {
   constructor(tickerService, item, params) {
@@ -39188,6 +39351,7 @@ var WorldAssemblerService = class _WorldAssemblerService {
     this.ticker = ticker;
     this.transformerHandlers = {
       UserController: (item, context2, params) => context2.addTransformer(new KeyboardController(this.ticker, item, params)),
+      TouchController: (item, context2, params) => context2.addTransformer(new TouchController(this.ticker, item, params)),
       FollowItem: (item, context2, params) => {
         const target = params?.TargetId === "Avatar" ? context2.getAvatar() : void 0;
         if (target) {
@@ -39322,6 +39486,7 @@ var MapComponent = class _MapComponent {
     this.currentMap = map2;
     this.updateGridFromMap(map2);
     this.applyDesignConfiguration(map2);
+    this.updateZoomLevelsFromMap(map2);
     this.animator.setMap(map2);
     this.animator.setCamera(this.camera);
     this.rebuildWorld(map2);
@@ -39361,6 +39526,15 @@ var MapComponent = class _MapComponent {
     this.currentZoomIndex = (this.currentZoomIndex + 1) % this.zoomLevels.length;
     this.camera.setTarget(this.camera.getTargetCenter(), this.currentZoom);
     console.log("currentZoom", this.currentZoom, this.currentZoomIndex);
+  }
+  updateZoomLevelsFromMap(map2) {
+    if (map2.zoomLevels && map2.zoomLevels.length > 0) {
+      this.zoomLevels = map2.zoomLevels;
+      const currentZoomValue = map2.camera?.getZoom() ?? this.camera?.getZoom() ?? 1;
+      const index = this.zoomLevels.findIndex((z) => Math.abs(z - currentZoomValue) < 0.01);
+      this.currentZoomIndex = index >= 0 ? index : 0;
+      this.currentZoom = this.zoomLevels[this.currentZoomIndex];
+    }
   }
   applyDesignConfiguration(map2) {
     if (!map2.design)
