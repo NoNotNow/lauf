@@ -39052,17 +39052,12 @@ var TouchController = class {
   constructor(ticker, item, params) {
     this.ticker = ticker;
     this.touchStart = null;
-    this.currentDirection = {
-      forward: false,
-      backward: false,
-      left: false,
-      right: false
-    };
+    this.currentTouch = null;
     this.onTouchStart = (e) => {
       if (e.touches.length > 0) {
         const touch = e.touches[0];
         this.touchStart = { x: touch.clientX, y: touch.clientY };
-        this.currentDirection = { forward: false, backward: false, left: false, right: false };
+        this.currentTouch = { x: touch.clientX, y: touch.clientY };
         e.preventDefault();
       }
     };
@@ -39070,34 +39065,12 @@ var TouchController = class {
       if (!this.touchStart || e.touches.length === 0)
         return;
       const touch = e.touches[0];
-      const dx = touch.clientX - this.touchStart.x;
-      const dy = touch.clientY - this.touchStart.y;
-      const distance = Math.hypot(dx, dy);
-      if (distance < this.opts.movementThreshold) {
-        this.currentDirection = { forward: false, backward: false, left: false, right: false };
-        return;
-      }
-      const absDx = Math.abs(dx);
-      const absDy = Math.abs(dy);
-      this.currentDirection = { forward: false, backward: false, left: false, right: false };
-      if (absDy > absDx) {
-        if (dy < 0) {
-          this.currentDirection.forward = true;
-        } else {
-          this.currentDirection.backward = true;
-        }
-      } else {
-        if (dx < 0) {
-          this.currentDirection.left = true;
-        } else {
-          this.currentDirection.right = true;
-        }
-      }
+      this.currentTouch = { x: touch.clientX, y: touch.clientY };
       e.preventDefault();
     };
     this.onTouchEnd = (e) => {
       this.touchStart = null;
-      this.currentDirection = { forward: false, backward: false, left: false, right: false };
+      this.currentTouch = null;
       e.preventDefault();
     };
     this._item = item;
@@ -39112,7 +39085,7 @@ var TouchController = class {
       angularAccel: params?.angularAccel ?? 600,
       angularDamping: params?.angularDamping ?? 600,
       maxOmega: params?.maxOmega ?? 240,
-      movementThreshold: params?.movementThreshold ?? 10
+      maxDistance: params?.maxDistance ?? 100
     };
   }
   setItem(item) {
@@ -39136,7 +39109,7 @@ var TouchController = class {
     window.removeEventListener("touchend", this.onTouchEnd);
     window.removeEventListener("touchcancel", this.onTouchEnd);
     this.touchStart = null;
-    this.currentDirection = { forward: false, backward: false, left: false, right: false };
+    this.currentTouch = null;
   }
   onTick(dt) {
     if (!this._item || !this._phys || dt === 0)
@@ -39145,10 +39118,32 @@ var TouchController = class {
     let vx = toNumber(velocity.vx, 0);
     let vy = toNumber(velocity.vy, 0);
     let omega = toNumber(this._phys.getAngularVelocity(), 0);
-    const forwardHeld = this.currentDirection.forward;
-    const backHeld = this.currentDirection.backward;
-    const leftHeld = this.currentDirection.left;
-    const rightHeld = this.currentDirection.right;
+    let forwardStrength = 0;
+    let backwardStrength = 0;
+    let leftStrength = 0;
+    let rightStrength = 0;
+    if (this.touchStart && this.currentTouch) {
+      const dx = this.currentTouch.x - this.touchStart.x;
+      const dy = this.currentTouch.y - this.touchStart.y;
+      const verticalDistance = Math.abs(dy);
+      const horizontalDistance = Math.abs(dx);
+      const verticalStrengthFactor = Math.min(verticalDistance / this.opts.maxDistance, 1);
+      const horizontalStrengthFactor = Math.min(horizontalDistance / this.opts.maxDistance, 1);
+      if (dy < 0) {
+        forwardStrength = verticalStrengthFactor;
+      } else if (dy > 0) {
+        backwardStrength = verticalStrengthFactor;
+      }
+      if (dx < 0) {
+        leftStrength = horizontalStrengthFactor;
+      } else if (dx > 0) {
+        rightStrength = horizontalStrengthFactor;
+      }
+    }
+    const forwardHeld = forwardStrength > 0;
+    const backHeld = backwardStrength > 0;
+    const leftHeld = leftStrength > 0;
+    const rightHeld = rightStrength > 0;
     const pose = this._item.Pose ?? (this._item.Pose = {});
     const rotDeg = toNumber(pose.Rotation, 0);
     const rotRad = rotDeg * Math.PI / 180;
@@ -39156,18 +39151,18 @@ var TouchController = class {
     const fy = -Math.cos(rotRad);
     let ax = 0, ay = 0;
     if (forwardHeld) {
-      ax += this.opts.linearAccel * fx;
-      ay += this.opts.linearAccel * fy;
+      ax += this.opts.linearAccel * forwardStrength * fx;
+      ay += this.opts.linearAccel * forwardStrength * fy;
     }
     if (backHeld) {
-      ax -= this.opts.linearBrake * fx;
-      ay -= this.opts.linearBrake * fy;
+      ax -= this.opts.linearBrake * backwardStrength * fx;
+      ay -= this.opts.linearBrake * backwardStrength * fy;
     }
     let alpha = 0;
     if (leftHeld)
-      alpha -= this.opts.angularAccel;
+      alpha -= this.opts.angularAccel * leftStrength;
     if (rightHeld)
-      alpha += this.opts.angularAccel;
+      alpha += this.opts.angularAccel * rightStrength;
     if (!forwardHeld && !backHeld) {
       const speed2 = Math.hypot(vx, vy);
       if (speed2 > 0) {
