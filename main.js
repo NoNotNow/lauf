@@ -39053,12 +39053,13 @@ var TouchController = class {
     this.ticker = ticker;
     this.touchStart = null;
     this.currentTouch = null;
+    this.isActive = false;
     this.onTouchStart = (e) => {
       if (e.touches.length > 0) {
         const touch = e.touches[0];
         this.touchStart = { x: touch.clientX, y: touch.clientY };
         this.currentTouch = { x: touch.clientX, y: touch.clientY };
-        e.preventDefault();
+        this.isActive = false;
       }
     };
     this.onTouchMove = (e) => {
@@ -39066,12 +39067,23 @@ var TouchController = class {
         return;
       const touch = e.touches[0];
       this.currentTouch = { x: touch.clientX, y: touch.clientY };
-      e.preventDefault();
+      const dx = this.currentTouch.x - this.touchStart.x;
+      const dy = this.currentTouch.y - this.touchStart.y;
+      const distance = Math.hypot(dx, dy);
+      if (distance >= this.opts.minMovementThreshold) {
+        if (!this.isActive) {
+          this.isActive = true;
+        }
+        e.preventDefault();
+      }
     };
     this.onTouchEnd = (e) => {
+      if (this.isActive) {
+        e.preventDefault();
+      }
       this.touchStart = null;
       this.currentTouch = null;
-      e.preventDefault();
+      this.isActive = false;
     };
     this._item = item;
     if (item) {
@@ -39085,7 +39097,8 @@ var TouchController = class {
       angularAccel: params?.angularAccel ?? 600,
       angularDamping: params?.angularDamping ?? 600,
       maxOmega: params?.maxOmega ?? 240,
-      maxDistance: params?.maxDistance ?? 100
+      maxDistance: params?.maxDistance ?? 100,
+      minMovementThreshold: params?.minMovementThreshold ?? 15
     };
   }
   setItem(item) {
@@ -39110,6 +39123,7 @@ var TouchController = class {
     window.removeEventListener("touchcancel", this.onTouchEnd);
     this.touchStart = null;
     this.currentTouch = null;
+    this.isActive = false;
   }
   onTick(dt) {
     if (!this._item || !this._phys || dt === 0)
@@ -39122,7 +39136,7 @@ var TouchController = class {
     let backwardStrength = 0;
     let leftStrength = 0;
     let rightStrength = 0;
-    if (this.touchStart && this.currentTouch) {
+    if (this.isActive && this.touchStart && this.currentTouch) {
       const dx = this.currentTouch.x - this.touchStart.x;
       const dy = this.currentTouch.y - this.touchStart.y;
       const verticalDistance = Math.abs(dy);
@@ -39463,6 +39477,10 @@ var MapComponent = class _MapComponent {
     this.gridBackgroundRepeat = null;
     this.currentZoom = 1;
     this.zoomLevels = [1, 2, 3, 4, 5];
+    this.lastTapTime = 0;
+    this.lastTapPosition = null;
+    this.DOUBLE_TAP_DELAY = 300;
+    this.DOUBLE_TAP_DISTANCE = 50;
   }
   ngAfterViewInit() {
     this.startup.main(this);
@@ -39522,6 +39540,38 @@ var MapComponent = class _MapComponent {
     this.camera.setTarget(this.camera.getTargetCenter(), this.currentZoom);
     console.log("currentZoom", this.currentZoom, this.currentZoomIndex);
   }
+  onTouchStart(event) {
+    if (event.touches.length !== 1)
+      return;
+    const touch = event.touches[0];
+    const currentTime = Date.now();
+    const currentPosition = { x: touch.clientX, y: touch.clientY };
+    if (this.lastTapTime > 0 && currentTime - this.lastTapTime < this.DOUBLE_TAP_DELAY && this.lastTapPosition && Math.hypot(currentPosition.x - this.lastTapPosition.x, currentPosition.y - this.lastTapPosition.y) < this.DOUBLE_TAP_DISTANCE) {
+      this.toggleFullscreen();
+      event.preventDefault();
+      this.lastTapTime = 0;
+      this.lastTapPosition = null;
+    } else {
+      this.lastTapTime = currentTime;
+      this.lastTapPosition = currentPosition;
+    }
+  }
+  toggleFullscreen() {
+    if (!document.fullscreenElement) {
+      const element = document.documentElement;
+      if (element.requestFullscreen) {
+        element.requestFullscreen().catch((err) => {
+          console.error("Error attempting to enable fullscreen:", err);
+        });
+      }
+    } else {
+      if (document.exitFullscreen) {
+        document.exitFullscreen().catch((err) => {
+          console.error("Error attempting to exit fullscreen:", err);
+        });
+      }
+    }
+  }
   updateZoomLevelsFromMap(map2) {
     if (map2.zoomLevels && map2.zoomLevels.length > 0) {
       this.zoomLevels = map2.zoomLevels;
@@ -39575,13 +39625,16 @@ var MapComponent = class _MapComponent {
         \u0275\u0275queryRefresh(_t = \u0275\u0275loadQuery()) && (ctx.animLayer = _t.first);
         \u0275\u0275queryRefresh(_t = \u0275\u0275loadQuery()) && (ctx.avatarsCanvas = _t.first);
       }
-    }, standalone: true, features: [\u0275\u0275ProvidersFeature([]), \u0275\u0275StandaloneFeature], decls: 8, vars: 14, consts: [["avatarsCanvas", ""], [1, "container", 3, "click"], [1, "layer"], [3, "gridSize", "backgroundColor", "backgroundImage", "backgroundRepeat", "color", "gridBorder", "lineWidth", "camera"], [1, "layer", "obstacles"], [3, "gridSize", "draw", "camera"], [1, "layer", "avatars"]], template: function MapComponent_Template(rf, ctx) {
+    }, standalone: true, features: [\u0275\u0275ProvidersFeature([]), \u0275\u0275StandaloneFeature], decls: 8, vars: 14, consts: [["avatarsCanvas", ""], [1, "container", 3, "click", "touchstart"], [1, "layer"], [3, "gridSize", "backgroundColor", "backgroundImage", "backgroundRepeat", "color", "gridBorder", "lineWidth", "camera"], [1, "layer", "obstacles"], [3, "gridSize", "draw", "camera"], [1, "layer", "avatars"]], template: function MapComponent_Template(rf, ctx) {
       if (rf & 1) {
         const _r1 = \u0275\u0275getCurrentView();
         \u0275\u0275elementStart(0, "div", 1);
         \u0275\u0275listener("click", function MapComponent_Template_div_click_0_listener() {
           \u0275\u0275restoreView(_r1);
           return \u0275\u0275resetView(ctx.toggleZoom());
+        })("touchstart", function MapComponent_Template_div_touchstart_0_listener($event) {
+          \u0275\u0275restoreView(_r1);
+          return \u0275\u0275resetView(ctx.onTouchStart($event));
         });
         \u0275\u0275elementStart(1, "div", 2);
         \u0275\u0275element(2, "app-grid", 3);
