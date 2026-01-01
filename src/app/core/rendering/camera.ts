@@ -39,8 +39,15 @@ export class Camera {
   }
 
   setTarget(center: Point, zoom: number = 1.0): void {
+    // Apply zoom instantly to avoid per-frame redraws during transition
+    if (this.targetZoom !== zoom) {
+      this.zoom = zoom;
+      this.targetZoom = zoom;
+      this._dirty = true;
+    }
     this.targetCenter = this.clampCenter(center, zoom);
-    this.targetZoom = zoom;
+    // Also update current center immediately if zoom changed, to ensure proper clamping
+    this.center = this.clampCenter(this.center, this.zoom);
   }
 
   setBounds(cols: number, rows: number): void {
@@ -107,16 +114,15 @@ export class Camera {
   }
 
   update(): void {
+    // Zoom is applied instantly in setTarget(), so we only interpolate center position
     const dx = this.targetCenter.x - this.center.x;
     const dy = this.targetCenter.y - this.center.y;
-    const dz = this.targetZoom - this.zoom;
 
     // Small threshold to stop updating if we are very close
-    if (Math.abs(dx) < 0.0001 && Math.abs(dy) < 0.0001 && Math.abs(dz) < 0.0001) {
-      if (this.center.x !== this.targetCenter.x || this.center.y !== this.targetCenter.y || this.zoom !== this.targetZoom) {
+    if (Math.abs(dx) < 0.0001 && Math.abs(dy) < 0.0001) {
+      if (this.center.x !== this.targetCenter.x || this.center.y !== this.targetCenter.y) {
         this.center.x = this.targetCenter.x;
         this.center.y = this.targetCenter.y;
-        this.zoom = this.targetZoom;
         this._dirty = true;
       }
       return;
@@ -124,23 +130,20 @@ export class Camera {
 
     const oldCenterX = this.center.x;
     const oldCenterY = this.center.y;
-    const oldZoom = this.zoom;
 
     this.center.x += dx * this.lerpFactor;
     this.center.y += dy * this.lerpFactor;
-    this.zoom += dz * this.lerpFactor;
 
     // Ensure current center is also clamped during interpolation
     const clamped = this.clampCenter(this.center, this.zoom);
     this.center.x = clamped.x;
     this.center.y = clamped.y;
 
-    // Only mark dirty if position/zoom actually changed significantly
+    // Only mark dirty if position actually changed significantly
     // This prevents unnecessary redraws during smooth panning
     const movedThreshold = 0.01; // pixels - only redraw if moved more than this
     if (Math.abs(this.center.x - oldCenterX) > movedThreshold ||
-        Math.abs(this.center.y - oldCenterY) > movedThreshold ||
-        Math.abs(this.zoom - oldZoom) > 0.001) {
+        Math.abs(this.center.y - oldCenterY) > movedThreshold) {
       this._dirty = true;
     }
   }
