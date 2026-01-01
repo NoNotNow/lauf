@@ -35965,6 +35965,7 @@ var CanvasLayerComponent = class _CanvasLayerComponent {
   constructor(host) {
     this.host = host;
     this.onExternalRedraw = () => this.drawNow();
+    this.redrawScheduled = false;
   }
   ngAfterViewInit() {
     this.resizeObserver = new ResizeObserver(() => this.resizeCanvas());
@@ -35984,7 +35985,13 @@ var CanvasLayerComponent = class _CanvasLayerComponent {
     }
   }
   requestRedraw() {
-    this.drawNow();
+    if (!this.redrawScheduled) {
+      this.redrawScheduled = true;
+      requestAnimationFrame(() => {
+        this.redrawScheduled = false;
+        this.drawNow();
+      });
+    }
   }
   resizeCanvas() {
     const el = this.host.nativeElement;
@@ -35998,6 +36005,7 @@ var CanvasLayerComponent = class _CanvasLayerComponent {
     if (canvas.width !== displayWidth || canvas.height !== displayHeight) {
       canvas.width = displayWidth;
       canvas.height = displayHeight;
+      this.cachedCtx = null;
     }
     if (this.camera) {
       this.camera.setAspectRatio(canvas.width / canvas.height);
@@ -36006,7 +36014,14 @@ var CanvasLayerComponent = class _CanvasLayerComponent {
   }
   drawNow() {
     const canvas = this.canvasRef.nativeElement;
-    const ctx = canvas.getContext("2d");
+    if (!this.cachedCtx) {
+      this.cachedCtx = canvas.getContext("2d", {
+        alpha: true,
+        willReadFrequently: false
+        // Firefox optimization: faster if we don't read pixels
+      });
+    }
+    const ctx = this.cachedCtx;
     if (!ctx)
       return;
     ctx.clearRect(0, 0, canvas.width, canvas.height);
@@ -36109,6 +36124,9 @@ var GridBitmap = class {
       return;
     const gridRect = geom.rectForCells(0, 0, geom.cols, geom.rows);
     targetCtx.save();
+    targetCtx.beginPath();
+    targetCtx.rect(0, 0, canvasW, canvasH);
+    targetCtx.clip();
     const startX = Math.round(gridRect.x);
     const startY = Math.round(gridRect.y);
     const endX = Math.round(gridRect.x + geom.cols * geom.cellW);
@@ -36202,6 +36220,129 @@ var ImageCache = class {
   }
 };
 
+// src/app/core/rendering/background-pattern.ts
+var BackgroundPattern = class {
+  constructor() {
+    this.pattern = null;
+    this.currentKey = "";
+    this.sourceImage = null;
+  }
+  invalidate() {
+    this.currentKey = "";
+    this.pattern = null;
+    this.sourceImage = null;
+  }
+  /**
+   * Draws the tiled background pattern to the target context.
+   * @param targetCtx Target canvas context
+   * @param canvasW Canvas width
+   * @param canvasH Canvas height
+   * @param geom Grid geometry
+   * @param sourceImage Source image to tile
+   * @param tileSizeX Tile size in grid cells (X axis)
+   * @param tileSizeY Tile size in grid cells (Y axis)
+   * @param repeatMode 'repeat' | 'repeat-x' | 'repeat-y' | 'no-repeat'
+   * @param gridRect Full grid rectangle in screen coordinates
+   * @param visibleRect Visible viewport rectangle in screen coordinates
+   */
+  draw(targetCtx, canvasW, canvasH, geom, sourceImage, tileSizeX, tileSizeY, repeatMode, gridRect, visibleRect) {
+    if (!sourceImage || !sourceImage.complete || sourceImage.naturalWidth === 0) {
+      return;
+    }
+    const mode = repeatMode.toLowerCase();
+    if (mode === "no-repeat") {
+      return;
+    }
+    const tilePxW = Math.round(tileSizeX * geom.cellW);
+    const tilePxH = Math.round(tileSizeY * geom.cellH);
+    if (tilePxW <= 0 || tilePxH <= 0) {
+      return;
+    }
+    const key = `${tilePxW}x${tilePxH}-${sourceImage.src}-${mode}`;
+    if (key !== this.currentKey || !this.pattern || this.sourceImage !== sourceImage) {
+      this.createPattern(sourceImage, tilePxW, tilePxH, mode, key);
+    }
+    if (!this.pattern)
+      return;
+    targetCtx.save();
+    targetCtx.beginPath();
+    targetCtx.rect(visibleRect.x, visibleRect.y, visibleRect.w, visibleRect.h);
+    targetCtx.clip();
+    const gridStartX = Math.round(gridRect.x);
+    const gridStartY = Math.round(gridRect.y);
+    const endX = Math.round(gridRect.x + geom.cols * geom.cellW);
+    const endY = Math.round(gridRect.y + geom.rows * geom.cellH);
+    const totalW = endX - gridStartX;
+    const totalH = endY - gridStartY;
+    const matrix = new DOMMatrix().translate(gridStartX, gridStartY);
+    this.pattern.setTransform(matrix);
+    targetCtx.fillStyle = this.pattern;
+    targetCtx.fillRect(gridStartX, gridStartY, totalW, totalH);
+    targetCtx.restore();
+  }
+  /**
+   * Creates a CanvasPattern from the source image at the specified tile size.
+   * Pre-renders the image into a bitmap tile for efficient tiling.
+   */
+  createPattern(sourceImage, tilePxW, tilePxH, mode, key) {
+    this.pattern = null;
+    this.sourceImage = sourceImage;
+    const roundedW = Math.max(1, Math.round(tilePxW));
+    const roundedH = Math.max(1, Math.round(tilePxH));
+    const isFirefox = typeof navigator !== "undefined" && /Firefox/i.test(navigator.userAgent);
+    let tileCanvas;
+    let tileCtx = null;
+    if (!isFirefox && typeof OffscreenCanvas !== "undefined") {
+      tileCanvas = new OffscreenCanvas(roundedW, roundedH);
+      tileCtx = tileCanvas.getContext("2d");
+    } else {
+      const el = document.createElement("canvas");
+      el.width = roundedW;
+      el.height = roundedH;
+      tileCanvas = el;
+      tileCtx = el.getContext("2d");
+    }
+    if (!tileCtx)
+      return;
+    tileCtx.clearRect(0, 0, roundedW, roundedH);
+    const imgAspect = sourceImage.naturalWidth / sourceImage.naturalHeight;
+    const tileAspect = roundedW / roundedH;
+    let drawW;
+    let drawH;
+    let offsetX;
+    let offsetY;
+    if (mode === "repeat-x") {
+      drawH = roundedH;
+      drawW = sourceImage.naturalWidth * (drawH / sourceImage.naturalHeight);
+      offsetX = (roundedW - drawW) / 2;
+      offsetY = 0;
+    } else if (mode === "repeat-y") {
+      drawW = roundedW;
+      drawH = sourceImage.naturalHeight * (drawW / sourceImage.naturalWidth);
+      offsetX = 0;
+      offsetY = (roundedH - drawH) / 2;
+    } else {
+      if (imgAspect > tileAspect) {
+        drawH = roundedH;
+        drawW = sourceImage.naturalWidth * (drawH / sourceImage.naturalHeight);
+        offsetX = (roundedW - drawW) / 2;
+        offsetY = 0;
+      } else {
+        drawW = roundedW;
+        drawH = sourceImage.naturalHeight * (drawW / sourceImage.naturalWidth);
+        offsetX = 0;
+        offsetY = (roundedH - drawH) / 2;
+      }
+    }
+    tileCtx.drawImage(sourceImage, offsetX, offsetY, drawW, drawH);
+    const dummyCtx = document.createElement("canvas").getContext("2d");
+    if (dummyCtx) {
+      this.pattern = dummyCtx.createPattern(tileCanvas, "repeat");
+      this.currentKey = key;
+    }
+  }
+};
+
 // src/app/features/stage/components/grid/grid.component.ts
 var _c03 = ["layer"];
 var GridComponent = class _GridComponent {
@@ -36209,16 +36350,37 @@ var GridComponent = class _GridComponent {
     this.gridSize = new Point(10, 10);
     this.color = "#cccccc";
     this.lineWidth = 0.02;
+    this.gridBorderActive = true;
     this.backgroundColor = "transparent";
     this.backgroundImage = "";
     this.backgroundRepeat = null;
     this.redrawKey = "";
     this.bitmap = new GridBitmap();
     this.imageCache = new ImageCache();
+    this.backgroundPattern = new BackgroundPattern();
     this.drawGrid = (ctx, canvas, geom) => {
       if (!geom) {
         this.drawLegacy(ctx, canvas);
         return;
+      }
+      let visibleRect = { x: 0, y: 0, w: canvas.width, h: canvas.height };
+      if (this.camera) {
+        const viewportBounds = this.camera.getViewportBounds(geom.cols, geom.rows);
+        if (viewportBounds) {
+          const topLeft = geom.rectForCells(viewportBounds.minX, viewportBounds.minY, 0, 0);
+          const bottomRight = geom.rectForCells(viewportBounds.maxX, viewportBounds.maxY, 0, 0);
+          visibleRect = {
+            x: topLeft.x,
+            y: topLeft.y,
+            w: bottomRight.x - topLeft.x,
+            h: bottomRight.y - topLeft.y
+          };
+          const margin = 50;
+          visibleRect.x -= margin;
+          visibleRect.y -= margin;
+          visibleRect.w += margin * 2;
+          visibleRect.h += margin * 2;
+        }
       }
       const gridRect = geom.rectForCells(0, 0, geom.cols, geom.rows);
       let imageLoaded = false;
@@ -36230,29 +36392,24 @@ var GridComponent = class _GridComponent {
       }
       if (this.backgroundColor !== "transparent" && (!this.backgroundImage || imageLoaded)) {
         ctx.fillStyle = this.backgroundColor;
+        ctx.save();
+        ctx.beginPath();
+        ctx.rect(visibleRect.x, visibleRect.y, visibleRect.w, visibleRect.h);
+        ctx.clip();
         ctx.fillRect(gridRect.x, gridRect.y, gridRect.w, gridRect.h);
+        ctx.restore();
       }
       if (imageLoaded && this.backgroundImage) {
         const img = this.imageCache.get(this.backgroundImage);
         if (img && img.complete && img.naturalWidth > 0) {
           ctx.save();
+          ctx.beginPath();
+          ctx.rect(visibleRect.x, visibleRect.y, visibleRect.w, visibleRect.h);
+          ctx.clip();
           if (this.backgroundRepeat && this.backgroundRepeat.Mode !== "no-repeat") {
-            const mode = this.backgroundRepeat.Mode.toLowerCase();
             const tileSizeX = Math.max(0.1, this.backgroundRepeat.TileSize.X);
             const tileSizeY = Math.max(0.1, this.backgroundRepeat.TileSize.Y);
-            const tilePxW = Math.round(tileSizeX * geom.cellW);
-            const tilePxH = Math.round(tileSizeY * geom.cellH);
-            const startX = Math.round(gridRect.x);
-            const startY = Math.round(gridRect.y);
-            const tilesX = mode === "repeat-y" ? 1 : Math.ceil(gridRect.w / tilePxW) + 1;
-            const tilesY = mode === "repeat-x" ? 1 : Math.ceil(gridRect.h / tilePxH) + 1;
-            for (let ty = 0; ty < tilesY; ty++) {
-              for (let tx = 0; tx < tilesX; tx++) {
-                const x = startX + tx * tilePxW;
-                const y = startY + ty * tilePxH;
-                ctx.drawImage(img, x, y, tilePxW, tilePxH);
-              }
-            }
+            this.backgroundPattern.draw(ctx, canvas.width, canvas.height, geom, img, tileSizeX, tileSizeY, this.backgroundRepeat.Mode, gridRect, visibleRect);
           } else {
             const imgAspect = img.naturalWidth / img.naturalHeight;
             const gridAspect = gridRect.w / gridRect.h;
@@ -36266,13 +36423,16 @@ var GridComponent = class _GridComponent {
           ctx.restore();
         }
       }
-      this.bitmap.draw(ctx, canvas.width, canvas.height, geom, this.color, this.lineWidth, this.gridBorder);
+      if (this.gridBorderActive) {
+        this.bitmap.draw(ctx, canvas.width, canvas.height, geom, this.color, this.lineWidth, this.gridBorder);
+      }
     };
   }
   ngOnChanges(changes) {
     if (changes["gridSize"] || changes["color"] || changes["lineWidth"] || changes["backgroundImage"] || changes["backgroundRepeat"]) {
       this.updateRedrawKey();
       this.bitmap.invalidate();
+      this.backgroundPattern.invalidate();
     }
   }
   updateRedrawKey() {
@@ -36341,7 +36501,7 @@ var GridComponent = class _GridComponent {
         let _t;
         \u0275\u0275queryRefresh(_t = \u0275\u0275loadQuery()) && (ctx.layer = _t.first);
       }
-    }, inputs: { gridSize: "gridSize", color: "color", lineWidth: "lineWidth", gridBorder: "gridBorder", backgroundColor: "backgroundColor", backgroundImage: "backgroundImage", backgroundRepeat: "backgroundRepeat", camera: "camera" }, standalone: true, features: [\u0275\u0275NgOnChangesFeature, \u0275\u0275StandaloneFeature], decls: 2, vars: 4, consts: [["layer", ""], [3, "draw", "redrawKey", "gridSize", "camera"]], template: function GridComponent_Template(rf, ctx) {
+    }, inputs: { gridSize: "gridSize", color: "color", lineWidth: "lineWidth", gridBorder: "gridBorder", gridBorderActive: "gridBorderActive", backgroundColor: "backgroundColor", backgroundImage: "backgroundImage", backgroundRepeat: "backgroundRepeat", camera: "camera" }, standalone: true, features: [\u0275\u0275NgOnChangesFeature, \u0275\u0275StandaloneFeature], decls: 2, vars: 4, consts: [["layer", ""], [3, "draw", "redrawKey", "gridSize", "camera"]], template: function GridComponent_Template(rf, ctx) {
       if (rf & 1) {
         \u0275\u0275element(0, "app-canvas-layer", 1, 0);
       }
@@ -36352,7 +36512,7 @@ var GridComponent = class _GridComponent {
   }
 };
 (() => {
-  (typeof ngDevMode === "undefined" || ngDevMode) && \u0275setClassDebugInfo(GridComponent, { className: "GridComponent", filePath: "src/app/features/stage/components/grid/grid.component.ts", lineNumber: 16 });
+  (typeof ngDevMode === "undefined" || ngDevMode) && \u0275setClassDebugInfo(GridComponent, { className: "GridComponent", filePath: "src/app/features/stage/components/grid/grid.component.ts", lineNumber: 17 });
 })();
 
 // src/app/core/models/design/border.ts
@@ -36361,6 +36521,7 @@ var Border = class {
     this.Color = "#000000";
     this.Width = 0;
     this.Style = "none";
+    this.Active = true;
   }
   FromJson(data) {
     if (!data)
@@ -36372,6 +36533,8 @@ var Border = class {
       this.Width = Number(g("Width", "width"));
     if (g("Style", "style") !== void 0)
       this.Style = g("Style", "style");
+    if (g("Active", "active") !== void 0)
+      this.Active = Boolean(g("Active", "active"));
     return this;
   }
 };
@@ -36680,13 +36843,19 @@ var Camera = class {
       }
       return;
     }
+    const oldCenterX = this.center.x;
+    const oldCenterY = this.center.y;
+    const oldZoom = this.zoom;
     this.center.x += dx * this.lerpFactor;
     this.center.y += dy * this.lerpFactor;
     this.zoom += dz * this.lerpFactor;
     const clamped = this.clampCenter(this.center, this.zoom);
     this.center.x = clamped.x;
     this.center.y = clamped.y;
-    this._dirty = true;
+    const movedThreshold = 0.01;
+    if (Math.abs(this.center.x - oldCenterX) > movedThreshold || Math.abs(this.center.y - oldCenterY) > movedThreshold || Math.abs(this.zoom - oldZoom) > 1e-3) {
+      this._dirty = true;
+    }
   }
   transformGeometry(baseGeom, canvasWidth, canvasHeight) {
     const { w: viewWidth, h: viewHeight } = this.calculateViewportSize(baseGeom.cols, baseGeom.rows, this.zoom);
@@ -37012,9 +37181,10 @@ var StageItemBitmap = class {
     const ss = Math.max(1, this.supersample);
     const canvasW = pxW * ss;
     const canvasH = pxH * ss;
+    const isFirefox = typeof navigator !== "undefined" && /Firefox/i.test(navigator.userAgent);
     let c;
     let ctx = null;
-    if (typeof OffscreenCanvas !== "undefined") {
+    if (!isFirefox && typeof OffscreenCanvas !== "undefined") {
       c = new OffscreenCanvas(canvasW, canvasH);
       ctx = c.getContext("2d");
     } else {
@@ -37067,7 +37237,7 @@ var StageItemBitmap = class {
     this.imageBitmap?.close?.();
     this.imageBitmap = null;
     const anyWindow = globalThis;
-    if (anyWindow && typeof anyWindow.createImageBitmap === "function") {
+    if (!isFirefox && anyWindow && typeof anyWindow.createImageBitmap === "function") {
       anyWindow.createImageBitmap(c).then((bmp) => {
         if (this.currentKey === key) {
           this.imageBitmap?.close?.();
@@ -39490,6 +39660,7 @@ var MapComponent = class _MapComponent {
     this.gridLineWidth = 0.01;
     this.gridSize = new Point(10, 10);
     this.gridBorder = "solid";
+    this.gridBorderActive = true;
     this.currentZoomIndex = 0;
     this.drawFrame = (ctx, _canvas, geom) => {
       if (!geom)
@@ -39544,12 +39715,10 @@ var MapComponent = class _MapComponent {
       this.grid?.requestRedraw();
       this.animLayer?.requestRedraw();
       this.avatarsCanvas?.requestRedraw();
+      this.worldContext?.clearCameraDirty();
     } else {
       this.animLayer?.requestRedraw();
       this.avatarsCanvas?.requestRedraw();
-    }
-    if (cameraDirty) {
-      this.worldContext?.clearCameraDirty();
     }
   }
   updateGridFromMap(map2) {
@@ -39615,12 +39784,14 @@ var MapComponent = class _MapComponent {
     if (!map2.design)
       return;
     const { Border: Border2, Color, Image: Image2, BackgroundRepeat: BackgroundRepeat2 } = map2.design;
-    if (Border2.Width)
+    if (Border2.Width !== void 0)
       this.gridLineWidth = Border2.Width;
     if (Border2.Color)
       this.gridColor = Border2.Color;
     if (Border2.Style)
       this.gridBorder = Border2.Style;
+    if (Border2.Active !== void 0)
+      this.gridBorderActive = Border2.Active;
     if (Color)
       this.gridBackgroundColor = Color;
     if (Image2)
@@ -39655,7 +39826,7 @@ var MapComponent = class _MapComponent {
         \u0275\u0275queryRefresh(_t = \u0275\u0275loadQuery()) && (ctx.animLayer = _t.first);
         \u0275\u0275queryRefresh(_t = \u0275\u0275loadQuery()) && (ctx.avatarsCanvas = _t.first);
       }
-    }, standalone: true, features: [\u0275\u0275ProvidersFeature([]), \u0275\u0275StandaloneFeature], decls: 8, vars: 14, consts: [["avatarsCanvas", ""], [1, "container", 3, "click", "touchstart"], [1, "layer"], [3, "gridSize", "backgroundColor", "backgroundImage", "backgroundRepeat", "color", "gridBorder", "lineWidth", "camera"], [1, "layer", "obstacles"], [3, "gridSize", "draw", "camera"], [1, "layer", "avatars"]], template: function MapComponent_Template(rf, ctx) {
+    }, standalone: true, features: [\u0275\u0275ProvidersFeature([]), \u0275\u0275StandaloneFeature], decls: 8, vars: 15, consts: [["avatarsCanvas", ""], [1, "container", 3, "click", "touchstart"], [1, "layer"], [3, "gridSize", "backgroundColor", "backgroundImage", "backgroundRepeat", "color", "gridBorder", "gridBorderActive", "lineWidth", "camera"], [1, "layer", "obstacles"], [3, "gridSize", "draw", "camera"], [1, "layer", "avatars"]], template: function MapComponent_Template(rf, ctx) {
       if (rf & 1) {
         const _r1 = \u0275\u0275getCurrentView();
         \u0275\u0275elementStart(0, "div", 1);
@@ -39678,7 +39849,7 @@ var MapComponent = class _MapComponent {
       }
       if (rf & 2) {
         \u0275\u0275advance(2);
-        \u0275\u0275property("gridSize", ctx.gridSize)("backgroundColor", ctx.gridBackgroundColor)("backgroundImage", ctx.gridBackgroundImage)("backgroundRepeat", ctx.gridBackgroundRepeat)("color", ctx.gridColor)("gridBorder", ctx.gridBorder)("lineWidth", ctx.gridLineWidth)("camera", ctx.camera);
+        \u0275\u0275property("gridSize", ctx.gridSize)("backgroundColor", ctx.gridBackgroundColor)("backgroundImage", ctx.gridBackgroundImage)("backgroundRepeat", ctx.gridBackgroundRepeat)("color", ctx.gridColor)("gridBorder", ctx.gridBorder)("gridBorderActive", ctx.gridBorderActive)("lineWidth", ctx.gridLineWidth)("camera", ctx.camera);
         \u0275\u0275advance(2);
         \u0275\u0275property("gridSize", ctx.gridSize)("draw", ctx.drawFrame)("camera", ctx.camera);
         \u0275\u0275advance(2);

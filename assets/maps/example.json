@@ -16,9 +16,7 @@
   "Design": {
     "Color": "#transparent",
     "Border": {
-      "Style": "dashed",
-      "Color": "transparent",
-      "Width": "0.002"
+      "Active": false
     },
     "Image": "assets/game/backgrounds/evening-stars.svg",
     "BackgroundRepeat": {
