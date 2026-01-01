@@ -3,23 +3,24 @@ import { StageItem } from '../../models/game-items/stage-item';
 import { TickService } from '../../services/tick.service';
 import { AxisAlignedBoundingBox } from '../collision';
 import { StageItemPhysics } from '../physics/stage-item-physics';
-import { toNumber } from '../../utils/number-utils';
 
 import { ITransformer } from './transformer.interface';
 
-// Moves a single StageItem with a (slow) velocity vector. Optionally bounces within a boundary.
-// - directionalVelocityMax: cap for the velocity magnitude (cells/sec)
-// - boundary: optional rectangle in cell coordinates; when set and bounce=true, item bounces off edges
-// - bounce: whether to reflect velocity at the boundary (default true)
+// Moves a single StageItem by applying force in a direction. Changes direction periodically.
+// - force: acceleration to apply (cells/s^2)
+// - directionChangeInterval: time in seconds between direction changes (default 15)
+// - boundary: optional rectangle in cell coordinates; kept for API compatibility
+// - bounce: whether to reflect velocity at the boundary; kept for API compatibility
 export class Drifter implements ITransformer {
   private sub?: Subscription;
   private _item?: StageItem;
   private _phys?: StageItemPhysics;
-  private _vx = 0; // desired cells/sec
-  private _vy = 0; // desired cells/sec
-  private _directionalVelocityMax = 0.1; // cells/sec
-  private _boundary?: AxisAlignedBoundingBox; // no longer used here; kept for API compatibility
-  private _bounce = true; // no longer used here; kept for API compatibility
+  private _directionAngle = 0; // current direction in radians
+  private _force = 0.01; // acceleration in cells/s^2
+  private _directionChangeInterval = 15; // seconds
+  private _elapsedTime = 0; // accumulated time since last direction change
+  private _boundary?: AxisAlignedBoundingBox; // kept for API compatibility
+  private _bounce = true; // kept for API compatibility
 
   constructor(
     private ticker: TickService,
@@ -33,20 +34,32 @@ export class Drifter implements ITransformer {
     }
     this._boundary = boundary;
 
-    const maxSpeed = params?.maxSpeed ?? params?.MaxSpeed;
-    if (typeof maxSpeed === 'number') {
-      this._directionalVelocityMax = maxSpeed;
-    } else {
-      this._directionalVelocityMax = 0.02 + Math.random() * 15;
+    const force = params?.force ?? params?.Force;
+    if (typeof force === 'number') {
+      this._force = force;
     }
 
+    const directionChangeInterval = params?.directionChangeInterval ?? params?.DirectionChangeInterval ?? params?.directionChangeSeconds ?? params?.DirectionChangeSeconds;
+    if (typeof directionChangeInterval === 'number') {
+      this._directionChangeInterval = Math.max(0.1, directionChangeInterval);
+    }
+
+    // Support legacy maxSpeed parameter for backward compatibility, but convert to force
+    const maxSpeed = params?.maxSpeed ?? params?.MaxSpeed;
+    if (typeof maxSpeed === 'number' && force === undefined) {
+      // Rough conversion: assume we want to reach maxSpeed, estimate force needed
+      // This is approximate and depends on damping, but provides backward compatibility
+      this._force = maxSpeed * 0.1;
+    }
+
+    // Initialize with random direction
+    this._directionAngle = Math.random() * Math.PI * 2;
+
+    // Support explicit vx/vy for initial direction
     const vx = params?.vx ?? params?.Vx;
     const vy = params?.vy ?? params?.Vy;
-
     if (typeof vx === 'number' && typeof vy === 'number') {
-      this.setVelocity(vx, vy);
-    } else {
-      this.setRandomVelocity(this._directionalVelocityMax);
+      this._directionAngle = Math.atan2(vy, vx);
     }
 
     if (params?.bounce !== undefined) {
@@ -54,24 +67,20 @@ export class Drifter implements ITransformer {
     }
   }
 
-  private setRandomVelocity(maxSpeed: number): void {
-    const angle = Math.random() * Math.PI * 2;
-    const speed = Math.random() * (maxSpeed / 2);
-    this.setVelocity(
-      Math.cos(angle) * speed,
-      Math.sin(angle) * speed
-    );
-  }
-
   setItem(item: StageItem | undefined): void {
     this._item = item;
     this._phys = item ? StageItemPhysics.for(item) : undefined;
   }
 
-  setDirectionalVelocityMax(max: number): void {
-    if (typeof max === 'number' && !isNaN(max)) {
-      this._directionalVelocityMax = Math.max(0, max);
-      this.clampVelocityToMax();
+  setForce(force: number): void {
+    if (typeof force === 'number' && !isNaN(force)) {
+      this._force = Math.max(0, force);
+    }
+  }
+
+  setDirectionChangeInterval(interval: number): void {
+    if (typeof interval === 'number' && !isNaN(interval)) {
+      this._directionChangeInterval = Math.max(0.1, interval);
     }
   }
 
@@ -83,20 +92,10 @@ export class Drifter implements ITransformer {
     this._bounce = !!bounce;
   }
 
-  // Explicitly set velocity (cells/sec). Will be clamped to the configured max magnitude.
-  setVelocity(vx: number, vy: number): void {
-    this._vx = toNumber(vx, 0);
-    this._vy = toNumber(vy, 0);
-    this.clampVelocityToMax();
-    if (this._phys) {
-      this._phys.setVelocity(this._vx, this._vy);
-    }
-  }
-
   start(): void {
     if (this.sub) return;
-    // Keep a lightweight subscription to keep velocity clamped/synchronized if someone changes StageItemPhysics externally.
-    this.sub = this.ticker.ticks$.subscribe(() => this.onTick());
+    this._elapsedTime = 0;
+    this.sub = this.ticker.ticks$.subscribe(({ dtSec }) => this.onTick(dtSec));
   }
 
   stop(): void {
@@ -104,28 +103,24 @@ export class Drifter implements ITransformer {
     this.sub = undefined;
   }
 
-  private clampVelocityToMax(): void {
-    const vMax = this._directionalVelocityMax;
-    if (vMax <= 0) {
-      this._vx = 0;
-      this._vy = 0;
-      return;
-    }
-    const mag = Math.hypot(this._vx, this._vy);
-    if (mag > vMax) {
-      const s = vMax / (mag || 1);
-      this._vx *= s;
-      this._vy *= s;
-    }
-  }
+  private onTick(dtSec: number): void {
+    if (!this._phys || dtSec === 0) return;
 
-  private onTick(): void {
-    // Keep StageItemPhysics in sync with our desired velocity and clamped limits
-    if (!this._phys) return;
-    
-    // We should NOT adopt externally changed velocities if they are caused by damping
-    // because that would lead to a feedback loop where we eventually stop.
-    // Instead, we just ensure the physics state has our desired velocity.
-    this._phys.setVelocity(this._vx, this._vy);
+    // Update elapsed time and change direction if needed
+    this._elapsedTime += dtSec;
+    if (this._elapsedTime >= this._directionChangeInterval) {
+      this._directionAngle = Math.random() * Math.PI * 2;
+      this._elapsedTime = 0;
+    }
+
+    // Apply force in current direction
+    const ax = Math.cos(this._directionAngle) * this._force;
+    const ay = Math.sin(this._directionAngle) * this._force;
+
+    // Support direction constraint (e.g., "horizontal" or "vertical")
+    // This would need to come from params if needed, but for now we'll skip it
+    // since it's not in the current implementation
+
+    this._phys.accelerate(ax, ay, dtSec);
   }
 }

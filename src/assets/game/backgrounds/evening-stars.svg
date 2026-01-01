@@ -65,15 +65,19 @@
        gradientUnits="userSpaceOnUse">
       <stop
          offset="0"
-         style="stop-color:#282828;stop-opacity:0;"
+         style="stop-color:#bb9f3e;stop-opacity:0;"
          id="stopOverlay1" />
       <stop
-         offset="0.875"
-         style="stop-color:#2d523e;stop-opacity:0.30196078;"
+         offset="0.80128205"
+         style="stop-color:#31503d;stop-opacity:0.10126582;"
          id="stop1751" />
       <stop
+         offset="0.92307693"
+         style="stop-color:#336348;stop-opacity:1;"
+         id="stop3734" />
+      <stop
          offset="1"
-         style="stop-color:#337b54;stop-opacity:0.60000002;"
+         style="stop-color:#3d361a;stop-opacity:1;"
          id="stopOverlay2" />
     </linearGradient>
   </defs>

@@ -9,12 +9,12 @@
       "X": 5,
       "Y": 5
     },
-    "Zoom": 75.0,
+    "Zoom": 50,
     "ZoomLevels": [5, 10.0, 15.0, 20.0, 30.0, 50.0, 75]
-  
+
   },
   "Design": {
-    "Color": "#transparent",
+    "Color": "#transparen,",
     "Border": {
       "Active": false
     },
@@ -226,16 +226,18 @@
         "PhysicsConfiguration": {
         "canMove": true,
         "canRotate": true,
+        "hasGravity": false,
         "hasCollision": true,
         "mass": 100,
-        "restitution": 0.5
+        "restitution": 0.5,
+        "damping": 0.2
       },
       "Transformers": [
         {
           "Type": "Drifter",
           "Params": {
-            "maxSpeed": 0.3,
-            "direction": "horizontal"
+            "force": 0.03,
+            "directionChangeInterval": 25
           }
         },
         {
@@ -352,7 +354,124 @@
         }
       ]
     },
+    {
+      "Pose": {
+        "Position": {
+          "X": 16,
+          "Y": 4
+        },
+        "Size": {
+          "X": 0.4,
+          "Y": 0.4
+        }
+      },
+      "Design": {
+        "Color": "transparent",
+        "Image": "assets/game/bird.svg"
+      },
+      "PhysicsConfiguration": {
+        "hasGravity": true,
+        "canMove": true,
+        "mass": 10,
+        "restitution": 0.5
+      },
+      "Transformers": [
         {
+          "Type": "Glider",
+          "Params": {
+            "horizontalSpeed": 3.3,
+            "glideEfficiency": 0.2,
+            "minSpeedForLift": 1.5,
+            "maxClimbRate": 4.0,
+            "minDistanceToBoundary": 2,
+
+            "boundaryAvoidanceStrength": 10.0,
+            "lookAheadDistance": 3.5,
+            "lookAheadTime": 0.6,
+            "collisionAvoidanceStrength": 4.0
+          }
+        }
+      ]
+    },
+    {
+      "Pose": {
+        "Position": {
+          "X": 11,
+          "Y": 10
+        },
+        "Size": {
+          "X": 0.4,
+          "Y": 0.4
+        }
+      },
+      "Design": {
+        "Color": "transparent",
+        "Image": "assets/game/bird.svg"
+      },
+      "PhysicsConfiguration": {
+        "hasGravity": true,
+        "canMove": true,
+        "mass": 10,
+        "restitution": 0.8
+      },
+      "Transformers": [
+        {
+          "Type": "Glider",
+          "Params": {
+            "horizontalSpeed": 5.3,
+            "glideEfficiency": 0.2,
+            "minSpeedForLift": 1.5,
+            "maxClimbRate": 4.0,
+            "minDistanceToBoundary": 2,
+
+            "boundaryAvoidanceStrength": 10.0,
+            "lookAheadDistance": 4.5,
+            "lookAheadTime": 0.6,
+            "collisionAvoidanceStrength": 4.0
+          }
+        }
+      ]
+    },
+    {
+      "Pose": {
+        "Position": {
+          "X": 20,
+          "Y": 7
+        },
+        "Size": {
+          "X": 0.3,
+          "Y": 0.3
+        }
+      },
+      "Design": {
+        "Color": "transparent",
+        "Image": "assets/game/bird.svg"
+      },
+      "PhysicsConfiguration": {
+        "hasGravity": true,
+        "canMove": true,
+        "mass": 10,
+        "restitution": 0.5
+      },
+      "Transformers": [
+        {
+          "Type": "Glider",
+          "Params": {
+            "horizontalSpeed": 3.0,
+            "glideEfficiency": 0.2,
+            "minSpeedForLift": 1.5,
+            "maxClimbRate": 4.0,
+            "minDistanceToBoundary": 2,
+
+            "boundaryAvoidanceStrength": 10.0,
+            "lookAheadDistance": 3.5,
+            "lookAheadTime": 0.6,
+            "collisionAvoidanceStrength": 4.0
+          }
+        }
+      ]
+    },
+    {
       "Pose": {
         "Position": {
           "X": 28,
@@ -577,7 +696,7 @@
           "linearAccel": 2.5,
           "linearBrake": 2.5,
           "linearDamping": 0.2,
-          "maxSpeed": 10.0,
+          "maxSpeed": 5.0,
           "angularAccel": 1200,
           "angularDamping": 500,
           "maxOmega": 300
@@ -589,7 +708,7 @@
           "linearAccel": 3.5,
           "linearBrake": 2.5,
           "linearDamping": 0.2,
-          "maxSpeed": 10.0,
+          "maxSpeed": 5.0,
           "angularAccel": 1200,
           "angularDamping": 500,
           "maxOmega": 300,
