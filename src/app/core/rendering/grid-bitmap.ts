@@ -32,6 +32,11 @@ export class GridBitmap {
     // We need to align the pattern with the grid's origin
     targetCtx.save();
     
+    // Clip to canvas bounds to avoid rendering off-screen (pattern is efficient, but this helps)
+    targetCtx.beginPath();
+    targetCtx.rect(0, 0, canvasW, canvasH);
+    targetCtx.clip();
+    
     // Use setTransform to set the pattern's origin to the grid's top-left
     // Use floor/round to avoid subpixel gaps at the start
     const startX = Math.round(gridRect.x);
@@ -56,7 +61,7 @@ export class GridBitmap {
     this.pattern.setTransform(matrix);
 
     targetCtx.fillStyle = this.pattern;
-    // Fill the exact rounded area
+    // Fill the exact rounded area (clipping ensures we don't render off-screen)
     targetCtx.fillRect(startX, startY, totalW, totalH);
 
     // Draw the outermost borders manually to ensure they are crisp and present

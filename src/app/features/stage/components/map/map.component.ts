@@ -103,20 +103,16 @@ export class MapComponent implements AfterViewInit, OnDestroy, MapLoader {
         }
 
         if (cameraDirty) {
+            // Camera changed - redraw all layers
             this.grid?.requestRedraw();
-            // Camera changed, so viewport changed - need to redraw layers
             this.animLayer?.requestRedraw();
             this.avatarsCanvas?.requestRedraw();
-        } else {
-            // Only redraw if items might have moved (physics/transformers update)
-            // For now, redraw every frame since items can be dynamic
-            // TODO: Track item movement to optimize further
-            this.animLayer?.requestRedraw();
-            this.avatarsCanvas?.requestRedraw();
-        }
-
-        if (cameraDirty) {
             this.worldContext?.clearCameraDirty();
+        } else {
+            // Camera didn't change - only redraw dynamic layers (items that might have moved)
+            // Grid is static, so skip it when camera is stable
+            this.animLayer?.requestRedraw();
+            this.avatarsCanvas?.requestRedraw();
         }
     }
 

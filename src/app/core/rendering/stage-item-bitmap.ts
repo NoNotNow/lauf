@@ -146,10 +146,15 @@ export class StageItemBitmap {
     const canvasW = pxW * ss;
     const canvasH = pxH * ss;
 
-    // Create an offscreen canvas; prefer OffscreenCanvas if available
+    // Create an offscreen canvas
+    // Note: Firefox has performance issues with OffscreenCanvas.getContext("2d"),
+    // so we use HTMLCanvasElement for better cross-browser performance
+    const isFirefox = typeof navigator !== 'undefined' && /Firefox/i.test(navigator.userAgent);
     let c: OffscreenCanvas | HTMLCanvasElement;
     let ctx: OffscreenCanvasRenderingContext2D | CanvasRenderingContext2D | null = null;
-    if (typeof OffscreenCanvas !== "undefined") {
+    
+    // Use HTMLCanvasElement on Firefox for better performance, OffscreenCanvas elsewhere
+    if (!isFirefox && typeof OffscreenCanvas !== "undefined") {
       c = new OffscreenCanvas(canvasW, canvasH);
       ctx = c.getContext("2d");
     } else {
@@ -215,8 +220,10 @@ export class StageItemBitmap {
     this.imageBitmap = null;
 
     // Try to create ImageBitmap for faster blits (ignore failures in older browsers)
+    // Note: Firefox's createImageBitmap can be slower, so we skip it on Firefox
+    // If performance testing shows ImageBitmap helps on Firefox, remove the isFirefox check
     const anyWindow: any = (globalThis as any);
-    if (anyWindow && typeof anyWindow.createImageBitmap === "function") {
+    if (!isFirefox && anyWindow && typeof anyWindow.createImageBitmap === "function") {
       // createImageBitmap is async; we can kick it off but still use the canvas until ready
       (anyWindow.createImageBitmap as any)(c).then((bmp: ImageBitmap) => {
         // If key changed in the meantime, discard

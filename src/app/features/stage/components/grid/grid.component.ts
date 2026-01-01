@@ -63,6 +63,30 @@ export class GridComponent implements OnChanges {
         return;
     }
 
+    // Get visible viewport bounds - only render what's actually visible
+    let visibleRect = { x: 0, y: 0, w: canvas.width, h: canvas.height };
+    if (this.camera) {
+      const viewportBounds = this.camera.getViewportBounds(geom.cols, geom.rows);
+      if (viewportBounds) {
+        // Convert viewport bounds (in cell coordinates) to screen coordinates
+        const topLeft = geom.rectForCells(viewportBounds.minX, viewportBounds.minY, 0, 0);
+        const bottomRight = geom.rectForCells(viewportBounds.maxX, viewportBounds.maxY, 0, 0);
+        visibleRect = {
+          x: topLeft.x,
+          y: topLeft.y,
+          w: bottomRight.x - topLeft.x,
+          h: bottomRight.y - topLeft.y
+        };
+        // Add small margin to avoid edge artifacts
+        const margin = 50;
+        visibleRect.x -= margin;
+        visibleRect.y -= margin;
+        visibleRect.w += margin * 2;
+        visibleRect.h += margin * 2;
+      }
+    }
+
+    // Get full grid rect for reference (but we'll only render visible portion)
     const gridRect = geom.rectForCells(0, 0, geom.cols, geom.rows);
     
     // Check if background image is specified and if it loads successfully
@@ -75,10 +99,16 @@ export class GridComponent implements OnChanges {
     }
     
     // Only draw background color if no image is specified, or if image is specified and successfully loaded
-    // This ensures transparent fallback when image fails to load
+    // Fill only the visible area for performance
     if (this.backgroundColor !== 'transparent' && (!this.backgroundImage || imageLoaded)) {
       ctx.fillStyle = this.backgroundColor;
+      // Clip to visible area to avoid unnecessary fills
+      ctx.save();
+      ctx.beginPath();
+      ctx.rect(visibleRect.x, visibleRect.y, visibleRect.w, visibleRect.h);
+      ctx.clip();
       ctx.fillRect(gridRect.x, gridRect.y, gridRect.w, gridRect.h);
+      ctx.restore();
     }
     
     // Draw background image if provided and loaded
@@ -87,9 +117,14 @@ export class GridComponent implements OnChanges {
       if (img && img.complete && img.naturalWidth > 0) {
         ctx.save();
         
+        // Clip to visible area to avoid rendering off-screen tiles
+        ctx.beginPath();
+        ctx.rect(visibleRect.x, visibleRect.y, visibleRect.w, visibleRect.h);
+        ctx.clip();
+        
         // Check if background repeat is configured
         if (this.backgroundRepeat && this.backgroundRepeat.Mode !== 'no-repeat') {
-          // Repeating background
+          // Repeating background - only render visible tiles
           const mode = this.backgroundRepeat.Mode.toLowerCase();
           const tileSizeX = Math.max(0.1, this.backgroundRepeat.TileSize.X);
           const tileSizeY = Math.max(0.1, this.backgroundRepeat.TileSize.Y);
@@ -98,20 +133,35 @@ export class GridComponent implements OnChanges {
           const tilePxW = Math.round(tileSizeX * geom.cellW);
           const tilePxH = Math.round(tileSizeY * geom.cellH);
           
-          // Round starting position to integer pixels for seamless alignment
-          const startX = Math.round(gridRect.x);
-          const startY = Math.round(gridRect.y);
-          
-          // Calculate how many tiles we need to cover the grid
-          const tilesX = mode === 'repeat-y' ? 1 : Math.ceil(gridRect.w / tilePxW) + 1;
-          const tilesY = mode === 'repeat-x' ? 1 : Math.ceil(gridRect.h / tilePxH) + 1;
-          
-          // Draw repeating tiles at integer pixel boundaries
-          for (let ty = 0; ty < tilesY; ty++) {
-            for (let tx = 0; tx < tilesX; tx++) {
-              const x = startX + tx * tilePxW;
-              const y = startY + ty * tilePxH;
-              ctx.drawImage(img, x, y, tilePxW, tilePxH);
+          if (tilePxW > 0 && tilePxH > 0) {
+            // Calculate which tiles are visible based on viewport
+            // Find the first tile that starts before or at the visible area
+            const gridStartX = Math.round(gridRect.x);
+            const gridStartY = Math.round(gridRect.y);
+            
+            // Calculate tile indices for visible area
+            const firstTileX = Math.floor((visibleRect.x - gridStartX) / tilePxW);
+            const firstTileY = Math.floor((visibleRect.y - gridStartY) / tilePxH);
+            const lastTileX = Math.ceil((visibleRect.x + visibleRect.w - gridStartX) / tilePxW);
+            const lastTileY = Math.ceil((visibleRect.y + visibleRect.h - gridStartY) / tilePxH);
+            
+            // Only render tiles that are actually visible
+            const startTileX = mode === 'repeat-y' ? 0 : Math.max(0, firstTileX);
+            const endTileX = mode === 'repeat-y' ? 1 : lastTileX;
+            const startTileY = mode === 'repeat-x' ? 0 : Math.max(0, firstTileY);
+            const endTileY = mode === 'repeat-x' ? 1 : lastTileY;
+            
+            // Draw only visible tiles
+            for (let ty = startTileY; ty < endTileY; ty++) {
+              for (let tx = startTileX; tx < endTileX; tx++) {
+                const x = gridStartX + tx * tilePxW;
+                const y = gridStartY + ty * tilePxH;
+                // Only draw if tile intersects visible area
+                if (x + tilePxW >= visibleRect.x && x <= visibleRect.x + visibleRect.w &&
+                    y + tilePxH >= visibleRect.y && y <= visibleRect.y + visibleRect.h) {
+                  ctx.drawImage(img, x, y, tilePxW, tilePxH);
+                }
+              }
             }
           }
         } else {
@@ -138,7 +188,7 @@ export class GridComponent implements OnChanges {
       }
     }
 
-    // Draw grid lines on top
+    // Draw grid lines on top (grid bitmap already handles viewport efficiently via pattern)
     this.bitmap.draw(ctx, canvas.width, canvas.height, geom, this.color, this.lineWidth, this.gridBorder);
   };
 

@@ -122,6 +122,10 @@ export class Camera {
       return;
     }
 
+    const oldCenterX = this.center.x;
+    const oldCenterY = this.center.y;
+    const oldZoom = this.zoom;
+
     this.center.x += dx * this.lerpFactor;
     this.center.y += dy * this.lerpFactor;
     this.zoom += dz * this.lerpFactor;
@@ -131,7 +135,14 @@ export class Camera {
     this.center.x = clamped.x;
     this.center.y = clamped.y;
 
-    this._dirty = true;
+    // Only mark dirty if position/zoom actually changed significantly
+    // This prevents unnecessary redraws during smooth panning
+    const movedThreshold = 0.01; // pixels - only redraw if moved more than this
+    if (Math.abs(this.center.x - oldCenterX) > movedThreshold ||
+        Math.abs(this.center.y - oldCenterY) > movedThreshold ||
+        Math.abs(this.zoom - oldZoom) > 0.001) {
+      this._dirty = true;
+    }
   }
 
   transformGeometry(baseGeom: GridGeometry, canvasWidth: number, canvasHeight: number): GridGeometry {

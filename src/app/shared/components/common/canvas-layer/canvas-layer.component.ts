@@ -26,6 +26,10 @@ export class CanvasLayerComponent implements AfterViewInit, OnDestroy, OnChanges
 
   private resizeObserver?: ResizeObserver;
   private onExternalRedraw = () => this.drawNow();
+  // Cache canvas context to avoid repeated getContext() calls (Firefox optimization)
+  private cachedCtx?: CanvasRenderingContext2D | null;
+  // Batch redraws to avoid multiple redraws in the same frame (Firefox optimization)
+  private redrawScheduled = false;
 
   constructor(private host: ElementRef<HTMLElement>) {}
 
@@ -52,7 +56,15 @@ export class CanvasLayerComponent implements AfterViewInit, OnDestroy, OnChanges
   }
 
   requestRedraw(): void {
-    this.drawNow();
+    // Batch redraws using requestAnimationFrame to avoid multiple redraws per frame
+    // This is especially important for Firefox performance
+    if (!this.redrawScheduled) {
+      this.redrawScheduled = true;
+      requestAnimationFrame(() => {
+        this.redrawScheduled = false;
+        this.drawNow();
+      });
+    }
   }
 
   private resizeCanvas(): void {
@@ -71,6 +83,8 @@ export class CanvasLayerComponent implements AfterViewInit, OnDestroy, OnChanges
     if (canvas.width !== displayWidth || canvas.height !== displayHeight) {
       canvas.width = displayWidth;
       canvas.height = displayHeight;
+      // Invalidate cached context when canvas size changes
+      this.cachedCtx = null;
     }
 
     if (this.camera) {
@@ -82,10 +96,19 @@ export class CanvasLayerComponent implements AfterViewInit, OnDestroy, OnChanges
 
   private drawNow(): void {
     const canvas = this.canvasRef.nativeElement;
-    const ctx = canvas.getContext('2d');
+    // Cache context to avoid repeated getContext() calls (Firefox optimization)
+    // Use willReadFrequently: false for better performance (we don't read pixels)
+    if (!this.cachedCtx) {
+      this.cachedCtx = canvas.getContext('2d', { 
+        alpha: true,
+        willReadFrequently: false  // Firefox optimization: faster if we don't read pixels
+      });
+    }
+    const ctx = this.cachedCtx;
     if (!ctx) return;
 
     // Clear before delegating
+    // Note: clearRect can be slower in Firefox, but it's necessary for proper alpha blending
     ctx.clearRect(0, 0, canvas.width, canvas.height);
 
     // Build geometry helper if gridSize is provided
