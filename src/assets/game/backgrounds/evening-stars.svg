@@ -22,8 +22,8 @@
      inkscape:deskcolor="#505050"
      showgrid="false"
      inkscape:zoom="1.34"
-     inkscape:cx="358.58209"
-     inkscape:cy="363.43284"
+     inkscape:cx="345.52239"
+     inkscape:cy="364.1791"
      inkscape:window-width="1920"
      inkscape:window-height="1013"
      inkscape:window-x="1920"
@@ -55,12 +55,41 @@
          style="stop-color:#10181c;stop-opacity:0.85"
          id="stop4058" />
     </linearGradient>
+    <linearGradient
+       id="bottomOverlayGradient"
+       x1="0"
+       y1="1039.2305"
+       x2="0"
+       y2="1385.6406"
+       gradientTransform="matrix(2.3094011,0,0,0.27144078,0,223.88064)"
+       gradientUnits="userSpaceOnUse">
+      <stop
+         offset="0"
+         style="stop-color:#282828;stop-opacity:0;"
+         id="stopOverlay1" />
+      <stop
+         offset="0.875"
+         style="stop-color:#2d523e;stop-opacity:0.30196078;"
+         id="stop1751" />
+      <stop
+         offset="1"
+         style="stop-color:#337b54;stop-opacity:0.60000002;"
+         id="stopOverlay2" />
+    </linearGradient>
   </defs>
   <rect
      width="800"
      height="600"
      fill="url(#eveningSkyGradient)"
      id="rect4063" />
+  <rect
+     width="800"
+     height="94.029854"
+     x="0"
+     y="505.97015"
+     fill="url(#bottomOverlayGradient)"
+     id="rectOverlay"
+     style="fill:url(#bottomOverlayGradient);stroke-width:0.791749" />
   <circle
      cx="538.61938"
      cy="281.90298"

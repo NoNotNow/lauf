@@ -46,6 +46,10 @@ export class GridComponent implements OnChanges {
       this.bitmap.invalidate();
       this.backgroundPattern.invalidate();
     }
+    // If camera is set for the first time and is dirty, trigger initial redraw
+    if (changes['camera'] && this.camera?.isDirty) {
+      this.requestRedraw();
+    }
   }
 
   updateRedrawKey(): void {

@@ -53,6 +53,10 @@ export class CanvasLayerComponent implements AfterViewInit, OnDestroy, OnChanges
     if (changes['redrawKey'] && this.canvasRef?.nativeElement) {
       this.drawNow();
     }
+    // If camera is set or changed and is dirty, trigger redraw
+    if (changes['camera'] && this.camera?.isDirty && this.canvasRef?.nativeElement) {
+      this.requestRedraw();
+    }
   }
 
   requestRedraw(): void {
