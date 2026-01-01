@@ -23,6 +23,7 @@ export class MapComponent implements AfterViewInit, OnDestroy, MapLoader {
     gridLineWidth = 0.01; // in cell units (1.0 == one cell)
     gridSize: Point = new Point(10, 10);
     gridBorder = "solid";
+    gridBorderActive = true; // If false, grid is not drawn
     currentZoomIndex: number = 0;
 
     // Camera accessor for template
@@ -208,9 +209,10 @@ export class MapComponent implements AfterViewInit, OnDestroy, MapLoader {
 
         const { Border, Color, Image, BackgroundRepeat } = map.design;
 
-        if (Border.Width) this.gridLineWidth = Border.Width;
+        if (Border.Width !== undefined) this.gridLineWidth = Border.Width;
         if (Border.Color) this.gridColor = Border.Color;
         if (Border.Style) this.gridBorder = Border.Style;
+        if (Border.Active !== undefined) this.gridBorderActive = Border.Active;
         if (Color) this.gridBackgroundColor = Color;
         if (Image) this.gridBackgroundImage = Image;
         if (BackgroundRepeat && BackgroundRepeat.Mode) {

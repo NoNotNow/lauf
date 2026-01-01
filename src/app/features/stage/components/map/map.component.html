@@ -1,6 +1,6 @@
 <div class="container" (click)="toggleZoom()" (touchstart)="onTouchStart($event)">
   <div class="layer">
-    <app-grid [gridSize]="gridSize" [backgroundColor]="gridBackgroundColor" [backgroundImage]="gridBackgroundImage" [backgroundRepeat]="gridBackgroundRepeat" [color]="gridColor" [gridBorder]="gridBorder"    [lineWidth]="gridLineWidth" [camera]="camera"></app-grid>
+    <app-grid [gridSize]="gridSize" [backgroundColor]="gridBackgroundColor" [backgroundImage]="gridBackgroundImage" [backgroundRepeat]="gridBackgroundRepeat" [color]="gridColor" [gridBorder]="gridBorder" [gridBorderActive]="gridBorderActive" [lineWidth]="gridLineWidth" [camera]="camera"></app-grid>
   </div>
   <div class="layer obstacles">
     <app-canvas-layer [gridSize]="gridSize" [draw]="drawFrame" [camera]="camera"></app-canvas-layer>

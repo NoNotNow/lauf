@@ -5,6 +5,7 @@ import { Camera } from '../../../../core/rendering/camera';
 import { GridGeometry } from '../../../../core/models/canvas-geometry';
 import { GridBitmap } from '../../../../core/rendering/grid-bitmap';
 import { ImageCache } from '../../../../core/rendering/image-cache';
+import { BackgroundPattern } from '../../../../core/rendering/background-pattern';
 
 @Component({
   selector: 'app-grid',
@@ -22,6 +23,7 @@ export class GridComponent implements OnChanges {
   @Input() color: string = '#cccccc';
   @Input() lineWidth: number = 0.02;
   @Input() gridBorder!: string;
+  @Input() gridBorderActive: boolean = true; // If false, grid lines are not drawn
   @Input() backgroundColor: string = 'transparent';
   @Input() backgroundImage: string = '';
   @Input() backgroundRepeat: { Mode: string, TileSize: { X: number, Y: number } } | null = null;
@@ -36,11 +38,13 @@ export class GridComponent implements OnChanges {
 
   private bitmap = new GridBitmap();
   private imageCache = new ImageCache();
+  private backgroundPattern = new BackgroundPattern();
 
   ngOnChanges(changes: SimpleChanges): void {
     if (changes['gridSize'] || changes['color'] || changes['lineWidth'] || changes['backgroundImage'] || changes['backgroundRepeat']) {
       this.updateRedrawKey();
       this.bitmap.invalidate();
+      this.backgroundPattern.invalidate();
     }
   }
 
@@ -124,46 +128,22 @@ export class GridComponent implements OnChanges {
         
         // Check if background repeat is configured
         if (this.backgroundRepeat && this.backgroundRepeat.Mode !== 'no-repeat') {
-          // Repeating background - only render visible tiles
-          const mode = this.backgroundRepeat.Mode.toLowerCase();
+          // Use pre-rendered pattern for efficient tiling
           const tileSizeX = Math.max(0.1, this.backgroundRepeat.TileSize.X);
           const tileSizeY = Math.max(0.1, this.backgroundRepeat.TileSize.Y);
           
-          // Calculate tile size in pixels and round to integers for seamless tiling
-          const tilePxW = Math.round(tileSizeX * geom.cellW);
-          const tilePxH = Math.round(tileSizeY * geom.cellH);
-          
-          if (tilePxW > 0 && tilePxH > 0) {
-            // Calculate which tiles are visible based on viewport
-            // Find the first tile that starts before or at the visible area
-            const gridStartX = Math.round(gridRect.x);
-            const gridStartY = Math.round(gridRect.y);
-            
-            // Calculate tile indices for visible area
-            const firstTileX = Math.floor((visibleRect.x - gridStartX) / tilePxW);
-            const firstTileY = Math.floor((visibleRect.y - gridStartY) / tilePxH);
-            const lastTileX = Math.ceil((visibleRect.x + visibleRect.w - gridStartX) / tilePxW);
-            const lastTileY = Math.ceil((visibleRect.y + visibleRect.h - gridStartY) / tilePxH);
-            
-            // Only render tiles that are actually visible
-            const startTileX = mode === 'repeat-y' ? 0 : Math.max(0, firstTileX);
-            const endTileX = mode === 'repeat-y' ? 1 : lastTileX;
-            const startTileY = mode === 'repeat-x' ? 0 : Math.max(0, firstTileY);
-            const endTileY = mode === 'repeat-x' ? 1 : lastTileY;
-            
-            // Draw only visible tiles
-            for (let ty = startTileY; ty < endTileY; ty++) {
-              for (let tx = startTileX; tx < endTileX; tx++) {
-                const x = gridStartX + tx * tilePxW;
-                const y = gridStartY + ty * tilePxH;
-                // Only draw if tile intersects visible area
-                if (x + tilePxW >= visibleRect.x && x <= visibleRect.x + visibleRect.w &&
-                    y + tilePxH >= visibleRect.y && y <= visibleRect.y + visibleRect.h) {
-                  ctx.drawImage(img, x, y, tilePxW, tilePxH);
-                }
-              }
-            }
-          }
+          this.backgroundPattern.draw(
+            ctx,
+            canvas.width,
+            canvas.height,
+            geom,
+            img,
+            tileSizeX,
+            tileSizeY,
+            this.backgroundRepeat.Mode,
+            gridRect,
+            visibleRect
+          );
         } else {
           // Default cover strategy (maintain aspect ratio, cover entire area)
           const imgAspect = img.naturalWidth / img.naturalHeight;
@@ -188,8 +168,11 @@ export class GridComponent implements OnChanges {
       }
     }
 
-    // Draw grid lines on top (grid bitmap already handles viewport efficiently via pattern)
-    this.bitmap.draw(ctx, canvas.width, canvas.height, geom, this.color, this.lineWidth, this.gridBorder);
+    // Draw grid lines on top (only if grid is active)
+    // Early exit: skip grid drawing entirely if Border.Active is false
+    if (this.gridBorderActive) {
+      this.bitmap.draw(ctx, canvas.width, canvas.height, geom, this.color, this.lineWidth, this.gridBorder);
+    }
   };
 
   private drawLegacy(ctx: CanvasRenderingContext2D, canvas: HTMLCanvasElement) {
