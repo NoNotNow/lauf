@@ -35983,6 +35983,9 @@ var CanvasLayerComponent = class _CanvasLayerComponent {
     if (changes["redrawKey"] && this.canvasRef?.nativeElement) {
       this.drawNow();
     }
+    if (changes["camera"] && this.camera?.isDirty && this.canvasRef?.nativeElement) {
+      this.requestRedraw();
+    }
   }
   requestRedraw() {
     if (!this.redrawScheduled) {
@@ -36434,6 +36437,9 @@ var GridComponent = class _GridComponent {
       this.bitmap.invalidate();
       this.backgroundPattern.invalidate();
     }
+    if (changes["camera"] && this.camera?.isDirty) {
+      this.requestRedraw();
+    }
   }
   updateRedrawKey() {
     const N = Math.max(1, Math.floor(this.gridSize?.x ?? 1));
@@ -36778,8 +36784,13 @@ var Camera = class {
     this._dirty = false;
   }
   setTarget(center, zoom = 1) {
+    if (this.targetZoom !== zoom) {
+      this.zoom = zoom;
+      this.targetZoom = zoom;
+      this._dirty = true;
+    }
     this.targetCenter = this.clampCenter(center, zoom);
-    this.targetZoom = zoom;
+    this.center = this.clampCenter(this.center, this.zoom);
   }
   setBounds(cols, rows) {
     this.bounds = { cols, rows };
@@ -36833,27 +36844,22 @@ var Camera = class {
   update() {
     const dx = this.targetCenter.x - this.center.x;
     const dy = this.targetCenter.y - this.center.y;
-    const dz = this.targetZoom - this.zoom;
-    if (Math.abs(dx) < 1e-4 && Math.abs(dy) < 1e-4 && Math.abs(dz) < 1e-4) {
-      if (this.center.x !== this.targetCenter.x || this.center.y !== this.targetCenter.y || this.zoom !== this.targetZoom) {
+    if (Math.abs(dx) < 1e-4 && Math.abs(dy) < 1e-4) {
+      if (this.center.x !== this.targetCenter.x || this.center.y !== this.targetCenter.y) {
         this.center.x = this.targetCenter.x;
         this.center.y = this.targetCenter.y;
-        this.zoom = this.targetZoom;
         this._dirty = true;
       }
       return;
     }
     const oldCenterX = this.center.x;
     const oldCenterY = this.center.y;
-    const oldZoom = this.zoom;
     this.center.x += dx * this.lerpFactor;
     this.center.y += dy * this.lerpFactor;
-    this.zoom += dz * this.lerpFactor;
     const clamped = this.clampCenter(this.center, this.zoom);
     this.center.x = clamped.x;
     this.center.y = clamped.y;
-    const movedThreshold = 0.01;
-    if (Math.abs(this.center.x - oldCenterX) > movedThreshold || Math.abs(this.center.y - oldCenterY) > movedThreshold || Math.abs(this.zoom - oldZoom) > 1e-3) {
+    if (this.center.x !== oldCenterX || this.center.y !== oldCenterY) {
       this._dirty = true;
     }
   }
@@ -38890,45 +38896,50 @@ var Glider = class {
 var Drifter = class {
   constructor(ticker, item, params, boundary) {
     this.ticker = ticker;
-    this._vx = 0;
-    this._vy = 0;
-    this._directionalVelocityMax = 0.1;
+    this._directionAngle = 0;
+    this._force = 0.01;
+    this._directionChangeInterval = 15;
+    this._elapsedTime = 0;
     this._bounce = true;
     if (item) {
       this._item = item;
       this._phys = StageItemPhysics.for(item);
     }
     this._boundary = boundary;
-    const maxSpeed = params?.maxSpeed ?? params?.MaxSpeed;
-    if (typeof maxSpeed === "number") {
-      this._directionalVelocityMax = maxSpeed;
-    } else {
-      this._directionalVelocityMax = 0.02 + Math.random() * 15;
+    const force = params?.force ?? params?.Force;
+    if (typeof force === "number") {
+      this._force = force;
     }
+    const directionChangeInterval = params?.directionChangeInterval ?? params?.DirectionChangeInterval ?? params?.directionChangeSeconds ?? params?.DirectionChangeSeconds;
+    if (typeof directionChangeInterval === "number") {
+      this._directionChangeInterval = Math.max(0.1, directionChangeInterval);
+    }
+    const maxSpeed = params?.maxSpeed ?? params?.MaxSpeed;
+    if (typeof maxSpeed === "number" && force === void 0) {
+      this._force = maxSpeed * 0.1;
+    }
+    this._directionAngle = Math.random() * Math.PI * 2;
     const vx = params?.vx ?? params?.Vx;
     const vy = params?.vy ?? params?.Vy;
     if (typeof vx === "number" && typeof vy === "number") {
-      this.setVelocity(vx, vy);
-    } else {
-      this.setRandomVelocity(this._directionalVelocityMax);
+      this._directionAngle = Math.atan2(vy, vx);
     }
     if (params?.bounce !== void 0) {
       this._bounce = !!params.bounce;
     }
   }
-  setRandomVelocity(maxSpeed) {
-    const angle = Math.random() * Math.PI * 2;
-    const speed = Math.random() * (maxSpeed / 2);
-    this.setVelocity(Math.cos(angle) * speed, Math.sin(angle) * speed);
-  }
   setItem(item) {
     this._item = item;
     this._phys = item ? StageItemPhysics.for(item) : void 0;
   }
-  setDirectionalVelocityMax(max) {
-    if (typeof max === "number" && !isNaN(max)) {
-      this._directionalVelocityMax = Math.max(0, max);
-      this.clampVelocityToMax();
+  setForce(force) {
+    if (typeof force === "number" && !isNaN(force)) {
+      this._force = Math.max(0, force);
+    }
+  }
+  setDirectionChangeInterval(interval2) {
+    if (typeof interval2 === "number" && !isNaN(interval2)) {
+      this._directionChangeInterval = Math.max(0.1, interval2);
     }
   }
   setBoundary(boundary) {
@@ -38937,42 +38948,27 @@ var Drifter = class {
   setBounce(bounce) {
     this._bounce = !!bounce;
   }
-  // Explicitly set velocity (cells/sec). Will be clamped to the configured max magnitude.
-  setVelocity(vx, vy) {
-    this._vx = toNumber(vx, 0);
-    this._vy = toNumber(vy, 0);
-    this.clampVelocityToMax();
-    if (this._phys) {
-      this._phys.setVelocity(this._vx, this._vy);
-    }
-  }
   start() {
     if (this.sub)
       return;
-    this.sub = this.ticker.ticks$.subscribe(() => this.onTick());
+    this._elapsedTime = 0;
+    this.sub = this.ticker.ticks$.subscribe(({ dtSec }) => this.onTick(dtSec));
   }
   stop() {
     this.sub?.unsubscribe();
     this.sub = void 0;
   }
-  clampVelocityToMax() {
-    const vMax = this._directionalVelocityMax;
-    if (vMax <= 0) {
-      this._vx = 0;
-      this._vy = 0;
+  onTick(dtSec) {
+    if (!this._phys || dtSec === 0)
       return;
+    this._elapsedTime += dtSec;
+    if (this._elapsedTime >= this._directionChangeInterval) {
+      this._directionAngle = Math.random() * Math.PI * 2;
+      this._elapsedTime = 0;
     }
-    const mag = Math.hypot(this._vx, this._vy);
-    if (mag > vMax) {
-      const s = vMax / (mag || 1);
-      this._vx *= s;
-      this._vy *= s;
-    }
-  }
-  onTick() {
-    if (!this._phys)
-      return;
-    this._phys.setVelocity(this._vx, this._vy);
+    const ax = Math.cos(this._directionAngle) * this._force;
+    const ay = Math.sin(this._directionAngle) * this._force;
+    this._phys.accelerate(ax, ay, dtSec);
   }
 };
 
