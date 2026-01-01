@@ -139,11 +139,10 @@ export class Camera {
     this.center.x = clamped.x;
     this.center.y = clamped.y;
 
-    // Only mark dirty if position actually changed significantly
-    // This prevents unnecessary redraws during smooth panning
-    const movedThreshold = 0.01; // pixels - only redraw if moved more than this
-    if (Math.abs(this.center.x - oldCenterX) > movedThreshold ||
-        Math.abs(this.center.y - oldCenterY) > movedThreshold) {
+    // Always mark dirty when interpolating (camera is moving)
+    // Background patterns need to update even with tiny camera movements for proper alignment
+    // Check if position actually changed to avoid marking dirty when clamped prevented movement
+    if (this.center.x !== oldCenterX || this.center.y !== oldCenterY) {
       this._dirty = true;
     }
   }
