@@ -696,7 +696,7 @@
           "linearAccel": 2.5,
           "linearBrake": 2.5,
           "linearDamping": 0.2,
-          "maxSpeed": 5.0,
+          "maxSpeed": 4.0,
           "angularAccel": 1200,
           "angularDamping": 500,
           "maxOmega": 300
