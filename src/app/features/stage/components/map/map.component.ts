@@ -1,13 +1,14 @@
-import {AfterViewInit, Component, OnDestroy, ViewChild} from '@angular/core';
+import {AfterViewInit, ChangeDetectorRef, Component, OnDestroy, ViewChild} from '@angular/core';
 import {GridComponent} from '../grid/grid.component';
-import {Point} from '../../../../core/models/point';
 import {Map as GameMap} from '../../../../core/models/map';
 import {StartupService, MapLoader} from '../../../../core/services/startup.service';
 import { CanvasLayerComponent } from '../../../../shared/components/common/canvas-layer/canvas-layer.component';
+import {MapConfigurationService} from '../../../../core/services/map-configuration.service';
+import {ZoomService} from '../../../../core/services/zoom.service';
+import {FullscreenService} from '../../../../core/services/fullscreen.service';
+import {RenderingCoordinatorService} from '../../../../core/services/rendering-coordinator.service';
+import {WorldContextService} from '../../../../core/services/world-context.service';
 import {AnimatorService} from '../../../../core/rendering/animator.service';
-import {TickService} from '../../../../core/services/tick.service';
-import {WorldAssemblerService} from '../../../../core/services/world-assembler.service';
-import {WorldContext} from '../../../../core/models/world-context';
 
 @Component({
     selector: 'app-map',
@@ -18,17 +19,23 @@ import {WorldContext} from '../../../../core/models/world-context';
     styleUrl: './map.component.scss'
 })
 export class MapComponent implements AfterViewInit, OnDestroy, MapLoader {
-    // Configure grid appearance
-    gridColor = '#cccccc';
-    gridLineWidth = 0.01; // in cell units (1.0 == one cell)
-    gridSize: Point = new Point(10, 10);
-    gridBorder = "solid";
-    gridBorderActive = true; // If false, grid is not drawn
-    currentZoomIndex: number = 0;
+    // Grid configuration from service
+    get gridConfig() {
+        return this.mapConfig.config;
+    }
 
     // Camera accessor for template
     get camera() {
-        return this.worldContext?.getCamera();
+        return this.worldContextService.getCamera();
+    }
+
+    // Zoom state accessors for template
+    get currentZoom() {
+        return this.zoomService.getCurrentZoom();
+    }
+
+    get currentZoomIndex() {
+        return this.zoomService.getCurrentZoomIndex();
     }
 
     @ViewChild(GridComponent)
@@ -41,190 +48,98 @@ export class MapComponent implements AfterViewInit, OnDestroy, MapLoader {
     @ViewChild('avatarsCanvas')
     avatarsCanvas!: CanvasLayerComponent;
 
-    // Draw callback for the animator-driven obstacles layer
-    drawFrame = (ctx: CanvasRenderingContext2D, _canvas: HTMLCanvasElement, geom?: any) => {
-        if (!geom) return;
-        this.animator.draw(ctx, geom);
-    };
+    // Draw callbacks from rendering coordinator (cached for stability)
+    private _drawFrame?: (ctx: CanvasRenderingContext2D, _canvas: HTMLCanvasElement, geom?: any) => void;
+    private _drawAvatarFrame?: (ctx: CanvasRenderingContext2D, _canvas: HTMLCanvasElement, geom?: any) => void;
 
-    // Draw callback for the avatar canvas layer using the same bitmap pipeline
-    drawAvatarFrame = (ctx: CanvasRenderingContext2D, _canvas: HTMLCanvasElement, geom?: any) => {
-        if (!geom || !this.currentMap?.avatar) return;
-        this.animator.drawItems([this.currentMap.avatar], ctx, geom);
-    };
+    get drawFrame() {
+        if (!this._drawFrame) {
+            this._drawFrame = this.renderingCoordinator.createObstaclesDrawCallback();
+        }
+        return this._drawFrame;
+    }
 
-    private tickSub?: any;
-    private worldContext?: WorldContext;
+    get drawAvatarFrame() {
+        if (!this._drawAvatarFrame) {
+            this._drawAvatarFrame = this.renderingCoordinator.createAvatarsDrawCallback();
+        }
+        return this._drawAvatarFrame;
+    }
+
     enableItemCollisions = true;
-    private currentMap?: GameMap;
+    private configSub?: any;
 
     constructor(
         private startup: StartupService,
+        private mapConfig: MapConfigurationService,
+        private zoomService: ZoomService,
+        private fullscreenService: FullscreenService,
+        private renderingCoordinator: RenderingCoordinatorService,
+        private worldContextService: WorldContextService,
         private animator: AnimatorService,
-        private ticker: TickService,
-        private worldAssembler: WorldAssemblerService
+        private cdr: ChangeDetectorRef
     ) {}
 
     ngAfterViewInit(): void {
+        // Register layers with rendering coordinator
+        this.renderingCoordinator.registerGridLayer(this.grid);
+        this.renderingCoordinator.registerObstaclesLayer(this.animLayer);
+        this.renderingCoordinator.registerAvatarsLayer(this.avatarsCanvas);
+
+        // Subscribe to configuration changes to trigger change detection
+        // Grid component will pick up changes via inputs
+        this.configSub = this.mapConfig.config$.subscribe(() => {
+            this.cdr.markForCheck();
+        });
+
+        // Start the rendering coordinator
+        this.renderingCoordinator.start();
+
+        // Load map
         this.startup.main(this);
-        this.ticker.start();
-        this.tickSub = this.ticker.ticks$.subscribe(() => this.onTick());
     }
 
     ngOnDestroy(): void {
-        this.tickSub?.unsubscribe?.();
-        this.ticker.stop();
-        this.worldContext?.cleanup();
+        this.configSub?.unsubscribe?.();
+        this.renderingCoordinator.stop();
+        this.renderingCoordinator.unregisterLayer(this.grid);
+        this.renderingCoordinator.unregisterLayer(this.animLayer);
+        this.renderingCoordinator.unregisterLayer(this.avatarsCanvas);
+        this.worldContextService.cleanup();
         this.animator.destroy();
     }
-
-    protected gridBackgroundColor: string = 'transparent';
-    protected gridBackgroundImage: string = '';
-    protected gridBackgroundRepeat: { Mode: string, TileSize: { X: number, Y: number } } | null = null;
 
     loadMap(map: GameMap): void {
         if (!map) return;
 
-        this.currentMap = map;
-        this.updateGridFromMap(map);
-        this.applyDesignConfiguration(map);
-        this.updateZoomLevelsFromMap(map);
-        this.animator.setMap(map);
-        this.animator.setCamera(this.camera);
-        this.rebuildWorld(map);
-    }
+        // Configure map settings via services
+        this.mapConfig.loadMap(map);
+        this.zoomService.loadZoomLevelsFromMap(map);
 
-    private onTick(): void {
-        this.worldContext?.updateCamera();
-        const cameraDirty = this.worldContext?.isCameraDirty() ?? false;
+        // Set up rendering coordinator
+        this.renderingCoordinator.setMap(map);
 
-        // Update animator camera reference if it changed
-        if (this.camera) {
-            this.animator.setCamera(this.camera);
-        }
+        // Build world (creates or uses camera from map)
+        this.worldContextService.setConfig({ enableCollisions: this.enableItemCollisions });
+        this.worldContextService.buildWorld(map);
 
-        if (cameraDirty) {
-            // Camera changed - redraw all layers
-            this.grid?.requestRedraw();
-            this.animLayer?.requestRedraw();
-            this.avatarsCanvas?.requestRedraw();
-            this.worldContext?.clearCameraDirty();
-        } else {
-            // Camera didn't change - only redraw dynamic layers (items that might have moved)
-            // Grid is static, so skip it when camera is stable
-            this.animLayer?.requestRedraw();
-            this.avatarsCanvas?.requestRedraw();
+        // Get camera from world context (it's created or set during buildWorld)
+        const camera = this.worldContextService.getCamera();
+        if (camera) {
+            // Set camera references in services that need it
+            this.zoomService.setCamera(camera);
+            this.renderingCoordinator.setCamera(camera);
         }
     }
-
-
-    private updateGridFromMap(map: GameMap): void {
-        if (map.size) {
-            this.gridSize = new Point(map.size.x, map.size.y);
-        }
-    }
-
-    private rebuildWorld(map: GameMap): void {
-        this.worldContext?.cleanup();
-        this.worldContext = this.worldAssembler.buildWorld(map, {
-            enableCollisions: this.enableItemCollisions
-        });
-        this.worldContext.start();
-    }
-
-    private currentZoom = 1.0;
-    private zoomLevels: number[] = [1.0, 2.0, 3.0, 4.0, 5.0]; // Default fallback
-    
-    // Double-tap detection for fullscreen
-    private lastTapTime: number = 0;
-    private lastTapPosition: { x: number; y: number } | null = null;
-    private readonly DOUBLE_TAP_DELAY = 300; // ms
-    private readonly DOUBLE_TAP_DISTANCE = 50; // pixels
 
     toggleZoom(): void {
-        this.currentZoom = this.zoomLevels[this.currentZoomIndex];
-        this.currentZoomIndex = (this.currentZoomIndex + 1) % this.zoomLevels.length;
-        this.camera.setTarget(this.camera.getTargetCenter(), this.currentZoom);
-        console.log('currentZoom', this.currentZoom, this.currentZoomIndex);
+        this.zoomService.toggleZoom();
     }
 
     onTouchStart(event: TouchEvent): void {
-        if (event.touches.length !== 1) return;
-        
-        const touch = event.touches[0];
-        const currentTime = Date.now();
-        const currentPosition = { x: touch.clientX, y: touch.clientY };
-
-        // Check if this is a double-tap
-        if (this.lastTapTime > 0 && 
-            (currentTime - this.lastTapTime) < this.DOUBLE_TAP_DELAY &&
-            this.lastTapPosition &&
-            Math.hypot(currentPosition.x - this.lastTapPosition.x, 
-                      currentPosition.y - this.lastTapPosition.y) < this.DOUBLE_TAP_DISTANCE) {
-            // Double-tap detected - toggle fullscreen
-            this.toggleFullscreen();
+        const fullscreenToggled = this.fullscreenService.handleTouchStart(event);
+        if (fullscreenToggled) {
             event.preventDefault();
-            this.lastTapTime = 0; // Reset to prevent triple-tap
-            this.lastTapPosition = null;
-        } else {
-            // Store tap info for potential double-tap
-            this.lastTapTime = currentTime;
-            this.lastTapPosition = currentPosition;
-        }
-    }
-
-    private toggleFullscreen(): void {
-        if (!document.fullscreenElement) {
-            // Enter fullscreen
-            const element = document.documentElement;
-            if (element.requestFullscreen) {
-                element.requestFullscreen().catch(err => {
-                    console.error('Error attempting to enable fullscreen:', err);
-                });
-            }
-        } else {
-            // Exit fullscreen
-            if (document.exitFullscreen) {
-                document.exitFullscreen().catch(err => {
-                    console.error('Error attempting to exit fullscreen:', err);
-                });
-            }
-        }
-    }
-
-    private updateZoomLevelsFromMap(map: GameMap): void {
-        if (map.zoomLevels && map.zoomLevels.length > 0) {
-            this.zoomLevels = map.zoomLevels;
-            // Find the index of the current zoom level in the zoom levels array
-            // Use map.camera if available (from JSON), otherwise fall back to this.camera
-            const currentZoomValue = map.camera?.getZoom() ?? this.camera?.getZoom() ?? 1.0;
-            const index = this.zoomLevels.findIndex(z => Math.abs(z - currentZoomValue) < 0.01);
-            this.currentZoomIndex = index >= 0 ? index : 0;
-            this.currentZoom = this.zoomLevels[this.currentZoomIndex];
-        }
-    }
-
-    private applyDesignConfiguration(map: GameMap): void {
-        if (!map.design) return;
-
-        const { Border, Color, Image, BackgroundRepeat } = map.design;
-
-        if (Border.Width !== undefined) this.gridLineWidth = Border.Width;
-        if (Border.Color) this.gridColor = Border.Color;
-        if (Border.Style) this.gridBorder = Border.Style;
-        if (Border.Active !== undefined) this.gridBorderActive = Border.Active;
-        if (Color) this.gridBackgroundColor = Color;
-        if (Image) this.gridBackgroundImage = Image;
-        if (BackgroundRepeat && BackgroundRepeat.Mode) {
-            this.gridBackgroundRepeat = {
-                Mode: BackgroundRepeat.Mode,
-                TileSize: {
-                    X: BackgroundRepeat.TileSize?.X ?? 1,
-                    Y: BackgroundRepeat.TileSize?.Y ?? 1
-                }
-            };
-        } else {
-            this.gridBackgroundRepeat = null;
         }
     }
 }
