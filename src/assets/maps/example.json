@@ -20,7 +20,7 @@
     },
     "Image": "assets/game/backgrounds/evening-stars.svg",
     "BackgroundRepeat": {
-      "Mode": "no-repeat",
+      "Mode": "x-repeat",
       "TileSize": {
         "X": 20,
         "Y": 15

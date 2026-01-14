@@ -41,43 +41,118 @@ export class BackgroundPattern {
     gridRect: { x: number; y: number; w: number; h: number },
     visibleRect: { x: number; y: number; w: number; h: number }
   ): void {
-    if (!sourceImage || !sourceImage.complete || sourceImage.naturalWidth === 0) {
+    if (!this.isValidImage(sourceImage)) {
       return;
     }
 
     const mode = repeatMode.toLowerCase();
-    
-    // For no-repeat, fall back to single drawImage (no pattern needed)
-    if (mode === 'no-repeat') {
+    if (this.isNoRepeatMode(mode)) {
       return;
     }
 
-    // Calculate tile size in pixels
-    const tilePxW = Math.round(tileSizeX * geom.cellW);
-    const tilePxH = Math.round(tileSizeY * geom.cellH);
+    const tilePxW = this.calculateTileSizeInPixels(tileSizeX, geom.cellW);
+    const tilePxH = this.calculateTileSizeInPixels(tileSizeY, geom.cellH);
 
-    if (tilePxW <= 0 || tilePxH <= 0) {
+    if (!this.isValidTileSize(tilePxW, tilePxH)) {
       return;
     }
 
-    // Create cache key based on tile size and image
-    const key = `${tilePxW}x${tilePxH}-${sourceImage.src}-${mode}`;
+    this.ensurePattern(sourceImage, tilePxW, tilePxH, mode);
 
-    // Regenerate pattern if needed
-    if (key !== this.currentKey || !this.pattern || this.sourceImage !== sourceImage) {
+    if (!this.pattern) {
+      return;
+    }
+
+    this.drawPatternToContext(targetCtx, geom, gridRect, visibleRect);
+  }
+
+  private isValidImage(sourceImage: HTMLImageElement | null): boolean {
+    return sourceImage !== null && sourceImage.complete && sourceImage.naturalWidth > 0;
+  }
+
+  private isNoRepeatMode(mode: string): boolean {
+    return mode === 'no-repeat';
+  }
+
+  private calculateTileSizeInPixels(tileSizeInCells: number, cellSizeInPixels: number): number {
+    return Math.round(tileSizeInCells * cellSizeInPixels);
+  }
+
+  private isValidTileSize(tilePxW: number, tilePxH: number): boolean {
+    return tilePxW > 0 && tilePxH > 0;
+  }
+
+  private ensurePattern(
+    sourceImage: HTMLImageElement,
+    tilePxW: number,
+    tilePxH: number,
+    mode: string
+  ): void {
+    const key = this.createCacheKey(tilePxW, tilePxH, sourceImage.src, mode);
+
+    if (this.shouldRegeneratePattern(key, sourceImage)) {
       this.createPattern(sourceImage, tilePxW, tilePxH, mode, key);
     }
+  }
 
-    if (!this.pattern) return;
+  private createCacheKey(tilePxW: number, tilePxH: number, imageSrc: string, mode: string): string {
+    return `${tilePxW}x${tilePxH}-${imageSrc}-${mode}`;
+  }
+
+  private shouldRegeneratePattern(key: string, sourceImage: HTMLImageElement): boolean {
+    return key !== this.currentKey || !this.pattern || this.sourceImage !== sourceImage;
+  }
+
+  private drawPatternToContext(
+    targetCtx: CanvasRenderingContext2D,
+    geom: GridGeometry,
+    gridRect: { x: number; y: number; w: number; h: number },
+    visibleRect: { x: number; y: number; w: number; h: number }
+  ): void {
+    if (!this.pattern) {
+      return;
+    }
 
     targetCtx.save();
+    this.clipToVisibleArea(targetCtx, visibleRect);
+    this.applyPatternTransform(targetCtx, geom, gridRect);
+    this.fillGridAreaWithPattern(targetCtx, geom, gridRect);
+    targetCtx.restore();
+  }
 
-    // Clip to visible area
-    targetCtx.beginPath();
-    targetCtx.rect(visibleRect.x, visibleRect.y, visibleRect.w, visibleRect.h);
-    targetCtx.clip();
+  private clipToVisibleArea(
+    ctx: CanvasRenderingContext2D,
+    visibleRect: { x: number; y: number; w: number; h: number }
+  ): void {
+    ctx.beginPath();
+    ctx.rect(visibleRect.x, visibleRect.y, visibleRect.w, visibleRect.h);
+    ctx.clip();
+  }
 
-    // Align pattern to grid origin
+  private applyPatternTransform(
+    ctx: CanvasRenderingContext2D,
+    geom: GridGeometry,
+    gridRect: { x: number; y: number; w: number; h: number }
+  ): void {
+    if (!this.pattern) {
+      return;
+    }
+
+    const gridStartX = Math.round(gridRect.x);
+    const gridStartY = Math.round(gridRect.y);
+    const matrix = new DOMMatrix().translate(gridStartX, gridStartY);
+    this.pattern.setTransform(matrix);
+  }
+
+  private fillGridAreaWithPattern(
+    ctx: CanvasRenderingContext2D,
+    geom: GridGeometry,
+    gridRect: { x: number; y: number; w: number; h: number }
+  ): void {
+    if (!this.pattern) {
+      return;
+    }
+
     const gridStartX = Math.round(gridRect.x);
     const gridStartY = Math.round(gridRect.y);
     const endX = Math.round(gridRect.x + geom.cols * geom.cellW);
@@ -85,15 +160,8 @@ export class BackgroundPattern {
     const totalW = endX - gridStartX;
     const totalH = endY - gridStartY;
 
-    // Set pattern transform to align with grid
-    const matrix = new DOMMatrix().translate(gridStartX, gridStartY);
-    this.pattern.setTransform(matrix);
-
-    targetCtx.fillStyle = this.pattern;
-    // Fill the grid area (pattern will tile automatically)
-    targetCtx.fillRect(gridStartX, gridStartY, totalW, totalH);
-
-    targetCtx.restore();
+    ctx.fillStyle = this.pattern;
+    ctx.fillRect(gridStartX, gridStartY, totalW, totalH);
   }
 
   /**
@@ -110,76 +178,151 @@ export class BackgroundPattern {
     this.pattern = null;
     this.sourceImage = sourceImage;
 
-    // Round tile dimensions to integers
     const roundedW = Math.max(1, Math.round(tilePxW));
     const roundedH = Math.max(1, Math.round(tilePxH));
 
-    // Create offscreen canvas for the tile
-    const isFirefox = typeof navigator !== 'undefined' && /Firefox/i.test(navigator.userAgent);
-    let tileCanvas: OffscreenCanvas | HTMLCanvasElement;
-    let tileCtx: OffscreenCanvasRenderingContext2D | CanvasRenderingContext2D | null = null;
+    const tileCanvas = this.createTileCanvas(roundedW, roundedH);
+    const tileCtx = this.getTileContext(tileCanvas);
 
-    // Use HTMLCanvasElement on Firefox for better performance
-    if (!isFirefox && typeof OffscreenCanvas !== "undefined") {
-      tileCanvas = new OffscreenCanvas(roundedW, roundedH);
-      tileCtx = tileCanvas.getContext("2d");
-    } else {
-      const el = document.createElement("canvas");
-      el.width = roundedW;
-      el.height = roundedH;
-      tileCanvas = el;
-      tileCtx = el.getContext("2d");
+    if (!tileCtx) {
+      return;
     }
 
-    if (!tileCtx) return;
-
-    // Clear the tile canvas
     tileCtx.clearRect(0, 0, roundedW, roundedH);
 
-    // Draw the source image scaled to tile size
-    // This pre-renders the SVG/bitmap into a raster tile
-    const imgAspect = sourceImage.naturalWidth / sourceImage.naturalHeight;
-    const tileAspect = roundedW / roundedH;
+    const imageDimensions = this.calculateImageDimensionsForRepeatMode(
+      sourceImage,
+      roundedW,
+      roundedH,
+      mode
+    );
 
-    let drawW: number;
-    let drawH: number;
-    let offsetX: number;
-    let offsetY: number;
+    tileCtx.drawImage(
+      sourceImage,
+      imageDimensions.offsetX,
+      imageDimensions.offsetY,
+      imageDimensions.drawW,
+      imageDimensions.drawH
+    );
 
-    // Handle different repeat modes
-    if (mode === 'repeat-x') {
-      // Only repeat horizontally - scale to tile height, center horizontally
-      drawH = roundedH;
-      drawW = sourceImage.naturalWidth * (drawH / sourceImage.naturalHeight);
-      offsetX = (roundedW - drawW) / 2;
-      offsetY = 0;
-    } else if (mode === 'repeat-y') {
-      // Only repeat vertically - scale to tile width, center vertically
-      drawW = roundedW;
-      drawH = sourceImage.naturalHeight * (drawW / sourceImage.naturalWidth);
-      offsetX = 0;
-      offsetY = (roundedH - drawH) / 2;
-    } else {
-      // Full repeat - scale to cover tile (maintain aspect ratio)
-      if (imgAspect > tileAspect) {
-        // Image is wider - scale by height
-        drawH = roundedH;
-        drawW = sourceImage.naturalWidth * (drawH / sourceImage.naturalHeight);
-        offsetX = (roundedW - drawW) / 2;
-        offsetY = 0;
-      } else {
-        // Image is taller - scale by width
-        drawW = roundedW;
-        drawH = sourceImage.naturalHeight * (drawW / sourceImage.naturalWidth);
-        offsetX = 0;
-        offsetY = (roundedH - drawH) / 2;
-      }
+    this.createPatternFromTile(tileCanvas, key);
+  }
+
+  private createTileCanvas(width: number, height: number): OffscreenCanvas | HTMLCanvasElement {
+    const isFirefox = this.isFirefoxBrowser();
+
+    if (!isFirefox && typeof OffscreenCanvas !== "undefined") {
+      return new OffscreenCanvas(width, height);
     }
 
-    // Draw the image into the tile canvas (pre-rendering the SVG/bitmap)
-    tileCtx.drawImage(sourceImage, offsetX, offsetY, drawW, drawH);
+    const canvas = document.createElement("canvas");
+    canvas.width = width;
+    canvas.height = height;
+    return canvas;
+  }
 
-    // Create pattern from the pre-rendered tile
+  private isFirefoxBrowser(): boolean {
+    return typeof navigator !== 'undefined' && /Firefox/i.test(navigator.userAgent);
+  }
+
+  private getTileContext(
+    tileCanvas: OffscreenCanvas | HTMLCanvasElement
+  ): OffscreenCanvasRenderingContext2D | CanvasRenderingContext2D | null {
+    const ctx = tileCanvas.getContext("2d");
+    if (ctx && ('fillStyle' in ctx)) {
+      return ctx as OffscreenCanvasRenderingContext2D | CanvasRenderingContext2D;
+    }
+    return null;
+  }
+
+  private calculateImageDimensionsForRepeatMode(
+    sourceImage: HTMLImageElement,
+    tileWidth: number,
+    tileHeight: number,
+    mode: string
+  ): { drawW: number; drawH: number; offsetX: number; offsetY: number } {
+    if (mode === 'repeat-x') {
+      return this.calculateRepeatXDimensions(sourceImage, tileWidth, tileHeight);
+    }
+
+    if (mode === 'repeat-y') {
+      return this.calculateRepeatYDimensions(sourceImage, tileWidth, tileHeight);
+    }
+
+    return this.calculateFullRepeatDimensions(sourceImage, tileWidth, tileHeight);
+  }
+
+  private calculateRepeatXDimensions(
+    sourceImage: HTMLImageElement,
+    tileWidth: number,
+    tileHeight: number
+  ): { drawW: number; drawH: number; offsetX: number; offsetY: number } {
+    const drawH = tileHeight;
+    const drawW = sourceImage.naturalWidth * (drawH / sourceImage.naturalHeight);
+    const offsetX = (tileWidth - drawW) / 2;
+    const offsetY = 0;
+
+    return { drawW, drawH, offsetX, offsetY };
+  }
+
+  private calculateRepeatYDimensions(
+    sourceImage: HTMLImageElement,
+    tileWidth: number,
+    tileHeight: number
+  ): { drawW: number; drawH: number; offsetX: number; offsetY: number } {
+    const drawW = tileWidth;
+    const drawH = sourceImage.naturalHeight * (drawW / sourceImage.naturalWidth);
+    const offsetX = 0;
+    const offsetY = (tileHeight - drawH) / 2;
+
+    return { drawW, drawH, offsetX, offsetY };
+  }
+
+  private calculateFullRepeatDimensions(
+    sourceImage: HTMLImageElement,
+    tileWidth: number,
+    tileHeight: number
+  ): { drawW: number; drawH: number; offsetX: number; offsetY: number } {
+    const imgAspect = sourceImage.naturalWidth / sourceImage.naturalHeight;
+    const tileAspect = tileWidth / tileHeight;
+
+    if (imgAspect > tileAspect) {
+      return this.calculateWiderImageDimensions(sourceImage, tileWidth, tileHeight);
+    }
+
+    return this.calculateTallerImageDimensions(sourceImage, tileWidth, tileHeight);
+  }
+
+  private calculateWiderImageDimensions(
+    sourceImage: HTMLImageElement,
+    tileWidth: number,
+    tileHeight: number
+  ): { drawW: number; drawH: number; offsetX: number; offsetY: number } {
+    const drawH = tileHeight;
+    const drawW = sourceImage.naturalWidth * (drawH / sourceImage.naturalHeight);
+    const offsetX = (tileWidth - drawW) / 2;
+    const offsetY = 0;
+
+    return { drawW, drawH, offsetX, offsetY };
+  }
+
+  private calculateTallerImageDimensions(
+    sourceImage: HTMLImageElement,
+    tileWidth: number,
+    tileHeight: number
+  ): { drawW: number; drawH: number; offsetX: number; offsetY: number } {
+    const drawW = tileWidth;
+    const drawH = sourceImage.naturalHeight * (drawW / sourceImage.naturalWidth);
+    const offsetX = 0;
+    const offsetY = (tileHeight - drawH) / 2;
+
+    return { drawW, drawH, offsetX, offsetY };
+  }
+
+  private createPatternFromTile(
+    tileCanvas: OffscreenCanvas | HTMLCanvasElement,
+    key: string
+  ): void {
     const dummyCtx = document.createElement("canvas").getContext("2d");
     if (dummyCtx) {
       this.pattern = dummyCtx.createPattern(tileCanvas as HTMLCanvasElement, "repeat");
