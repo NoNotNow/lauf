@@ -19,77 +19,94 @@ export class GridBitmap {
     lineWidth: number,
     border: string
   ): void {
-    const key = `${geom.cellW}x${geom.cellH}-${color}-${lineWidth}`;
-
-    if (key !== this.currentKey || !this.pattern) {
-      this.createPattern(geom.cellW, geom.cellH, color, lineWidth, key);
+    this.ensurePattern(geom.cellW, geom.cellH, color, lineWidth);
+    
+    if (!this.pattern) {
+      return;
     }
-
-    if (!this.pattern) return;
 
     const gridRect = geom.rectForCells(0, 0, geom.cols, geom.rows);
     
-    // We need to align the pattern with the grid's origin
     targetCtx.save();
-    
-    // Clip to canvas bounds to avoid rendering off-screen (pattern is efficient, but this helps)
-    targetCtx.beginPath();
-    targetCtx.rect(0, 0, canvasW, canvasH);
-    targetCtx.clip();
-    
-    // Use setTransform to set the pattern's origin to the grid's top-left
-    // Use floor/round to avoid subpixel gaps at the start
+    this.clipToCanvas(targetCtx, canvasW, canvasH);
+    this.drawPattern(targetCtx, geom, gridRect);
+    this.drawBorders(targetCtx, geom, gridRect, color, lineWidth, border);
+    targetCtx.restore();
+  }
+
+  private ensurePattern(cellW: number, cellH: number, color: string, lineWidth: number): void {
+    const key = `${cellW}x${cellH}-${color}-${lineWidth}`;
+
+    if (key !== this.currentKey || !this.pattern) {
+      this.createPattern(cellW, cellH, color, lineWidth, key);
+    }
+  }
+
+  private clipToCanvas(ctx: CanvasRenderingContext2D, canvasW: number, canvasH: number): void {
+    ctx.beginPath();
+    ctx.rect(0, 0, canvasW, canvasH);
+    ctx.clip();
+  }
+
+  private drawPattern(
+    ctx: CanvasRenderingContext2D,
+    geom: GridGeometry,
+    gridRect: { x: number; y: number; w: number; h: number }
+  ): void {
+    if (!this.pattern) {
+      return;
+    }
+
     const startX = Math.round(gridRect.x);
     const startY = Math.round(gridRect.y);
-    
-    // The total width/height should be exactly the sum of cell sizes, but we round the outer bounds
     const endX = Math.round(gridRect.x + geom.cols * geom.cellW);
     const endY = Math.round(gridRect.y + geom.rows * geom.cellH);
     const totalW = endX - startX;
     const totalH = endY - startY;
 
-    // The pattern was created with rounded dimensions
     const roundedW = Math.round(geom.cellW);
     const roundedH = Math.round(geom.cellH);
-    
-    // We must scale the pattern to match the actual fractional cell size
-    // We use the fractional geom.cellW to maintain the grid's internal consistency
     const scaleX = geom.cellW / roundedW;
     const scaleY = geom.cellH / roundedH;
 
     const matrix = new DOMMatrix().translate(startX, startY).scale(scaleX, scaleY);
     this.pattern.setTransform(matrix);
 
-    targetCtx.fillStyle = this.pattern;
-    // Fill the exact rounded area (clipping ensures we don't render off-screen)
-    targetCtx.fillRect(startX, startY, totalW, totalH);
+    ctx.fillStyle = this.pattern;
+    ctx.fillRect(startX, startY, totalW, totalH);
+  }
 
-    // Draw the outermost borders manually to ensure they are crisp and present
+  private drawBorders(
+    ctx: CanvasRenderingContext2D,
+    geom: GridGeometry,
+    gridRect: { x: number; y: number; w: number; h: number },
+    color: string,
+    lineWidth: number,
+    border: string
+  ): void {
     const lw = Math.max(1, Math.round(lineWidth * Math.min(geom.cellW, geom.cellH)));
-    targetCtx.strokeStyle = color;
-    targetCtx.lineWidth = lw;
-    const borderStyle = border.toLowerCase();
-    applyDashStyle(targetCtx, borderStyle, lineWidth);
-    
-    // For crisp outer borders, we should align them to half-pixels if lw is odd
     const offset = (lw % 2 === 1) ? 0.5 : 0;
     
-    targetCtx.beginPath();
-    // Top and Left edges
-    targetCtx.moveTo(startX + offset, startY);
-    targetCtx.lineTo(startX + offset, endY);
-    targetCtx.moveTo(startX, startY + offset);
-    targetCtx.lineTo(endX, startY + offset);
-    
-    // Bottom and Right edges
-    // These must be precisely at endX/endY to match the pattern's right/bottom alignment
-    targetCtx.moveTo(endX - offset, startY);
-    targetCtx.lineTo(endX - offset, endY);
-    targetCtx.moveTo(startX, endY - offset);
-    targetCtx.lineTo(endX, endY - offset);
-    targetCtx.stroke();
+    const startX = Math.round(gridRect.x);
+    const startY = Math.round(gridRect.y);
+    const endX = Math.round(gridRect.x + geom.cols * geom.cellW);
+    const endY = Math.round(gridRect.y + geom.rows * geom.cellH);
 
-    targetCtx.restore();
+    ctx.strokeStyle = color;
+    ctx.lineWidth = lw;
+    const borderStyle = border.toLowerCase();
+    applyDashStyle(ctx, borderStyle, lineWidth);
+    
+    ctx.beginPath();
+    ctx.moveTo(startX + offset, startY);
+    ctx.lineTo(startX + offset, endY);
+    ctx.moveTo(startX, startY + offset);
+    ctx.lineTo(endX, startY + offset);
+    ctx.moveTo(endX - offset, startY);
+    ctx.lineTo(endX - offset, endY);
+    ctx.moveTo(startX, endY - offset);
+    ctx.lineTo(endX, endY - offset);
+    ctx.stroke();
   }
 
   private createPattern(

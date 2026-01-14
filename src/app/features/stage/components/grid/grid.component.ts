@@ -66,164 +66,165 @@ export class GridComponent implements OnChanges {
   // Draw callback used by CanvasLayerComponent
   drawGrid = (ctx: CanvasRenderingContext2D, canvas: HTMLCanvasElement, geom?: GridGeometry) => {
     if (!geom) {
-        // Fallback to legacy drawing if geom is missing (should not happen with new CanvasLayer)
-        this.drawLegacy(ctx, canvas);
-        return;
+      return;
     }
 
-    // Get visible viewport bounds - only render what's actually visible
-    let visibleRect = { x: 0, y: 0, w: canvas.width, h: canvas.height };
-    if (this.camera) {
-      const viewportBounds = this.camera.getViewportBounds(geom.cols, geom.rows);
-      if (viewportBounds) {
-        // Convert viewport bounds (in cell coordinates) to screen coordinates
-        const topLeft = geom.rectForCells(viewportBounds.minX, viewportBounds.minY, 0, 0);
-        const bottomRight = geom.rectForCells(viewportBounds.maxX, viewportBounds.maxY, 0, 0);
-        visibleRect = {
-          x: topLeft.x,
-          y: topLeft.y,
-          w: bottomRight.x - topLeft.x,
-          h: bottomRight.y - topLeft.y
-        };
-        // Add small margin to avoid edge artifacts
-        const margin = 50;
-        visibleRect.x -= margin;
-        visibleRect.y -= margin;
-        visibleRect.w += margin * 2;
-        visibleRect.h += margin * 2;
-      }
-    }
-
-    // Get full grid rect for reference (but we'll only render visible portion)
+    const visibleRect = this.calculateVisibleRect(canvas, geom);
     const gridRect = geom.rectForCells(0, 0, geom.cols, geom.rows);
     
-    // Check if background image is specified and if it loads successfully
-    let imageLoaded = false;
-    if (this.backgroundImage) {
-      const img = this.imageCache.get(this.backgroundImage);
-      if (img && img.complete && img.naturalWidth > 0) {
-        imageLoaded = true;
-      }
-    }
-    
-    // Only draw background color if no image is specified, or if image is specified and successfully loaded
-    // Fill only the visible area for performance
-    if (this.backgroundColor !== 'transparent' && (!this.backgroundImage || imageLoaded)) {
-      ctx.fillStyle = this.backgroundColor;
-      // Clip to visible area to avoid unnecessary fills
-      ctx.save();
-      ctx.beginPath();
-      ctx.rect(visibleRect.x, visibleRect.y, visibleRect.w, visibleRect.h);
-      ctx.clip();
-      ctx.fillRect(gridRect.x, gridRect.y, gridRect.w, gridRect.h);
-      ctx.restore();
-    }
-    
-    // Draw background image if provided and loaded
-    if (imageLoaded && this.backgroundImage) {
-      const img = this.imageCache.get(this.backgroundImage);
-      if (img && img.complete && img.naturalWidth > 0) {
-        ctx.save();
-        
-        // Clip to visible area to avoid rendering off-screen tiles
-        ctx.beginPath();
-        ctx.rect(visibleRect.x, visibleRect.y, visibleRect.w, visibleRect.h);
-        ctx.clip();
-        
-        // Check if background repeat is configured
-        if (this.backgroundRepeat && this.backgroundRepeat.Mode !== 'no-repeat') {
-          // Use pre-rendered pattern for efficient tiling
-          const tileSizeX = Math.max(0.1, this.backgroundRepeat.TileSize.X);
-          const tileSizeY = Math.max(0.1, this.backgroundRepeat.TileSize.Y);
-          
-          this.backgroundPattern.draw(
-            ctx,
-            canvas.width,
-            canvas.height,
-            geom,
-            img,
-            tileSizeX,
-            tileSizeY,
-            this.backgroundRepeat.Mode,
-            gridRect,
-            visibleRect
-          );
-        } else {
-          // Default cover strategy (maintain aspect ratio, cover entire area)
-          const imgAspect = img.naturalWidth / img.naturalHeight;
-          const gridAspect = gridRect.w / gridRect.h;
-          
-          // Calculate scale to cover (use larger scale to ensure full coverage)
-          const scale = imgAspect > gridAspect 
-            ? gridRect.h / img.naturalHeight  // Image is wider, scale by height
-            : gridRect.w / img.naturalWidth;   // Image is taller, scale by width
-          
-          const scaledWidth = img.naturalWidth * scale;
-          const scaledHeight = img.naturalHeight * scale;
-          
-          // Center the image
-          const offsetX = gridRect.x + (gridRect.w - scaledWidth) / 2;
-          const offsetY = gridRect.y + (gridRect.h - scaledHeight) / 2;
-          
-          ctx.drawImage(img, offsetX, offsetY, scaledWidth, scaledHeight);
-        }
-        
-        ctx.restore();
-      }
-    }
-
-    // Draw grid lines on top (only if grid is active)
-    // Early exit: skip grid drawing entirely if Border.Active is false
-    if (this.gridBorderActive) {
-      this.bitmap.draw(ctx, canvas.width, canvas.height, geom, this.color, this.lineWidth, this.gridBorder);
-    }
+    this.drawBackgroundColor(ctx, visibleRect, gridRect);
+    this.drawBackgroundImage(ctx, canvas, geom, visibleRect, gridRect);
+    this.drawGridLines(ctx, canvas, geom);
   };
 
-  private drawLegacy(ctx: CanvasRenderingContext2D, canvas: HTMLCanvasElement) {
-    const w = canvas.width;
-    const h = canvas.height;
-    const N = Math.max(1, Math.floor(this.gridSize?.x ?? 1));
-    const M = Math.max(1, Math.floor(this.gridSize?.y ?? 1));
-
-    const cellW = w / N;
-    const cellH = h / M;
-    const unit = Math.min(cellW, cellH);
-    const lw = Math.max(1, Math.round((this.lineWidth ?? 0) * unit));
-    const offset = (lw % 2 === 1) ? 0.5 : 0.0;
-    if( this.backgroundColor !== 'transparent' ) {
-        ctx.fillStyle = this.backgroundColor;
-        ctx.fillRect(0, 0, w, h);
+  private calculateVisibleRect(canvas: HTMLCanvasElement, geom: GridGeometry): { x: number; y: number; w: number; h: number } {
+    let visibleRect = { x: 0, y: 0, w: canvas.width, h: canvas.height };
+    
+    if (!this.camera) {
+      return visibleRect;
     }
-    ctx.strokeStyle = this.color;
-    ctx.lineWidth = lw;
 
-    // Borders
+    const viewportBounds = this.camera.getViewportBounds(geom.cols, geom.rows);
+    if (!viewportBounds) {
+      return visibleRect;
+    }
+
+    const topLeft = geom.rectForCells(viewportBounds.minX, viewportBounds.minY, 0, 0);
+    const bottomRight = geom.rectForCells(viewportBounds.maxX, viewportBounds.maxY, 0, 0);
+    visibleRect = {
+      x: topLeft.x,
+      y: topLeft.y,
+      w: bottomRight.x - topLeft.x,
+      h: bottomRight.y - topLeft.y
+    };
+
+    const margin = 50;
+    visibleRect.x -= margin;
+    visibleRect.y -= margin;
+    visibleRect.w += margin * 2;
+    visibleRect.h += margin * 2;
+
+    return visibleRect;
+  }
+
+  private isImageLoaded(): boolean {
+    if (!this.backgroundImage) {
+      return false;
+    }
+    const img = this.imageCache.get(this.backgroundImage);
+    return img !== null && img.complete && img.naturalWidth > 0;
+  }
+
+  private drawBackgroundColor(
+    ctx: CanvasRenderingContext2D,
+    visibleRect: { x: number; y: number; w: number; h: number },
+    gridRect: { x: number; y: number; w: number; h: number }
+  ): void {
+    const imageLoaded = this.isImageLoaded();
+    const shouldDrawColor = this.backgroundColor !== 'transparent' && (!this.backgroundImage || imageLoaded);
+    
+    if (!shouldDrawColor) {
+      return;
+    }
+
+    ctx.save();
     ctx.beginPath();
-    ctx.moveTo(offset, 0);
-    ctx.lineTo(offset, h);
-    ctx.moveTo(w - offset, 0);
-    ctx.lineTo(w - offset, h);
-    ctx.moveTo(0, offset);
-    ctx.lineTo(w, offset);
-    ctx.moveTo(0, h - offset);
-    ctx.lineTo(w, h - offset);
-    ctx.stroke();
+    ctx.rect(visibleRect.x, visibleRect.y, visibleRect.w, visibleRect.h);
+    ctx.clip();
+    ctx.fillStyle = this.backgroundColor;
+    ctx.fillRect(gridRect.x, gridRect.y, gridRect.w, gridRect.h);
+    ctx.restore();
+  }
 
-    if (N > 1) {
-      for (let i = 1; i < N; i++) {
-        const x = offset + Math.round((i * (w - 1)) / N);
-        ctx.beginPath();
-        ctx.moveTo(x, 0);
-        ctx.lineTo(x, h);
-        ctx.stroke();
-      }
-      for (let i = 1; i < M; i++) {
-        const y = offset + Math.round((i * (h - 1)) / M);
-        ctx.beginPath();
-        ctx.moveTo(0, y);
-        ctx.lineTo(w, y);
-        ctx.stroke();
-      }
+  private drawBackgroundImage(
+    ctx: CanvasRenderingContext2D,
+    canvas: HTMLCanvasElement,
+    geom: GridGeometry,
+    visibleRect: { x: number; y: number; w: number; h: number },
+    gridRect: { x: number; y: number; w: number; h: number }
+  ): void {
+    if (!this.isImageLoaded() || !this.backgroundImage) {
+      return;
     }
+
+    const img = this.imageCache.get(this.backgroundImage);
+    if (!img || !img.complete || img.naturalWidth === 0) {
+      return;
+    }
+
+    ctx.save();
+    ctx.beginPath();
+    ctx.rect(visibleRect.x, visibleRect.y, visibleRect.w, visibleRect.h);
+    ctx.clip();
+
+    const hasRepeatMode = this.backgroundRepeat && this.backgroundRepeat.Mode !== 'no-repeat';
+    if (hasRepeatMode) {
+      this.drawBackgroundImageTiled(ctx, canvas, geom, img, gridRect, visibleRect);
+    } else {
+      this.drawBackgroundImageCover(ctx, img, gridRect);
+    }
+
+    ctx.restore();
+  }
+
+  private drawBackgroundImageTiled(
+    ctx: CanvasRenderingContext2D,
+    canvas: HTMLCanvasElement,
+    geom: GridGeometry,
+    img: HTMLImageElement,
+    gridRect: { x: number; y: number; w: number; h: number },
+    visibleRect: { x: number; y: number; w: number; h: number }
+  ): void {
+    if (!this.backgroundRepeat) {
+      return;
+    }
+
+    const tileSizeX = Math.max(0.1, this.backgroundRepeat.TileSize.X);
+    const tileSizeY = Math.max(0.1, this.backgroundRepeat.TileSize.Y);
+    
+    this.backgroundPattern.draw(
+      ctx,
+      canvas.width,
+      canvas.height,
+      geom,
+      img,
+      tileSizeX,
+      tileSizeY,
+      this.backgroundRepeat.Mode,
+      gridRect,
+      visibleRect
+    );
+  }
+
+  private drawBackgroundImageCover(
+    ctx: CanvasRenderingContext2D,
+    img: HTMLImageElement,
+    gridRect: { x: number; y: number; w: number; h: number }
+  ): void {
+    const imgAspect = img.naturalWidth / img.naturalHeight;
+    const gridAspect = gridRect.w / gridRect.h;
+    
+    const scale = imgAspect > gridAspect 
+      ? gridRect.h / img.naturalHeight
+      : gridRect.w / img.naturalWidth;
+    
+    const scaledWidth = img.naturalWidth * scale;
+    const scaledHeight = img.naturalHeight * scale;
+    const offsetX = gridRect.x + (gridRect.w - scaledWidth) / 2;
+    const offsetY = gridRect.y + (gridRect.h - scaledHeight) / 2;
+    
+    ctx.drawImage(img, offsetX, offsetY, scaledWidth, scaledHeight);
+  }
+
+  private drawGridLines(
+    ctx: CanvasRenderingContext2D,
+    canvas: HTMLCanvasElement,
+    geom: GridGeometry
+  ): void {
+    if (!this.gridBorderActive) {
+      return;
+    }
+
+    this.bitmap.draw(ctx, canvas.width, canvas.height, geom, this.color, this.lineWidth, this.gridBorder);
   }
 }
