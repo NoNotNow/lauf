@@ -1,7 +1,7 @@
 {
   "Name": "Sample Level 1",
   "Size": {
-    "X": 250,
+    "X": 100,
     "Y": 15
   },
   "Camera": {
@@ -20,7 +20,7 @@
     },
     "Image": "assets/game/backgrounds/evening-stars.svg",
     "BackgroundRepeat": {
-      "Mode": "repeat-x",
+      "Mode": "no-repeat",
       "TileSize": {
         "X": 20,
         "Y": 15
@@ -31,7 +31,7 @@
        {
       "Pose": {
         "Position": {
-          "X": 125,
+          "X": 80,
           "Y": 11
         },
         "Size": {
@@ -612,7 +612,7 @@
     {
       "Pose": {
         "Position": {
-          "X": 150,
+          "X": 55,
           "Y": 12
         },
         "Size": {
