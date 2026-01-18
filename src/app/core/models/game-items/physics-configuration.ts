@@ -1,6 +1,8 @@
 export class PhysicsConfiguration {
     public mass?: number;
     public damping?: number;
+    public angularDamping?: number;
+    public friction?: number;
     public restitution?: number;
     public hasCollision: boolean = true;
     public canMove: boolean = true;
@@ -14,6 +16,8 @@ export class PhysicsConfiguration {
 
         if (g('mass', 'Mass') !== undefined) this.mass = Number(g('mass', 'Mass'));
         if (g('damping', 'Damping') !== undefined) this.damping = Number(g('damping', 'Damping'));
+        if (g('angularDamping', 'AngularDamping') !== undefined) this.angularDamping = Number(g('angularDamping', 'AngularDamping'));
+        if (g('friction', 'Friction') !== undefined) this.friction = Number(g('friction', 'Friction'));
         if (g('restitution', 'Restitution') !== undefined) this.restitution = Number(g('restitution', 'Restitution'));
         if (g('hasCollision', 'HasCollision') !== undefined) this.hasCollision = !!g('hasCollision', 'HasCollision');
         if (g('canMove', 'CanMove') !== undefined) this.canMove = !!g('canMove', 'CanMove');
@@ -30,6 +34,8 @@ export class PhysicsConfiguration {
         return {
             mass: this.mass,
             damping: this.damping,
+            angularDamping: this.angularDamping,
+            friction: this.friction,
             restitution: this.restitution,
             hasCollision: this.hasCollision,
             canMove: this.canMove,

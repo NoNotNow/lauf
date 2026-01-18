@@ -15,6 +15,7 @@ export class WorldContext {
   private collisions?: CollisionHandler;
   private camera?: Camera;
   private avatar?: Avatar;
+  private mapGravity?: number; // Gravity acceleration in cells/s^2
 
   addTransformer(transformer: ITransformer): void {
     this.transformers.push(transformer);
@@ -62,6 +63,14 @@ export class WorldContext {
 
   getAvatar(): Avatar | undefined {
     return this.avatar;
+  }
+
+  setMapGravity(gravity?: number): void {
+    this.mapGravity = gravity;
+  }
+
+  getMapGravity(): number | undefined {
+    return this.mapGravity;
   }
 
   updateCamera(): void {

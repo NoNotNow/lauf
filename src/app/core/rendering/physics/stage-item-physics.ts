@@ -6,6 +6,7 @@ export interface PhysicsState {
     omega: number;        // angular velocity (deg/s)
     mass: number;         // mass (arbitrary units, >0)
     restitution: number;  // 0..1 bounciness
+    friction: number;     // >=0
     linearDamping: number; // damping factor
     angularDamping: number;
 }
@@ -16,6 +17,7 @@ const DEFAULT_STATE: PhysicsState = {
     omega: 0,
     mass: 1,
     restitution: 0.85,
+    friction: 0.8,
     linearDamping: 0,
     angularDamping: 0.1,
 };
@@ -60,8 +62,9 @@ export class StageItemPhysics {
             ...DEFAULT_STATE,
             mass: massFromItem(item),
             restitution: p?.restitution ?? DEFAULT_STATE.restitution,
+            friction: p?.friction ?? DEFAULT_STATE.friction,
             linearDamping: p?.damping ?? DEFAULT_STATE.linearDamping,
-            angularDamping: p?.damping ?? DEFAULT_STATE.angularDamping,
+            angularDamping: p?.angularDamping ?? p?.damping ?? DEFAULT_STATE.angularDamping,
         };
     }
 
@@ -80,6 +83,7 @@ export class StageItemPhysics {
         // ensure sane values
         this.state.mass = Math.max(1e-6, Number(this.state.mass) ?? 1);
         this.state.restitution = Math.min(1, Math.max(0, this.state.restitution ?? 0.85));
+        this.state.friction = Math.max(0, Number(this.state.friction) ?? DEFAULT_STATE.friction);
         return this;
     }
 

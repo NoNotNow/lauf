@@ -94,25 +94,25 @@ export class WalkingTransformer implements ITransformer {
     let vx = toNumber(velocity.vx, 0);
     let vy = toNumber(velocity.vy, 0);
 
-    const accelMultiplier = grounded ? 1 : this.opts.airControl;
-    const accel = this.opts.moveAccel * accelMultiplier;
-
-    if (input.moveAxis < 0) {
-      vx -= accel * dt;
-    } else if (input.moveAxis > 0) {
-      vx += accel * dt;
-    } else {
-      const decel = this.opts.moveAccel * dt;
-      if (Math.abs(vx) <= decel) {
-        vx = 0;
+    if (grounded) {
+      const accel = this.opts.moveAccel;
+      if (input.moveAxis < 0) {
+        vx -= accel * dt;
+      } else if (input.moveAxis > 0) {
+        vx += accel * dt;
       } else {
-        vx -= Math.sign(vx) * decel;
+        const decel = this.opts.moveAccel * dt;
+        if (Math.abs(vx) <= decel) {
+          vx = 0;
+        } else {
+          vx -= Math.sign(vx) * decel;
+        }
       }
-    }
 
-    const maxSpeed = this.opts.maxSpeed;
-    if (Math.abs(vx) > maxSpeed) {
-      vx = Math.sign(vx) * maxSpeed;
+      const maxSpeed = this.opts.maxSpeed;
+      if (Math.abs(vx) > maxSpeed) {
+        vx = Math.sign(vx) * maxSpeed;
+      }
     }
 
     if (input.jumpQueued && grounded) {

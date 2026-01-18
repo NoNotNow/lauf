@@ -1,5 +1,6 @@
 {
   "Name": "Adventure Level",
+  "Gravity": 9,
   "Size": {
     "X": 80,
     "Y": 12
@@ -21,8 +22,8 @@
     "BackgroundRepeat": {
       "Mode": "repeat",
       "TileSize": {
-        "X": 20,
-        "Y": 12
+        "X": 10,
+        "Y": 7
       }
     }
   },
@@ -438,7 +439,7 @@
     "Pose": {
       "Position": {
         "X": 2,
-        "Y": 6
+        "Y": 11.64
       },
       "Size": {
         "X": 0.26,
@@ -454,25 +455,30 @@
       "Image": "assets/game/hero.svg"
     },
     "Physics": {
-      "mass": 200,
+      "mass": 10,
       "canMove": true,
       "canRotate": true,
       "hasGravity": true,
-      "restitution": 0.6,
-      "damping": 0.1
+      "restitution": 0.2,
+      "damping": 0.6,
+      "friction": 0.01
     },
     "Transformers": [
       {
-        "Type": "WalkingController"
+        "Type": "WalkingController",
+        "Params": {
+          "restitution": 0.2,
+          "angularDamping": 0.8
+        }
       },
       {
         "Type": "WalkingTransformer",
         "Params": {
-          "moveAccel": 15,
-          "maxSpeed": 6,
-          "jumpImpulse": 6,
+          "moveAccel": 5,
+          "maxSpeed": 20,
+          "jumpImpulse": 8,
           "airControl": 0.5,
-          "uprightForce": 6,
+          "uprightForce": 200,
           "groundedEpsilon": 0.05
         }
       }

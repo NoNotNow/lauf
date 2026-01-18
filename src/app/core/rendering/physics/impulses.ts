@@ -277,3 +277,150 @@ export function resolveItemItemCollision(
   physA.set({ vx: vax, vy: vay, omega: omegaA });
   physB.set({ vx: vbx, vy: vby, omega: omegaB });
 }
+
+/**
+ * Resolve resting contact using constraint forces instead of impulses.
+ * For resting contacts, we apply forces that counter external forces (like gravity)
+ * and prevent penetration, rather than using velocity-based impulses.
+ * 
+ * @param a First item
+ * @param b Second item
+ * @param physA Physics state for item A
+ * @param physB Physics state for item B
+ * @param aObb OBB for item A
+ * @param bObb OBB for item B
+ * @param normal Contact normal (from A to B)
+ * @param penetrationDepth Penetration depth (magnitude of MTV)
+ * @param gravityY Gravity acceleration in Y direction (cells/s^2), default 9.81
+ */
+export function resolveRestingContactConstraint(
+  a: StageItem,
+  b: StageItem,
+  physA: StageItemPhysics,
+  physB: StageItemPhysics,
+  aObb: OrientedBoundingBox,
+  bObb: OrientedBoundingBox,
+  normal: { x: number; y: number },
+  penetrationDepth: number,
+  gravityY: number = 9.81
+): void {
+  const sa = physA.State;
+  const sb = physB.State;
+  const mu = Math.min(sa.friction, sb.friction);
+
+  const invMassA = sa.mass >= 1e6 ? 0 : 1 / Math.max(1e-6, sa.mass);
+  const invMassB = sb.mass >= 1e6 ? 0 : 1 / Math.max(1e-6, sb.mass);
+  const IA = physA.momentOfInertia(a);
+  const IB = physB.momentOfInertia(b);
+  const invIA = sa.mass >= 1e6 ? 0 : 1 / IA;
+  const invIB = sb.mass >= 1e6 ? 0 : 1 / IB;
+
+  // Contact point and lever arms
+  const c = estimateContactPoint(aObb, bObb, normal);
+  const ra = { x: c.x - aObb.center.x, y: c.y - aObb.center.y };
+  const rb = { x: c.x - bObb.center.x, y: c.y - bObb.center.y };
+
+  // Velocities at contact, including angular component
+  const omegaAr = StageItemPhysics.omegaDegToRadPerSec(sa.omega);
+  const omegaBr = StageItemPhysics.omegaDegToRadPerSec(sb.omega);
+  const va = { x: sa.vx, y: sa.vy };
+  const vb = { x: sb.vx, y: sb.vy };
+  const vAatC = { x: va.x + (-omegaAr * ra.y), y: va.y + (omegaAr * ra.x) };
+  const vBatC = { x: vb.x + (-omegaBr * rb.y), y: vb.y + (omegaBr * rb.x) };
+  const vRel = { x: vBatC.x - vAatC.x, y: vBatC.y - vAatC.y };
+
+  // Relative velocity along normal
+  const vRelN = dot(vRel.x, vRel.y, normal.x, normal.y);
+
+  // Calculate gravity force components
+  // Gravity acts downward (positive Y), so we need to counter it when normal points up
+  const gravityForceA = { x: 0, y: sa.mass * gravityY };
+  const gravityForceB = { x: 0, y: sb.mass * gravityY };
+
+  // Calculate required normal force to:
+  // 1. Counter gravity component along normal
+  // 2. Prevent penetration (position constraint)
+  // 3. Damp relative velocity along normal
+  const gravityDotNormalA = dot(gravityForceA.x, gravityForceA.y, normal.x, normal.y);
+  const gravityDotNormalB = dot(gravityForceB.x, gravityForceB.y, -normal.x, -normal.y);
+  
+  // Position correction force (Baumgarte stabilization)
+  const slop = 0.01;
+  const penetration = Math.max(0, penetrationDepth - slop);
+  const positionCorrectionFactor = 100; // Force per unit penetration
+  const positionCorrectionForce = penetration * positionCorrectionFactor;
+  
+  // Velocity damping along normal
+  const dampingFactor = 10; // Damping coefficient
+  const dampingForce = -vRelN * dampingFactor;
+  
+  // Total normal force needed
+  const raXn = cross2(ra, normal);
+  const rbXn = cross2(rb, normal);
+  const kN = invMassA + invMassB + (raXn * raXn) * invIA + (rbXn * rbXn) * invIB;
+  
+  // Normal force magnitude (positive means pushing objects apart)
+  const normalForceMagnitude = (gravityDotNormalA + gravityDotNormalB + positionCorrectionForce + dampingForce) / (kN || 1);
+  
+  // Clamp to prevent excessive forces
+  const maxForce = 1000;
+  const clampedNormalForce = Math.max(-maxForce, Math.min(maxForce, normalForceMagnitude));
+  
+  // Apply normal force as impulse (force * dt, but we're in a constraint solver context)
+  // For constraint forces, we apply them directly as velocity changes
+  // In practice, we'll apply this as an impulse scaled by a time step
+  const dt = 0.016; // Approximate frame time for force-to-impulse conversion
+  const jn = clampedNormalForce * dt;
+  
+  // Apply normal constraint impulse
+  const Jn = { x: jn * normal.x, y: jn * normal.y };
+  let vax = sa.vx - Jn.x * invMassA;
+  let vay = sa.vy - Jn.y * invMassA;
+  let vbx = sb.vx + Jn.x * invMassB;
+  let vby = sb.vy + Jn.y * invMassB;
+
+  // Angular impulses
+  const tauA = cross2(ra, Jn);
+  const tauB = cross2(rb, Jn);
+  const newOmegaAr = omegaAr - tauA * invIA;
+  const newOmegaBr = omegaBr + tauB * invIB;
+  let omegaA = StageItemPhysics.omegaRadToDegPerSec(newOmegaAr);
+  let omegaB = StageItemPhysics.omegaRadToDegPerSec(newOmegaBr);
+
+  // Friction constraint for tangential motion
+  const tangent0 = { x: vRel.x - vRelN * normal.x, y: vRel.y - vRelN * normal.y };
+  const tLen = len(tangent0.x, tangent0.y);
+  if (tLen > 1e-6 && mu > 0) {
+    const t = { x: tangent0.x / tLen, y: tangent0.y / tLen };
+    const vRelT = dot(vRel.x, vRel.y, t.x, t.y);
+    
+    // Friction force to stop tangential motion
+    const frictionDamping = 5; // Damping coefficient for friction
+    const frictionForce = -vRelT * frictionDamping;
+    
+    // Clamp by Coulomb friction limit
+    const maxFrictionForce = mu * Math.abs(clampedNormalForce);
+    const clampedFrictionForce = Math.max(-maxFrictionForce, Math.min(maxFrictionForce, frictionForce));
+    
+    const raXt = cross2(ra, t);
+    const rbXt = cross2(rb, t);
+    const kT = invMassA + invMassB + (raXt * raXt) * invIA + (rbXt * rbXt) * invIB;
+    const jt = (clampedFrictionForce * dt) / (kT || 1);
+    
+    const Jt = { x: jt * t.x, y: jt * t.y };
+    vax -= Jt.x * invMassA;
+    vay -= Jt.y * invMassA;
+    vbx += Jt.x * invMassB;
+    vby += Jt.y * invMassB;
+
+    // Angular due to friction
+    const tauAf = cross2(ra, Jt);
+    const tauBf = cross2(rb, Jt);
+    omegaA = StageItemPhysics.omegaRadToDegPerSec(newOmegaAr - tauAf * invIA);
+    omegaB = StageItemPhysics.omegaRadToDegPerSec(newOmegaBr + tauBf * invIB);
+  }
+
+  // Persist using in-place updates
+  physA.set({ vx: vax, vy: vay, omega: omegaA });
+  physB.set({ vx: vbx, vy: vby, omega: omegaB });
+}

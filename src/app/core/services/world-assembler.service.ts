@@ -41,8 +41,8 @@ export class WorldAssemblerService {
       context.addTransformer(new FlightKeyboardController(this.ticker, item, params)),
     FlightTouchController: (item, context, params) =>
       context.addTransformer(new FlightTouchController(this.ticker, item, params)),
-    WalkingController: (item, context) =>
-      context.addTransformer(new WalkingController(item)),
+    WalkingController: (item, context, params) =>
+      context.addTransformer(new WalkingController(item, params)),
     WalkingTransformer: (item, context, params, boundary) =>
       context.addTransformer(new WalkingTransformer(this.ticker, context.getCollisionHandler(), boundary, item, params)),
     FollowItem: (item, context, params) => {
@@ -64,6 +64,7 @@ export class WorldAssemblerService {
 
   buildWorld(map: GameMap, config: WorldAssemblerConfig): WorldContext {
     const context = new WorldContext();
+    context.setMapGravity(map.gravity);
     const boundary = this.createBoundary(map.size);
 
     context.setIntegrator(this.createPhysicsIntegrator(boundary));
@@ -106,7 +107,10 @@ export class WorldAssemblerService {
     });
 
     if (physics.hasGravity) {
-      context.addTransformer(new Gravity(this.ticker, item));
+      // Use map-level gravity if available, otherwise let Gravity use its default
+      const gravityAcceleration = context.getMapGravity();
+      const params = gravityAcceleration !== undefined ? { acceleration: gravityAcceleration } : undefined;
+      context.addTransformer(new Gravity(this.ticker, item, params));
     }
 
     if (physics.canMove || physics.canRotate) {

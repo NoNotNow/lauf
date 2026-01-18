@@ -3,13 +3,33 @@ import { StageItem } from '../models/game-items/stage-item';
 import { TickService } from '../services/tick.service';
 import { orientedBoundingBoxFromPose, orientedBoundingBoxIntersectsOrientedBoundingBox, resetOBBPool } from './collision';
 import { StageItemPhysics, PhysicsState } from './physics/stage-item-physics';
-import { resolveItemItemCollision } from './physics/impulses';
+import { resolveItemItemCollision, resolveRestingContactConstraint } from './physics/impulses';
 
 export interface CollisionEvent {
   a: StageItem;
   b: StageItem;
   normal: { x: number; y: number }; // from A to B
   minimalTranslationVector: { x: number; y: number };    // push A by +minimalTranslationVector to separate
+}
+
+interface RestingContact {
+  itemA: StageItem;
+  itemB: StageItem;
+  normal: { x: number; y: number };
+  framesActive: number;  // How many frames this contact has been active
+  avgPenetration: number; // Average penetration depth
+}
+
+interface Contact {
+  a: StageItem;
+  b: StageItem;
+  physA: StageItemPhysics;
+  physB: StageItemPhysics;
+  normal: { x: number; y: number };
+  mtv: { x: number; y: number };
+  aobb: any;
+  bobb: any;
+  isCCD?: boolean;
 }
 
 export class CollisionHandler {
@@ -23,7 +43,20 @@ export class CollisionHandler {
   // Pre-allocated arrays to avoid allocation per frame
   private obbCache: (ReturnType<typeof orientedBoundingBoxFromPose> | null)[] = [];
   private physicsCache: StageItemPhysics[] = [];
-  private contacts: { a: StageItem; b: StageItem; physA: StageItemPhysics; physB: StageItemPhysics; normal: { x: number; y: number }; mtv: { x: number; y: number }; aobb: any; bobb: any; isCCD?: boolean }[] = [];
+  private contacts: Contact[] = [];
+
+  // Resting contact tracking
+  private restingContacts = new Map<string, RestingContact>();
+  private readonly RESTING_VELOCITY_THRESHOLD = 0.3; // cells/s
+  private readonly RESTING_FRAMES_THRESHOLD = 3; // frames
+  
+  // Constants
+  private readonly DEFAULT_GRAVITY = 9.81; // cells/s^2
+  private readonly PENETRATION_SLOP = 0.01; // cells
+  private readonly POSITION_CORRECTION_PERCENT_IMPACTING = 0.4; // 40% per frame
+  private readonly POSITION_CORRECTION_PERCENT_RESTING = 0.8; // 80% per frame
+  private readonly MAX_CORRECTION_IMPACTING = 0.5; // cells per frame
+  private readonly MAX_CORRECTION_RESTING = 1.0; // cells per frame
 
   // Pre-allocated event object to avoid allocation per collision
   private collisionEvent: CollisionEvent = {
@@ -58,7 +91,169 @@ export class CollisionHandler {
     if (i >= 0) this.items.splice(i, 1);
   }
 
-  clear(): void { this.items = []; }
+  clear(): void { 
+    this.items = [];
+    this.restingContacts.clear();
+  }
+
+  /**
+   * Generate a consistent key for tracking contacts between two items
+   */
+  private contactKey(a: StageItem, b: StageItem): string {
+    // Use object identity as key since StageItem doesn't have a guaranteed Id
+    const idA = (a as any).Id ?? String(a);
+    const idB = (b as any).Id ?? String(b);
+    return idA < idB ? `${idA}-${idB}` : `${idB}-${idA}`;
+  }
+
+  /**
+   * Calculate relative velocity at contact point between two items
+   */
+  private calculateRelativeVelocityAtContact(c: Contact): { vRelN: number; vRel: { x: number; y: number } } {
+    const stateA = c.physA.State;
+    const stateB = c.physB.State;
+    
+    const omegaAr = StageItemPhysics.omegaDegToRadPerSec(stateA.omega);
+    const omegaBr = StageItemPhysics.omegaDegToRadPerSec(stateB.omega);
+    
+    // Estimate contact point as midpoint between OBB centers
+    const cpx = (c.aobb.center.x + c.bobb.center.x) * 0.5;
+    const cpy = (c.aobb.center.y + c.bobb.center.y) * 0.5;
+    const ra = { x: cpx - c.aobb.center.x, y: cpy - c.aobb.center.y };
+    const rb = { x: cpx - c.bobb.center.x, y: cpy - c.bobb.center.y };
+    
+    // Velocities at contact point including angular component
+    const vAatC = { 
+      x: stateA.vx + (-omegaAr * ra.y), 
+      y: stateA.vy + (omegaAr * ra.x) 
+    };
+    const vBatC = { 
+      x: stateB.vx + (-omegaBr * rb.y), 
+      y: stateB.vy + (omegaBr * rb.x) 
+    };
+    const vRel = { 
+      x: vBatC.x - vAatC.x, 
+      y: vBatC.y - vAatC.y 
+    };
+    
+    // Relative velocity along normal
+    const vRelN = vRel.x * c.normal.x + vRel.y * c.normal.y;
+    
+    return { vRelN, vRel };
+  }
+
+  /**
+   * Update resting contact tracking for all active contacts
+   */
+  private updateRestingContactTracking(contacts: Contact[]): Set<string> {
+    const activeContactKeys = new Set<string>();
+    
+    for (const c of contacts) {
+      const key = this.contactKey(c.a, c.b);
+      activeContactKeys.add(key);
+
+      const mtvMagnitude = Math.hypot(c.mtv.x, c.mtv.y);
+      const { vRelN } = this.calculateRelativeVelocityAtContact(c);
+      
+      const existing = this.restingContacts.get(key);
+      if (existing) {
+        // Update existing contact
+        existing.framesActive++;
+        // Update average penetration (exponential moving average)
+        existing.avgPenetration = existing.avgPenetration * 0.7 + mtvMagnitude * 0.3;
+        existing.normal = { x: c.normal.x, y: c.normal.y };
+      } else {
+        // Create new resting contact entry
+        this.restingContacts.set(key, {
+          itemA: c.a,
+          itemB: c.b,
+          normal: { x: c.normal.x, y: c.normal.y },
+          framesActive: 1,
+          avgPenetration: mtvMagnitude
+        });
+      }
+    }
+
+    // Remove contacts that are no longer active
+    for (const key of this.restingContacts.keys()) {
+      if (!activeContactKeys.has(key)) {
+        this.restingContacts.delete(key);
+      }
+    }
+
+    return activeContactKeys;
+  }
+
+  /**
+   * Separate contacts into resting vs impacting based on tracking and velocity
+   */
+  private separateRestingFromImpacting(contacts: Contact[]): { resting: Contact[]; impacting: Contact[] } {
+    const restingContacts: Contact[] = [];
+    const impactingContacts: Contact[] = [];
+    
+    for (const c of contacts) {
+      const key = this.contactKey(c.a, c.b);
+      const resting = this.restingContacts.get(key);
+      
+      if (resting && resting.framesActive >= this.RESTING_FRAMES_THRESHOLD) {
+        const { vRelN } = this.calculateRelativeVelocityAtContact(c);
+        const absVRelN = Math.abs(vRelN);
+        
+        if (absVRelN < this.RESTING_VELOCITY_THRESHOLD) {
+          restingContacts.push(c);
+          continue;
+        }
+      }
+      
+      impactingContacts.push(c);
+    }
+
+    return { resting: restingContacts, impacting: impactingContacts };
+  }
+
+  /**
+   * Apply position correction using Baumgarte stabilization
+   */
+  private applyPositionCorrection(contacts: Contact[]): void {
+    for (const c of contacts) {
+      if (c.isCCD) continue; // Skip positional correction for predictive CCD hits
+
+      const stateA = c.physA.State;
+      const stateB = c.physB.State;
+      const invMassA = stateA.mass >= 1e6 ? 0 : 1 / Math.max(1e-6, stateA.mass);
+      const invMassB = stateB.mass >= 1e6 ? 0 : 1 / Math.max(1e-6, stateB.mass);
+      const sum = invMassA + invMassB;
+      if (sum <= 0) continue;
+
+      // Determine if this is a resting contact
+      const key = this.contactKey(c.a, c.b);
+      const resting = this.restingContacts.get(key);
+      const isResting = resting && resting.framesActive >= this.RESTING_FRAMES_THRESHOLD;
+      
+      // Use more accurate penetration depth calculation
+      const mtvMagnitude = Math.hypot(c.mtv.x, c.mtv.y);
+      const penetrationDepth = isResting && resting ? resting.avgPenetration : mtvMagnitude;
+      
+      // Use higher correction percentage for resting contacts
+      const percent = isResting ? this.POSITION_CORRECTION_PERCENT_RESTING : this.POSITION_CORRECTION_PERCENT_IMPACTING;
+      const maxCorrection = isResting ? this.MAX_CORRECTION_RESTING : this.MAX_CORRECTION_IMPACTING;
+      const correctionMagnitude = (Math.min(maxCorrection, Math.max(penetrationDepth - this.PENETRATION_SLOP, 0)) / sum) * percent;
+
+      const correctionX = c.normal.x * correctionMagnitude;
+      const correctionY = c.normal.y * correctionMagnitude;
+
+      const aPose = c.a.Pose as any;
+      const bPose = c.b.Pose as any;
+      if (aPose.Position) {
+        aPose.Position.x -= correctionX * invMassA;
+        aPose.Position.y -= correctionY * invMassA;
+      }
+      if (bPose.Position) {
+        bPose.Position.x += correctionX * invMassB;
+        bPose.Position.y += correctionY * invMassB;
+      }
+    }
+  }
   
   /**
    * Checks if a given pose would collide with any items in the collision handler
@@ -236,14 +431,44 @@ export class CollisionHandler {
       }
     }
 
-    if (contacts.length === 0) return;
+    if (contacts.length === 0) {
+      this.restingContacts.clear();
+      return;
+    }
 
-    // Iterative solver over contacts to distribute impulses like a physics engine
+    // Update resting contact tracking
+    this.updateRestingContactTracking(contacts);
+
+    // Separate contacts into resting vs impacting
+    const { resting: restingContacts, impacting: impactingContacts } = this.separateRestingFromImpacting(contacts);
+
+    // Apply constraint forces to resting contacts
+    for (const c of restingContacts) {
+      const key = this.contactKey(c.a, c.b);
+      const resting = this.restingContacts.get(key);
+      if (resting) {
+        const mtvMagnitude = Math.hypot(c.mtv.x, c.mtv.y);
+        resolveRestingContactConstraint(
+          c.a,
+          c.b,
+          c.physA,
+          c.physB,
+          c.aobb,
+          c.bobb,
+          c.normal,
+          mtvMagnitude,
+          this.DEFAULT_GRAVITY
+        );
+      }
+    }
+
+    // Iterative solver over impacting contacts to distribute impulses
     for (let iter = 0; iter < this._iterations; iter++) {
-      for (const c of contacts) {
+      for (const c of impactingContacts) {
         const stateA = c.physA.State;
         const stateB = c.physB.State;
         const e = Math.min(stateA.restitution, stateB.restitution);
+        const mu = Math.min(stateA.friction, stateB.friction);
         resolveItemItemCollision(
           c.a,
           c.b,
@@ -252,44 +477,12 @@ export class CollisionHandler {
           c.aobb,
           c.bobb,
           c.normal,
-          { restitution: e, friction: this._frictionDefault }
+          { restitution: e, friction: mu }
         );
       }
     }
 
-    // Positional correction: resolve overlaps using Baumgarte stabilization
-    // This prevents objects from getting stuck together while avoiding jerky over-correction
-    const slop = 0.01;      // Allow 0.01 cells of overlap to prevent jitter
-    const percent = 0.4;    // Resolve 40% of the overlap per frame
-
-    for (const c of contacts) {
-      if (c.isCCD) continue; // Skip positional correction for predictive CCD hits
-
-      const stateA = c.physA.State;
-      const stateB = c.physB.State;
-      const invMassA = stateA.mass >= 1e6 ? 0 : 1 / Math.max(1e-6, stateA.mass);
-      const invMassB = stateB.mass >= 1e6 ? 0 : 1 / Math.max(1e-6, stateB.mass);
-      const sum = invMassA + invMassB;
-      if (sum <= 0) continue;
-
-      const mtvMagnitude = Math.hypot(c.mtv.x, c.mtv.y);
-      // Cap maximum correction to avoid enormous jumps that upset the system
-      const maxCorrection = 0.5; // max 0.5 cells per frame
-      const correctionMagnitude = (Math.min(maxCorrection, Math.max(mtvMagnitude - slop, 0)) / sum) * percent;
-
-      const correctionX = c.normal.x * correctionMagnitude;
-      const correctionY = c.normal.y * correctionMagnitude;
-
-      const aPose = c.a.Pose as any;
-      const bPose = c.b.Pose as any;
-      if (aPose.Position) {
-        aPose.Position.x -= correctionX * invMassA;
-        aPose.Position.y -= correctionY * invMassA;
-      }
-      if (bPose.Position) {
-        bPose.Position.x += correctionX * invMassB;
-        bPose.Position.y += correctionY * invMassB;
-      }
-    }
+    // Apply position correction using Baumgarte stabilization
+    this.applyPositionCorrection(contacts);
   }
 }

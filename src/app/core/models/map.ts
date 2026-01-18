@@ -12,6 +12,7 @@ export class Map{
     public design: Design;
     public camera: Camera;
     public zoomLevels: number[] = [];
+    public gravity?: number; // Gravity acceleration in cells/s^2
 
     // Fills the current instance from a plain JSON/object without replacing it
     public FromJson(data: any): this {
@@ -74,6 +75,9 @@ export class Map{
                 this.zoomLevels = zoomLevels.map(z => Number(z));
             }
         }
+
+        const gravity = g('gravity', 'Gravity');
+        if (gravity !== undefined) this.gravity = Number(gravity);
 
         return this;
     }

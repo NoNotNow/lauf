@@ -61,6 +61,12 @@ This document describes the JSON schema for map files used by the game engine. M
 - **Type**: [StageItem](#stageitem-object) object
 - **Description**: Player avatar configuration
 
+### `Gravity` / `gravity` (optional)
+- **Type**: `number`
+- **Description**: Global gravity acceleration for the entire map, measured in cells/s². This value applies to all stage items with `hasGravity: true` that don't have their own gravity acceleration configured. If not specified, the default gravity acceleration is used (typically 9.81 cells/s² for individual items, or 0.5 cells/s² when no configuration is provided).
+- **Default**: Uses default gravity acceleration
+- **Example**: `9.81` (Earth-like gravity) or `1.62` (Moon-like gravity) or `0` (zero gravity)
+
 ## Design Object
 
 Represents visual design properties for map background or stage items.
@@ -205,7 +211,9 @@ Represents physics properties for a stage item.
 ### Properties
 
 - `mass` / `Mass` (optional): Mass value
-- `damping` / `Damping` (optional): Damping coefficient
+- `damping` / `Damping` (optional): Linear damping coefficient
+- `angularDamping` / `AngularDamping` (optional): Angular damping coefficient
+- `friction` / `Friction` (optional): Surface friction coefficient
 - `restitution` / `Restitution` (optional): Restitution (bounciness) coefficient
 - `hasCollision` / `HasCollision` (optional): Whether item participates in collisions. **Default**: `true`
 - `canMove` / `CanMove` (optional): Whether item can move. **Default**: `true`
@@ -222,6 +230,8 @@ Represents physics properties for a stage item.
 {
   "mass": 100,
   "damping": 0.5,
+  "angularDamping": 0.2,
+  "friction": 0.6,
   "restitution": 0.5,
   "hasCollision": true,
   "canMove": true,
@@ -269,7 +279,9 @@ Touch input controller for flying avatars.
 #### `WalkingController`
 Walking input controller (left/right + jump). Pairs with `WalkingTransformer`.
 
-**Params**: None
+**Params**:
+- `restitution` (optional): Bounciness applied to avatar physics
+- `angularDamping` (optional): Angular damping applied to avatar physics
 
 #### `WalkingTransformer`
 Walking movement transformer with grounded jumping and upright correction.
