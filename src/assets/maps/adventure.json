@@ -1,0 +1,492 @@
+{
+  "Name": "Adventure Level",
+  "Size": {
+    "X": 80,
+    "Y": 12
+  },
+  "Camera": {
+    "Position": {
+      "X": 10,
+      "Y": 6
+    },
+    "Zoom": 30,
+    "ZoomLevels": [10, 20, 30, 40, 50]
+  },
+  "Design": {
+    "Color": "transparent",
+    "Border": {
+      "Active": false
+    },
+    "Image": "assets/game/backgrounds/stars.svg",
+    "BackgroundRepeat": {
+      "Mode": "repeat",
+      "TileSize": {
+        "X": 20,
+        "Y": 12
+      }
+    }
+  },
+  "Obstacles": [
+    {
+      "Id": "Platform1",
+      "Pose": {
+        "Position": {
+          "X": 15,
+          "Y": 8
+        },
+        "Size": {
+          "X": 4,
+          "Y": 0.3
+        },
+        "Rotation": 0
+      },
+      "Design": {
+        "Color": "#8B4513",
+        "Border": {
+          "Style": "solid",
+          "Color": "#654321",
+          "Width": 0.01
+        },
+        "CornerRadius": 0.1
+      },
+      "PhysicsConfiguration": {
+        "canMove": false,
+        "canRotate": false,
+        "hasCollision": true,
+        "hasGravity": false,
+        "mass": 1000
+      }
+    },
+    {
+      "Id": "Platform2",
+      "Pose": {
+        "Position": {
+          "X": 25,
+          "Y": 6
+        },
+        "Size": {
+          "X": 3,
+          "Y": 0.3
+        },
+        "Rotation": 0
+      },
+      "Design": {
+        "Color": "#8B4513",
+        "Border": {
+          "Style": "solid",
+          "Color": "#654321",
+          "Width": 0.01
+        },
+        "CornerRadius": 0.1
+      },
+      "PhysicsConfiguration": {
+        "canMove": false,
+        "canRotate": false,
+        "hasCollision": true,
+        "hasGravity": false,
+        "mass": 1000
+      }
+    },
+    {
+      "Id": "Platform3",
+      "Pose": {
+        "Position": {
+          "X": 35,
+          "Y": 10
+        },
+        "Size": {
+          "X": 5,
+          "Y": 0.3
+        },
+        "Rotation": 0
+      },
+      "Design": {
+        "Color": "#8B4513",
+        "Border": {
+          "Style": "solid",
+          "Color": "#654321",
+          "Width": 0.01
+        },
+        "CornerRadius": 0.1
+      },
+      "PhysicsConfiguration": {
+        "canMove": false,
+        "canRotate": false,
+        "hasCollision": true,
+        "hasGravity": false,
+        "mass": 1000
+      }
+    },
+    {
+      "Id": "Tree1",
+      "Pose": {
+        "Position": {
+          "X": 20,
+          "Y": 11
+        },
+        "Size": {
+          "X": 1,
+          "Y": 1.5
+        },
+        "Rotation": 0
+      },
+      "Design": {
+        "Color": "transparent",
+        "Image": "assets/game/tree.svg"
+      },
+      "PhysicsConfiguration": {
+        "canMove": false,
+        "canRotate": false,
+        "hasCollision": true,
+        "hasGravity": true,
+        "restitution": 0.2,
+        "damping": 2,
+        "mass": 300,
+        "collisionBox": {
+          "minX": 0.4,
+          "minY": 0.3,
+          "maxX": 0.45,
+          "maxY": 1
+        }
+      }
+    },
+    {
+      "Id": "FlyingBird1",
+      "Pose": {
+        "Position": {
+          "X": 30,
+          "Y": 4
+        },
+        "Size": {
+          "X": 0.4,
+          "Y": 0.4
+        },
+        "Rotation": 0
+      },
+      "Design": {
+        "Color": "transparent",
+        "Image": "assets/game/bird.svg"
+      },
+      "PhysicsConfiguration": {
+        "hasGravity": true,
+        "canMove": true,
+        "mass": 10,
+        "restitution": 0.5
+      },
+      "Transformers": [
+        {
+          "Type": "Glider",
+          "Params": {
+            "horizontalSpeed": 2.5,
+            "glideEfficiency": 0.3,
+            "minSpeedForLift": 1.5,
+            "maxClimbRate": 3.5,
+            "minDistanceToBoundary": 2,
+            "boundaryAvoidanceStrength": 8.0,
+            "lookAheadDistance": 3.0,
+            "lookAheadTime": 0.5,
+            "collisionAvoidanceStrength": 3.5
+          }
+        }
+      ]
+    },
+    {
+      "Id": "FlyingBird2",
+      "Pose": {
+        "Position": {
+          "X": 45,
+          "Y": 7
+        },
+        "Size": {
+          "X": 0.4,
+          "Y": 0.4
+        },
+        "Rotation": 0
+      },
+      "Design": {
+        "Color": "transparent",
+        "Image": "assets/game/bird.svg"
+      },
+      "PhysicsConfiguration": {
+        "hasGravity": true,
+        "canMove": true,
+        "mass": 10,
+        "restitution": 0.6
+      },
+      "Transformers": [
+        {
+          "Type": "Glider",
+          "Params": {
+            "horizontalSpeed": 3.0,
+            "glideEfficiency": 0.35,
+            "minSpeedForLift": 1.5,
+            "maxClimbRate": 4.0,
+            "minDistanceToBoundary": 2,
+            "boundaryAvoidanceStrength": 10.0,
+            "lookAheadDistance": 3.5,
+            "lookAheadTime": 0.6,
+            "collisionAvoidanceStrength": 4.0
+          }
+        }
+      ]
+    },
+    {
+      "Id": "UFO",
+      "Pose": {
+        "Position": {
+          "X": 50,
+          "Y": 5
+        },
+        "Size": {
+          "X": 0.8,
+          "Y": 0.8
+        },
+        "Rotation": 0
+      },
+      "Design": {
+        "Color": "transparent",
+        "Image": "assets/game/ufo.svg"
+      },
+      "PhysicsConfiguration": {
+        "canMove": true,
+        "canRotate": true,
+        "hasGravity": false,
+        "hasCollision": true,
+        "mass": 100,
+        "restitution": 0.5,
+        "damping": 0.2
+      },
+      "Transformers": [
+        {
+          "Type": "Drifter",
+          "Params": {
+            "force": 0.04,
+            "directionChangeInterval": 30
+          }
+        },
+        {
+          "Type": "StayUpright",
+          "Params": {
+            "latency": 0.2,
+            "maxAngle": 10.0,
+            "speed": 0.1,
+            "force": 3
+          }
+        }
+      ]
+    },
+    {
+      "Id": "Monster",
+      "Pose": {
+        "Position": {
+          "X": 60,
+          "Y": 9
+        },
+        "Size": {
+          "X": 0.5,
+          "Y": 0.5
+        },
+        "Rotation": 0
+      },
+      "Design": {
+        "Color": "transparent",
+        "Image": "assets/game/monster.svg"
+      },
+      "PhysicsConfiguration": {
+        "hasGravity": true,
+        "canMove": true,
+        "mass": 50,
+        "restitution": 0.4
+      },
+      "Transformers": [
+        {
+          "Type": "FollowItem",
+          "Params": {
+            "TargetId": "Avatar",
+            "Distance": 0.5,
+            "maxSpeed": 0.8,
+            "force": 0.4,
+            "direction": "horizontal"
+          }
+        },
+        {
+          "Type": "StayUpright",
+          "Params": {
+            "latency": 2.0,
+            "maxAngle": 10.0,
+            "speed": 1.0,
+            "force": 4
+          }
+        }
+      ]
+    },
+    {
+      "Id": "Spiral",
+      "Pose": {
+        "Position": {
+          "X": 40,
+          "Y": 8
+        },
+        "Size": {
+          "X": 0.7,
+          "Y": 0.7
+        },
+        "Rotation": 0
+      },
+      "Design": {
+        "Color": "transparent",
+        "CornerRadius": 2,
+        "Image": "assets/game/spiral.svg"
+      },
+      "PhysicsConfiguration": {
+        "hasCollision": true,
+        "restitution": 0.8
+      }
+    }
+  ],
+  "Targets": [
+    {
+      "Id": "Target1",
+      "Pose": {
+        "Position": {
+          "X": 17,
+          "Y": 7
+        },
+        "Size": {
+          "X": 0.8,
+          "Y": 0.8
+        },
+        "Rotation": 0
+      },
+      "Design": {
+        "Color": "#00FF00",
+        "Border": {
+          "Style": "solid",
+          "Color": "#00AA00",
+          "Width": 0.02
+        },
+        "CornerRadius": 0.4
+      }
+    },
+    {
+      "Id": "Target2",
+      "Pose": {
+        "Position": {
+          "X": 27,
+          "Y": 5
+        },
+        "Size": {
+          "X": 0.8,
+          "Y": 0.8
+        },
+        "Rotation": 0
+      },
+      "Design": {
+        "Color": "#00FF00",
+        "Border": {
+          "Style": "solid",
+          "Color": "#00AA00",
+          "Width": 0.02
+        },
+        "CornerRadius": 0.4
+      }
+    },
+    {
+      "Id": "Target3",
+      "Pose": {
+        "Position": {
+          "X": 37,
+          "Y": 9
+        },
+        "Size": {
+          "X": 0.8,
+          "Y": 0.8
+        },
+        "Rotation": 0
+      },
+      "Design": {
+        "Color": "#00FF00",
+        "Border": {
+          "Style": "solid",
+          "Color": "#00AA00",
+          "Width": 0.02
+        },
+        "CornerRadius": 0.4
+      }
+    },
+    {
+      "Id": "Target4",
+      "Pose": {
+        "Position": {
+          "X": 70,
+          "Y": 6
+        },
+        "Size": {
+          "X": 1,
+          "Y": 1
+        },
+        "Rotation": 0
+      },
+      "Design": {
+        "Color": "transparent",
+        "Image": "assets/game/target.svg"
+      }
+    }
+  ],
+  "Avatar": {
+    "Id": "Avatar",
+    "Pose": {
+      "Position": {
+        "X": 2,
+        "Y": 6
+      },
+      "Size": {
+        "X": 0.26,
+        "Y": 0.36
+      },
+      "Rotation": 0
+    },
+    "Design": {
+      "Color": "transparent",
+      "Border": {
+        "Style": "none"
+      },
+      "Image": "assets/game/rocket.svg"
+    },
+    "Physics": {
+      "mass": 200,
+      "canMove": true,
+      "canRotate": true,
+      "hasGravity": true,
+      "restitution": 0.6,
+      "damping": 0.1
+    },
+    "Transformers": [
+      {
+        "Type": "UserController",
+        "Params": {
+          "linearAccel": 2.5,
+          "linearBrake": 2.5,
+          "linearDamping": 0.2,
+          "maxSpeed": 4.5,
+          "angularAccel": 1200,
+          "angularDamping": 500,
+          "maxOmega": 300
+        }
+      },
+      {
+        "Type": "TouchController",
+        "Params": {
+          "linearAccel": 3.5,
+          "linearBrake": 2.5,
+          "linearDamping": 0.2,
+          "maxSpeed": 5.0,
+          "angularAccel": 1200,
+          "angularDamping": 500,
+          "maxOmega": 300,
+          "movementThreshold": 10
+        }
+      }
+    ]
+  }
+}

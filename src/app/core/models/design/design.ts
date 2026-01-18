@@ -18,7 +18,7 @@ export class Design {
         if (g('Border') !== undefined) {
             this.Border.FromJson(g('Border'));
         }
-        if (g('CornerRadius','CornerRadius') !== undefined) this.CornerRadius = Number(g('CornerRadius','CornerRadius'));
+        if (g('CornerRadius', 'cornerRadius') !== undefined) this.CornerRadius = Number(g('CornerRadius', 'cornerRadius'));
         if (g('Image','image') !== undefined) this.Image = g('Image','image');
         if (g('Opacity', 'opacity') !== undefined) this.Opacity = Number(g('Opacity', 'opacity'));
         if (g('BackgroundRepeat', 'backgroundRepeat') !== undefined) {
