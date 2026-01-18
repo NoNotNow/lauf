@@ -3,8 +3,9 @@ import { StageItem } from '../../models/game-items/stage-item';
 import { TickService } from '../../services/tick.service';
 import { StageItemPhysics } from '../physics/stage-item-physics';
 import { toNumber } from '../../utils/number-utils';
+import { ITransformer } from './transformer.interface';
 
-export interface KeyboardControllerOptions {
+export interface FlightKeyboardControllerOptions {
   linearAccel?: number;      // cells / s^2 when UP is held (forward)
   linearBrake?: number;      // cells / s^2 when DOWN is held (against forward)
   linearDamping?: number;    // cells / s^2 to naturally slow when no input
@@ -14,20 +15,18 @@ export interface KeyboardControllerOptions {
   maxOmega?: number;         // deg / s cap for |omega|
 }
 
-import { ITransformer } from './transformer.interface';
-
-// KeyboardController: adjusts a StageItem's linear and angular velocities
+// FlightKeyboardController: adjusts a StageItem's linear and angular velocities
 // based on arrow keys. Forward is along the item's facing direction (Pose.Rotation).
 // - Up: accelerate forward
 // - Down: accelerate backward (decelerate forward)
 // - Left/Right: apply angular acceleration (-/+)
 // Uses reasonable defaults so it works out-of-the-box.
-export class KeyboardController implements ITransformer {
+export class FlightKeyboardController implements ITransformer {
   private sub?: Subscription;
   private _item?: StageItem;
   private _phys?: StageItemPhysics;
   private keys = new Set<string>();
-  private opts: Required<KeyboardControllerOptions>;
+  private opts: Required<FlightKeyboardControllerOptions>;
 
   constructor(private ticker: TickService, item?: StageItem, params?: any) {
     this._item = item;
@@ -68,7 +67,7 @@ export class KeyboardController implements ITransformer {
 
   private onKeyDown = (e: KeyboardEvent) => {
     const k = normalizeKey(e);
-    if(k != null) e.preventDefault();
+    if (k != null) e.preventDefault();
     if (k) this.keys.add(k);
   };
 
@@ -152,9 +151,7 @@ export class KeyboardController implements ITransformer {
       omega = Math.sign(omega) * maxW;
     }
     this._phys.accelerate(ax, ay, dt);
-    //this._phys.setVelocity(vx, vy);
     this._phys.accelerateAngular(alpha, dt);
-    //this._phys.setAngularVelocity(omega);
   }
 }
 

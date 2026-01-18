@@ -10,3 +10,4 @@ There is a renderer that renders the StageItem onto canvases
 - follow the dry rule
 - write and check relevant unit tests with implementation
 - run tests with every implementation
+- keep the MAP_JSON_SCHEMA.md up to date after additions and changes to the map structure

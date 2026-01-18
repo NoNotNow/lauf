@@ -129,7 +129,7 @@ describe('PersistenceService', () => {
             Size: { X: 1, Y: 1 }
           },
           Transformers: [
-            { Type: 'UserController', Params: { maxSpeed: 4.0 } }
+            { Type: 'FlightKeyboardController', Params: { maxSpeed: 4.0 } }
           ]
         }
       };

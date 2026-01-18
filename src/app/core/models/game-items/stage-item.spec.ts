@@ -23,7 +23,7 @@ describe('StageItem', () => {
         },
         Transformers: [
           {
-            Type: 'UserController',
+            Type: 'FlightKeyboardController',
             Params: { maxSpeed: 4.0 }
           },
           {
@@ -41,7 +41,7 @@ describe('StageItem', () => {
       expect(item.Physics.mass).toBe(100);
       expect(item.Physics.hasCollision).toBe(true);
       expect(item.transformers.length).toBe(2);
-      expect(item.transformers[0].Type).toBe('UserController');
+      expect(item.transformers[0].Type).toBe('FlightKeyboardController');
       expect(item.transformers[0].Params).toEqual({ maxSpeed: 4.0 });
     });
 
@@ -129,7 +129,7 @@ describe('StageItem', () => {
       const item = new StageItem();
       const json = {
         Transformers: [
-          { Type: 'UserController', Params: { maxSpeed: 4.0 } },
+          { Type: 'FlightKeyboardController', Params: { maxSpeed: 4.0 } },
           { type: 'Rotator', params: { speed: 10 } },
           { Type: 'Glider', Params: null },
           { Type: 'UnknownType' }
@@ -139,7 +139,7 @@ describe('StageItem', () => {
       item.FromJson(json);
 
       expect(item.transformers.length).toBe(4);
-      expect(item.transformers[0].Type).toBe('UserController');
+      expect(item.transformers[0].Type).toBe('FlightKeyboardController');
       expect(item.transformers[0].Params).toEqual({ maxSpeed: 4.0 });
       expect(item.transformers[1].Type).toBe('Rotator');
       expect(item.transformers[1].Params).toEqual({ speed: 10 });

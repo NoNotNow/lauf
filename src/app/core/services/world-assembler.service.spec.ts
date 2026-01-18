@@ -142,7 +142,7 @@ describe('WorldAssemblerService', () => {
       map.size = new Point(100, 100);
       map.avatar = new Avatar();
       map.avatar.transformers = [
-        { Type: 'UserController', Params: { maxSpeed: 4.0 } },
+        { Type: 'FlightKeyboardController', Params: { maxSpeed: 4.0 } },
         { Type: 'StayUpright', Params: { latency: 2.0 } }
       ];
 
@@ -213,8 +213,10 @@ describe('WorldAssemblerService', () => {
 
     it('should handle all transformer types', () => {
       const transformerTypes = [
-        'UserController',
-        'TouchController',
+        'FlightKeyboardController',
+        'FlightTouchController',
+        'WalkingController',
+        'WalkingTransformer',
         'FollowItem',
         'StayUpright',
         'Glider',

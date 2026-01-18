@@ -5,7 +5,7 @@ import { StageItemPhysics } from '../physics/stage-item-physics';
 import { toNumber } from '../../utils/number-utils';
 import { ITransformer } from './transformer.interface';
 
-export interface TouchControllerOptions {
+export interface FlightTouchControllerOptions {
   linearAccel?: number;      // cells / s^2 when moving forward (at max distance)
   linearBrake?: number;      // cells / s^2 when moving backward (at max distance)
   linearDamping?: number;    // cells / s^2 to naturally slow when no input
@@ -17,21 +17,21 @@ export interface TouchControllerOptions {
   minMovementThreshold?: number; // pixels of movement required before controller activates (default: 15)
 }
 
-// TouchController: adjusts a StageItem's linear and angular velocities
+// FlightTouchController: adjusts a StageItem's linear and angular velocities
 // based on touch gestures. When a touch point moves, it applies:
 // - Down: accelerate forward (strength based on vertical distance)
 // - Up: accelerate backward/decelerate (strength based on vertical distance)
 // - Left/Right: apply angular acceleration (strength based on horizontal distance)
 // - Diagonal swipes activate both linear and angular simultaneously
 // Strength scales with distance from touch start point.
-export class TouchController implements ITransformer {
+export class FlightTouchController implements ITransformer {
   private sub?: Subscription;
   private _item?: StageItem;
   private _phys?: StageItemPhysics;
   private touchStart: { x: number; y: number } | null = null;
   private currentTouch: { x: number; y: number } | null = null;
   private isActive: boolean = false; // Track if touch has moved enough to activate
-  private opts: Required<TouchControllerOptions>;
+  private opts: Required<FlightTouchControllerOptions>;
 
   constructor(private ticker: TickService, item?: StageItem, params?: any) {
     this._item = item;
@@ -234,4 +234,3 @@ export class TouchController implements ITransformer {
     this._phys.accelerateAngular(alpha, dt);
   }
 }
-

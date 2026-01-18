@@ -12,8 +12,10 @@ import { Drifter } from '../rendering/transformers/drifter';
 import { Gravity } from '../rendering/transformers/gravity';
 import { FollowItem } from '../rendering/transformers/follow-item';
 import { StayUpright } from '../rendering/transformers/stay-upright';
-import { KeyboardController } from '../rendering/transformers/keyboard-controller';
-import { TouchController } from '../rendering/transformers/touch-controller';
+import { FlightKeyboardController } from '../rendering/transformers/flight-keyboard-controller';
+import { FlightTouchController } from '../rendering/transformers/flight-touch-controller';
+import { WalkingController } from '../rendering/transformers/walking-controller';
+import { WalkingTransformer } from '../rendering/transformers/walking-transformer';
 import { StageItem } from '../models/game-items/stage-item';
 import { Point } from '../models/point';
 import { Camera } from '../rendering/camera';
@@ -35,10 +37,14 @@ export class WorldAssemblerService {
     string,
     (item: StageItem, context: WorldContext, params: any, boundary?: AxisAlignedBoundingBox) => void
   > = {
-    UserController: (item, context, params) =>
-      context.addTransformer(new KeyboardController(this.ticker, item, params)),
-    TouchController: (item, context, params) =>
-      context.addTransformer(new TouchController(this.ticker, item, params)),
+    FlightKeyboardController: (item, context, params) =>
+      context.addTransformer(new FlightKeyboardController(this.ticker, item, params)),
+    FlightTouchController: (item, context, params) =>
+      context.addTransformer(new FlightTouchController(this.ticker, item, params)),
+    WalkingController: (item, context) =>
+      context.addTransformer(new WalkingController(item)),
+    WalkingTransformer: (item, context, params, boundary) =>
+      context.addTransformer(new WalkingTransformer(this.ticker, context.getCollisionHandler(), boundary, item, params)),
     FollowItem: (item, context, params) => {
       const target = params?.TargetId === 'Avatar' ? context.getAvatar() : undefined;
       if (target) {

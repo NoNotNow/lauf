@@ -168,7 +168,7 @@ If `Pose` is not present, the root-level `Position`, `Size`, and `Rotation` prop
   },
   "Transformers": [
     {
-      "Type": "UserController",
+      "Type": "FlightKeyboardController",
       "Params": { "maxSpeed": 4.0 }
     }
   ]
@@ -247,8 +247,8 @@ Represents a behavior transformer that modifies item physics or movement.
 
 ### Transformer Types
 
-#### `UserController`
-Keyboard input controller for avatar.
+#### `FlightKeyboardController`
+Keyboard input controller for flying avatars.
 
 **Params**:
 - `linearAccel` (optional): Linear acceleration
@@ -259,11 +259,28 @@ Keyboard input controller for avatar.
 - `angularDamping` (optional): Angular damping
 - `maxOmega` (optional): Maximum angular velocity
 
-#### `TouchController`
-Touch input controller for avatar.
+#### `FlightTouchController`
+Touch input controller for flying avatars.
 
-**Params**: Same as `UserController`, plus:
-- `movementThreshold` (optional): Minimum touch movement to trigger action
+**Params**: Same as `FlightKeyboardController`, plus:
+- `maxDistance` (optional): Pixels distance for full strength
+- `minMovementThreshold` (optional): Minimum touch movement to trigger action
+
+#### `WalkingController`
+Walking input controller (left/right + jump). Pairs with `WalkingTransformer`.
+
+**Params**: None
+
+#### `WalkingTransformer`
+Walking movement transformer with grounded jumping and upright correction.
+
+**Params**:
+- `moveAccel` (optional): Horizontal acceleration
+- `maxSpeed` (optional): Maximum horizontal speed
+- `jumpImpulse` (optional): Vertical jump impulse
+- `airControl` (optional): Airborne horizontal control multiplier
+- `uprightForce` (optional): Rotation correction strength
+- `groundedEpsilon` (optional): Grounded detection threshold
 
 #### `FollowItem`
 Follows another item (usually the Avatar).
@@ -323,7 +340,7 @@ Wobbling movement behavior.
 ### Example
 ```json
 {
-  "Type": "UserController",
+  "Type": "FlightKeyboardController",
   "Params": {
     "linearAccel": 2.5,
     "maxSpeed": 4.0,

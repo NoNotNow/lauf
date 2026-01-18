@@ -451,7 +451,7 @@
       "Border": {
         "Style": "none"
       },
-      "Image": "assets/game/rocket.svg"
+      "Image": "assets/game/hero.svg"
     },
     "Physics": {
       "mass": 200,
@@ -463,28 +463,17 @@
     },
     "Transformers": [
       {
-        "Type": "UserController",
-        "Params": {
-          "linearAccel": 2.5,
-          "linearBrake": 2.5,
-          "linearDamping": 0.2,
-          "maxSpeed": 4.5,
-          "angularAccel": 1200,
-          "angularDamping": 500,
-          "maxOmega": 300
-        }
+        "Type": "WalkingController"
       },
       {
-        "Type": "TouchController",
+        "Type": "WalkingTransformer",
         "Params": {
-          "linearAccel": 3.5,
-          "linearBrake": 2.5,
-          "linearDamping": 0.2,
-          "maxSpeed": 5.0,
-          "angularAccel": 1200,
-          "angularDamping": 500,
-          "maxOmega": 300,
-          "movementThreshold": 10
+          "moveAccel": 15,
+          "maxSpeed": 6,
+          "jumpImpulse": 6,
+          "airControl": 0.5,
+          "uprightForce": 6,
+          "groundedEpsilon": 0.05
         }
       }
     ]

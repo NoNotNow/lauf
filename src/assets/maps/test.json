@@ -119,7 +119,7 @@
     },
     "Transformers": [
       {
-        "Type": "UserController",
+        "Type": "FlightKeyboardController",
         "Params": {
           "linearAccel": 3.0,
           "linearBrake": 2.5,
@@ -168,7 +168,7 @@
       },
       "Transformers": [
         {
-          "Type": "UserController",
+          "Type": "FlightKeyboardController",
           "Params": {
             "linearAccel": 2.0,
             "linearBrake": 1.0,

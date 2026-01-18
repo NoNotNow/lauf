@@ -9,7 +9,7 @@ import { toNumber } from '../../utils/number-utils';
 const TINY_NUDGE = 1e-6;
 
 // Integrates poses (position + rotation) from StageItemPhysics velocities each tick.
-// Transformers (Drifter, Rotator, future KeyboardController) should only set velocities/omega.
+// Transformers (Drifter, Rotator, controllers) should only set velocities/omega.
 export class PhysicsIntegrator {
   private sub?: Subscription;
   private items: { it: StageItem; phys: StageItemPhysics }[] = [];
