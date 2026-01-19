@@ -4848,8 +4848,8 @@ var SIMPLE_CHANGES_STORE = "__ngSimpleChanges__";
 function getSimpleChangesStore(instance) {
   return instance[SIMPLE_CHANGES_STORE] || null;
 }
-function setSimpleChangesStore(instance, store3) {
-  return instance[SIMPLE_CHANGES_STORE] = store3;
+function setSimpleChangesStore(instance, store4) {
+  return instance[SIMPLE_CHANGES_STORE] = store4;
 }
 var profilerCallback = null;
 var setProfiler = (profiler2) => {
@@ -36119,17 +36119,32 @@ var GridBitmap = class {
     this.pattern = null;
   }
   draw(targetCtx, canvasW, canvasH, geom, color, lineWidth, border) {
-    const key = `${geom.cellW}x${geom.cellH}-${color}-${lineWidth}`;
-    if (key !== this.currentKey || !this.pattern) {
-      this.createPattern(geom.cellW, geom.cellH, color, lineWidth, key);
-    }
-    if (!this.pattern)
+    this.ensurePattern(geom.cellW, geom.cellH, color, lineWidth);
+    if (!this.pattern) {
       return;
+    }
     const gridRect = geom.rectForCells(0, 0, geom.cols, geom.rows);
     targetCtx.save();
-    targetCtx.beginPath();
-    targetCtx.rect(0, 0, canvasW, canvasH);
-    targetCtx.clip();
+    this.clipToCanvas(targetCtx, canvasW, canvasH);
+    this.drawPattern(targetCtx, geom, gridRect);
+    this.drawBorders(targetCtx, geom, gridRect, color, lineWidth, border);
+    targetCtx.restore();
+  }
+  ensurePattern(cellW, cellH, color, lineWidth) {
+    const key = `${cellW}x${cellH}-${color}-${lineWidth}`;
+    if (key !== this.currentKey || !this.pattern) {
+      this.createPattern(cellW, cellH, color, lineWidth, key);
+    }
+  }
+  clipToCanvas(ctx, canvasW, canvasH) {
+    ctx.beginPath();
+    ctx.rect(0, 0, canvasW, canvasH);
+    ctx.clip();
+  }
+  drawPattern(ctx, geom, gridRect) {
+    if (!this.pattern) {
+      return;
+    }
     const startX = Math.round(gridRect.x);
     const startY = Math.round(gridRect.y);
     const endX = Math.round(gridRect.x + geom.cols * geom.cellW);
@@ -36142,25 +36157,30 @@ var GridBitmap = class {
     const scaleY = geom.cellH / roundedH;
     const matrix = new DOMMatrix().translate(startX, startY).scale(scaleX, scaleY);
     this.pattern.setTransform(matrix);
-    targetCtx.fillStyle = this.pattern;
-    targetCtx.fillRect(startX, startY, totalW, totalH);
+    ctx.fillStyle = this.pattern;
+    ctx.fillRect(startX, startY, totalW, totalH);
+  }
+  drawBorders(ctx, geom, gridRect, color, lineWidth, border) {
     const lw = Math.max(1, Math.round(lineWidth * Math.min(geom.cellW, geom.cellH)));
-    targetCtx.strokeStyle = color;
-    targetCtx.lineWidth = lw;
-    const borderStyle = border.toLowerCase();
-    applyDashStyle(targetCtx, borderStyle, lineWidth);
     const offset = lw % 2 === 1 ? 0.5 : 0;
-    targetCtx.beginPath();
-    targetCtx.moveTo(startX + offset, startY);
-    targetCtx.lineTo(startX + offset, endY);
-    targetCtx.moveTo(startX, startY + offset);
-    targetCtx.lineTo(endX, startY + offset);
-    targetCtx.moveTo(endX - offset, startY);
-    targetCtx.lineTo(endX - offset, endY);
-    targetCtx.moveTo(startX, endY - offset);
-    targetCtx.lineTo(endX, endY - offset);
-    targetCtx.stroke();
-    targetCtx.restore();
+    const startX = Math.round(gridRect.x);
+    const startY = Math.round(gridRect.y);
+    const endX = Math.round(gridRect.x + geom.cols * geom.cellW);
+    const endY = Math.round(gridRect.y + geom.rows * geom.cellH);
+    ctx.strokeStyle = color;
+    ctx.lineWidth = lw;
+    const borderStyle = border.toLowerCase();
+    applyDashStyle(ctx, borderStyle, lineWidth);
+    ctx.beginPath();
+    ctx.moveTo(startX + offset, startY);
+    ctx.lineTo(startX + offset, endY);
+    ctx.moveTo(startX, startY + offset);
+    ctx.lineTo(endX, startY + offset);
+    ctx.moveTo(endX - offset, startY);
+    ctx.lineTo(endX - offset, endY);
+    ctx.moveTo(startX, endY - offset);
+    ctx.lineTo(endX, endY - offset);
+    ctx.stroke();
   }
   createPattern(cellW, cellH, color, lineWidth, key) {
     this.pattern = null;
@@ -36249,39 +36269,84 @@ var BackgroundPattern = class {
    * @param visibleRect Visible viewport rectangle in screen coordinates
    */
   draw(targetCtx, canvasW, canvasH, geom, sourceImage, tileSizeX, tileSizeY, repeatMode, gridRect, visibleRect) {
-    if (!sourceImage || !sourceImage.complete || sourceImage.naturalWidth === 0) {
+    if (!this.isValidImage(sourceImage)) {
       return;
     }
     const mode = repeatMode.toLowerCase();
-    if (mode === "no-repeat") {
+    if (this.isNoRepeatMode(mode)) {
       return;
     }
-    const tilePxW = Math.round(tileSizeX * geom.cellW);
-    const tilePxH = Math.round(tileSizeY * geom.cellH);
-    if (tilePxW <= 0 || tilePxH <= 0) {
+    const tilePxW = this.calculateTileSizeInPixels(tileSizeX, geom.cellW);
+    const tilePxH = this.calculateTileSizeInPixels(tileSizeY, geom.cellH);
+    if (!this.isValidTileSize(tilePxW, tilePxH)) {
       return;
     }
-    const key = `${tilePxW}x${tilePxH}-${sourceImage.src}-${mode}`;
-    if (key !== this.currentKey || !this.pattern || this.sourceImage !== sourceImage) {
+    this.ensurePattern(sourceImage, tilePxW, tilePxH, mode);
+    if (!this.pattern) {
+      return;
+    }
+    this.drawPatternToContext(targetCtx, geom, gridRect, visibleRect);
+  }
+  isValidImage(sourceImage) {
+    return sourceImage !== null && sourceImage.complete && sourceImage.naturalWidth > 0;
+  }
+  isNoRepeatMode(mode) {
+    return mode === "no-repeat";
+  }
+  calculateTileSizeInPixels(tileSizeInCells, cellSizeInPixels) {
+    return Math.round(tileSizeInCells * cellSizeInPixels);
+  }
+  isValidTileSize(tilePxW, tilePxH) {
+    return tilePxW > 0 && tilePxH > 0;
+  }
+  ensurePattern(sourceImage, tilePxW, tilePxH, mode) {
+    const key = this.createCacheKey(tilePxW, tilePxH, sourceImage.src, mode);
+    if (this.shouldRegeneratePattern(key, sourceImage)) {
       this.createPattern(sourceImage, tilePxW, tilePxH, mode, key);
     }
-    if (!this.pattern)
+  }
+  createCacheKey(tilePxW, tilePxH, imageSrc, mode) {
+    return `${tilePxW}x${tilePxH}-${imageSrc}-${mode}`;
+  }
+  shouldRegeneratePattern(key, sourceImage) {
+    return key !== this.currentKey || !this.pattern || this.sourceImage !== sourceImage;
+  }
+  drawPatternToContext(targetCtx, geom, gridRect, visibleRect) {
+    if (!this.pattern) {
       return;
+    }
     targetCtx.save();
-    targetCtx.beginPath();
-    targetCtx.rect(visibleRect.x, visibleRect.y, visibleRect.w, visibleRect.h);
-    targetCtx.clip();
+    this.clipToVisibleArea(targetCtx, visibleRect);
+    this.applyPatternTransform(targetCtx, geom, gridRect);
+    this.fillGridAreaWithPattern(targetCtx, geom, gridRect);
+    targetCtx.restore();
+  }
+  clipToVisibleArea(ctx, visibleRect) {
+    ctx.beginPath();
+    ctx.rect(visibleRect.x, visibleRect.y, visibleRect.w, visibleRect.h);
+    ctx.clip();
+  }
+  applyPatternTransform(ctx, geom, gridRect) {
+    if (!this.pattern) {
+      return;
+    }
+    const gridStartX = Math.round(gridRect.x);
+    const gridStartY = Math.round(gridRect.y);
+    const matrix = new DOMMatrix().translate(gridStartX, gridStartY);
+    this.pattern.setTransform(matrix);
+  }
+  fillGridAreaWithPattern(ctx, geom, gridRect) {
+    if (!this.pattern) {
+      return;
+    }
     const gridStartX = Math.round(gridRect.x);
     const gridStartY = Math.round(gridRect.y);
     const endX = Math.round(gridRect.x + geom.cols * geom.cellW);
     const endY = Math.round(gridRect.y + geom.rows * geom.cellH);
     const totalW = endX - gridStartX;
     const totalH = endY - gridStartY;
-    const matrix = new DOMMatrix().translate(gridStartX, gridStartY);
-    this.pattern.setTransform(matrix);
-    targetCtx.fillStyle = this.pattern;
-    targetCtx.fillRect(gridStartX, gridStartY, totalW, totalH);
-    targetCtx.restore();
+    ctx.fillStyle = this.pattern;
+    ctx.fillRect(gridStartX, gridStartY, totalW, totalH);
   }
   /**
    * Creates a CanvasPattern from the source image at the specified tile size.
@@ -36292,52 +36357,82 @@ var BackgroundPattern = class {
     this.sourceImage = sourceImage;
     const roundedW = Math.max(1, Math.round(tilePxW));
     const roundedH = Math.max(1, Math.round(tilePxH));
-    const isFirefox = typeof navigator !== "undefined" && /Firefox/i.test(navigator.userAgent);
-    let tileCanvas;
-    let tileCtx = null;
-    if (!isFirefox && typeof OffscreenCanvas !== "undefined") {
-      tileCanvas = new OffscreenCanvas(roundedW, roundedH);
-      tileCtx = tileCanvas.getContext("2d");
-    } else {
-      const el = document.createElement("canvas");
-      el.width = roundedW;
-      el.height = roundedH;
-      tileCanvas = el;
-      tileCtx = el.getContext("2d");
-    }
-    if (!tileCtx)
+    const tileCanvas = this.createTileCanvas(roundedW, roundedH);
+    const tileCtx = this.getTileContext(tileCanvas);
+    if (!tileCtx) {
       return;
-    tileCtx.clearRect(0, 0, roundedW, roundedH);
-    const imgAspect = sourceImage.naturalWidth / sourceImage.naturalHeight;
-    const tileAspect = roundedW / roundedH;
-    let drawW;
-    let drawH;
-    let offsetX;
-    let offsetY;
-    if (mode === "repeat-x") {
-      drawH = roundedH;
-      drawW = sourceImage.naturalWidth * (drawH / sourceImage.naturalHeight);
-      offsetX = (roundedW - drawW) / 2;
-      offsetY = 0;
-    } else if (mode === "repeat-y") {
-      drawW = roundedW;
-      drawH = sourceImage.naturalHeight * (drawW / sourceImage.naturalWidth);
-      offsetX = 0;
-      offsetY = (roundedH - drawH) / 2;
-    } else {
-      if (imgAspect > tileAspect) {
-        drawH = roundedH;
-        drawW = sourceImage.naturalWidth * (drawH / sourceImage.naturalHeight);
-        offsetX = (roundedW - drawW) / 2;
-        offsetY = 0;
-      } else {
-        drawW = roundedW;
-        drawH = sourceImage.naturalHeight * (drawW / sourceImage.naturalWidth);
-        offsetX = 0;
-        offsetY = (roundedH - drawH) / 2;
-      }
     }
-    tileCtx.drawImage(sourceImage, offsetX, offsetY, drawW, drawH);
+    tileCtx.clearRect(0, 0, roundedW, roundedH);
+    const imageDimensions = this.calculateImageDimensionsForRepeatMode(sourceImage, roundedW, roundedH, mode);
+    tileCtx.drawImage(sourceImage, imageDimensions.offsetX, imageDimensions.offsetY, imageDimensions.drawW, imageDimensions.drawH);
+    this.createPatternFromTile(tileCanvas, key);
+  }
+  createTileCanvas(width, height) {
+    const isFirefox = this.isFirefoxBrowser();
+    if (!isFirefox && typeof OffscreenCanvas !== "undefined") {
+      return new OffscreenCanvas(width, height);
+    }
+    const canvas = document.createElement("canvas");
+    canvas.width = width;
+    canvas.height = height;
+    return canvas;
+  }
+  isFirefoxBrowser() {
+    return typeof navigator !== "undefined" && /Firefox/i.test(navigator.userAgent);
+  }
+  getTileContext(tileCanvas) {
+    const ctx = tileCanvas.getContext("2d");
+    if (ctx && "fillStyle" in ctx) {
+      return ctx;
+    }
+    return null;
+  }
+  calculateImageDimensionsForRepeatMode(sourceImage, tileWidth, tileHeight, mode) {
+    if (mode === "repeat-x") {
+      return this.calculateRepeatXDimensions(sourceImage, tileWidth, tileHeight);
+    }
+    if (mode === "repeat-y") {
+      return this.calculateRepeatYDimensions(sourceImage, tileWidth, tileHeight);
+    }
+    return this.calculateFullRepeatDimensions(sourceImage, tileWidth, tileHeight);
+  }
+  calculateRepeatXDimensions(sourceImage, tileWidth, tileHeight) {
+    const drawH = tileHeight;
+    const drawW = sourceImage.naturalWidth * (drawH / sourceImage.naturalHeight);
+    const offsetX = (tileWidth - drawW) / 2;
+    const offsetY = 0;
+    return { drawW, drawH, offsetX, offsetY };
+  }
+  calculateRepeatYDimensions(sourceImage, tileWidth, tileHeight) {
+    const drawW = tileWidth;
+    const drawH = sourceImage.naturalHeight * (drawW / sourceImage.naturalWidth);
+    const offsetX = 0;
+    const offsetY = (tileHeight - drawH) / 2;
+    return { drawW, drawH, offsetX, offsetY };
+  }
+  calculateFullRepeatDimensions(sourceImage, tileWidth, tileHeight) {
+    const imgAspect = sourceImage.naturalWidth / sourceImage.naturalHeight;
+    const tileAspect = tileWidth / tileHeight;
+    if (imgAspect > tileAspect) {
+      return this.calculateWiderImageDimensions(sourceImage, tileWidth, tileHeight);
+    }
+    return this.calculateTallerImageDimensions(sourceImage, tileWidth, tileHeight);
+  }
+  calculateWiderImageDimensions(sourceImage, tileWidth, tileHeight) {
+    const drawH = tileHeight;
+    const drawW = sourceImage.naturalWidth * (drawH / sourceImage.naturalHeight);
+    const offsetX = (tileWidth - drawW) / 2;
+    const offsetY = 0;
+    return { drawW, drawH, offsetX, offsetY };
+  }
+  calculateTallerImageDimensions(sourceImage, tileWidth, tileHeight) {
+    const drawW = tileWidth;
+    const drawH = sourceImage.naturalHeight * (drawW / sourceImage.naturalWidth);
+    const offsetX = 0;
+    const offsetY = (tileHeight - drawH) / 2;
+    return { drawW, drawH, offsetX, offsetY };
+  }
+  createPatternFromTile(tileCanvas, key) {
     const dummyCtx = document.createElement("canvas").getContext("2d");
     if (dummyCtx) {
       this.pattern = dummyCtx.createPattern(tileCanvas, "repeat");
@@ -36363,72 +36458,13 @@ var GridComponent = class _GridComponent {
     this.backgroundPattern = new BackgroundPattern();
     this.drawGrid = (ctx, canvas, geom) => {
       if (!geom) {
-        this.drawLegacy(ctx, canvas);
         return;
       }
-      let visibleRect = { x: 0, y: 0, w: canvas.width, h: canvas.height };
-      if (this.camera) {
-        const viewportBounds = this.camera.getViewportBounds(geom.cols, geom.rows);
-        if (viewportBounds) {
-          const topLeft = geom.rectForCells(viewportBounds.minX, viewportBounds.minY, 0, 0);
-          const bottomRight = geom.rectForCells(viewportBounds.maxX, viewportBounds.maxY, 0, 0);
-          visibleRect = {
-            x: topLeft.x,
-            y: topLeft.y,
-            w: bottomRight.x - topLeft.x,
-            h: bottomRight.y - topLeft.y
-          };
-          const margin = 50;
-          visibleRect.x -= margin;
-          visibleRect.y -= margin;
-          visibleRect.w += margin * 2;
-          visibleRect.h += margin * 2;
-        }
-      }
+      const visibleRect = this.calculateVisibleRect(canvas, geom);
       const gridRect = geom.rectForCells(0, 0, geom.cols, geom.rows);
-      let imageLoaded = false;
-      if (this.backgroundImage) {
-        const img = this.imageCache.get(this.backgroundImage);
-        if (img && img.complete && img.naturalWidth > 0) {
-          imageLoaded = true;
-        }
-      }
-      if (this.backgroundColor !== "transparent" && (!this.backgroundImage || imageLoaded)) {
-        ctx.fillStyle = this.backgroundColor;
-        ctx.save();
-        ctx.beginPath();
-        ctx.rect(visibleRect.x, visibleRect.y, visibleRect.w, visibleRect.h);
-        ctx.clip();
-        ctx.fillRect(gridRect.x, gridRect.y, gridRect.w, gridRect.h);
-        ctx.restore();
-      }
-      if (imageLoaded && this.backgroundImage) {
-        const img = this.imageCache.get(this.backgroundImage);
-        if (img && img.complete && img.naturalWidth > 0) {
-          ctx.save();
-          ctx.beginPath();
-          ctx.rect(visibleRect.x, visibleRect.y, visibleRect.w, visibleRect.h);
-          ctx.clip();
-          if (this.backgroundRepeat && this.backgroundRepeat.Mode !== "no-repeat") {
-            const tileSizeX = Math.max(0.1, this.backgroundRepeat.TileSize.X);
-            const tileSizeY = Math.max(0.1, this.backgroundRepeat.TileSize.Y);
-            this.backgroundPattern.draw(ctx, canvas.width, canvas.height, geom, img, tileSizeX, tileSizeY, this.backgroundRepeat.Mode, gridRect, visibleRect);
-          } else {
-            const imgAspect = img.naturalWidth / img.naturalHeight;
-            const gridAspect = gridRect.w / gridRect.h;
-            const scale = imgAspect > gridAspect ? gridRect.h / img.naturalHeight : gridRect.w / img.naturalWidth;
-            const scaledWidth = img.naturalWidth * scale;
-            const scaledHeight = img.naturalHeight * scale;
-            const offsetX = gridRect.x + (gridRect.w - scaledWidth) / 2;
-            const offsetY = gridRect.y + (gridRect.h - scaledHeight) / 2;
-            ctx.drawImage(img, offsetX, offsetY, scaledWidth, scaledHeight);
-          }
-          ctx.restore();
-        }
-      }
-      if (this.gridBorderActive) {
-        this.bitmap.draw(ctx, canvas.width, canvas.height, geom, this.color, this.lineWidth, this.gridBorder);
-      }
+      this.drawBackgroundColor(ctx, visibleRect, gridRect);
+      this.drawBackgroundImage(ctx, canvas, geom, visibleRect, gridRect);
+      this.drawGridLines(ctx, canvas, geom);
     };
   }
   ngOnChanges(changes) {
@@ -36450,48 +36486,94 @@ var GridComponent = class _GridComponent {
   requestRedraw() {
     this.layer?.requestRedraw();
   }
-  drawLegacy(ctx, canvas) {
-    const w = canvas.width;
-    const h = canvas.height;
-    const N = Math.max(1, Math.floor(this.gridSize?.x ?? 1));
-    const M = Math.max(1, Math.floor(this.gridSize?.y ?? 1));
-    const cellW = w / N;
-    const cellH = h / M;
-    const unit = Math.min(cellW, cellH);
-    const lw = Math.max(1, Math.round((this.lineWidth ?? 0) * unit));
-    const offset = lw % 2 === 1 ? 0.5 : 0;
-    if (this.backgroundColor !== "transparent") {
-      ctx.fillStyle = this.backgroundColor;
-      ctx.fillRect(0, 0, w, h);
+  calculateVisibleRect(canvas, geom) {
+    let visibleRect = { x: 0, y: 0, w: canvas.width, h: canvas.height };
+    if (!this.camera) {
+      return visibleRect;
     }
-    ctx.strokeStyle = this.color;
-    ctx.lineWidth = lw;
+    const viewportBounds = this.camera.getViewportBounds(geom.cols, geom.rows);
+    if (!viewportBounds) {
+      return visibleRect;
+    }
+    const topLeft = geom.rectForCells(viewportBounds.minX, viewportBounds.minY, 0, 0);
+    const bottomRight = geom.rectForCells(viewportBounds.maxX, viewportBounds.maxY, 0, 0);
+    visibleRect = {
+      x: topLeft.x,
+      y: topLeft.y,
+      w: bottomRight.x - topLeft.x,
+      h: bottomRight.y - topLeft.y
+    };
+    const margin = 50;
+    visibleRect.x -= margin;
+    visibleRect.y -= margin;
+    visibleRect.w += margin * 2;
+    visibleRect.h += margin * 2;
+    return visibleRect;
+  }
+  isImageLoaded() {
+    if (!this.backgroundImage) {
+      return false;
+    }
+    const img = this.imageCache.get(this.backgroundImage);
+    return img !== null && img.complete && img.naturalWidth > 0;
+  }
+  drawBackgroundColor(ctx, visibleRect, gridRect) {
+    const imageLoaded = this.isImageLoaded();
+    const shouldDrawColor = this.backgroundColor !== "transparent" && (!this.backgroundImage || imageLoaded);
+    if (!shouldDrawColor) {
+      return;
+    }
+    ctx.save();
     ctx.beginPath();
-    ctx.moveTo(offset, 0);
-    ctx.lineTo(offset, h);
-    ctx.moveTo(w - offset, 0);
-    ctx.lineTo(w - offset, h);
-    ctx.moveTo(0, offset);
-    ctx.lineTo(w, offset);
-    ctx.moveTo(0, h - offset);
-    ctx.lineTo(w, h - offset);
-    ctx.stroke();
-    if (N > 1) {
-      for (let i = 1; i < N; i++) {
-        const x = offset + Math.round(i * (w - 1) / N);
-        ctx.beginPath();
-        ctx.moveTo(x, 0);
-        ctx.lineTo(x, h);
-        ctx.stroke();
-      }
-      for (let i = 1; i < M; i++) {
-        const y = offset + Math.round(i * (h - 1) / M);
-        ctx.beginPath();
-        ctx.moveTo(0, y);
-        ctx.lineTo(w, y);
-        ctx.stroke();
-      }
+    ctx.rect(visibleRect.x, visibleRect.y, visibleRect.w, visibleRect.h);
+    ctx.clip();
+    ctx.fillStyle = this.backgroundColor;
+    ctx.fillRect(gridRect.x, gridRect.y, gridRect.w, gridRect.h);
+    ctx.restore();
+  }
+  drawBackgroundImage(ctx, canvas, geom, visibleRect, gridRect) {
+    if (!this.isImageLoaded() || !this.backgroundImage) {
+      return;
     }
+    const img = this.imageCache.get(this.backgroundImage);
+    if (!img || !img.complete || img.naturalWidth === 0) {
+      return;
+    }
+    ctx.save();
+    ctx.beginPath();
+    ctx.rect(visibleRect.x, visibleRect.y, visibleRect.w, visibleRect.h);
+    ctx.clip();
+    const hasRepeatMode = this.backgroundRepeat && this.backgroundRepeat.Mode !== "no-repeat";
+    if (hasRepeatMode) {
+      this.drawBackgroundImageTiled(ctx, canvas, geom, img, gridRect, visibleRect);
+    } else {
+      this.drawBackgroundImageCover(ctx, img, gridRect);
+    }
+    ctx.restore();
+  }
+  drawBackgroundImageTiled(ctx, canvas, geom, img, gridRect, visibleRect) {
+    if (!this.backgroundRepeat) {
+      return;
+    }
+    const tileSizeX = Math.max(0.1, this.backgroundRepeat.TileSize.X);
+    const tileSizeY = Math.max(0.1, this.backgroundRepeat.TileSize.Y);
+    this.backgroundPattern.draw(ctx, canvas.width, canvas.height, geom, img, tileSizeX, tileSizeY, this.backgroundRepeat.Mode, gridRect, visibleRect);
+  }
+  drawBackgroundImageCover(ctx, img, gridRect) {
+    const imgAspect = img.naturalWidth / img.naturalHeight;
+    const gridAspect = gridRect.w / gridRect.h;
+    const scale = imgAspect > gridAspect ? gridRect.h / img.naturalHeight : gridRect.w / img.naturalWidth;
+    const scaledWidth = img.naturalWidth * scale;
+    const scaledHeight = img.naturalHeight * scale;
+    const offsetX = gridRect.x + (gridRect.w - scaledWidth) / 2;
+    const offsetY = gridRect.y + (gridRect.h - scaledHeight) / 2;
+    ctx.drawImage(img, offsetX, offsetY, scaledWidth, scaledHeight);
+  }
+  drawGridLines(ctx, canvas, geom) {
+    if (!this.gridBorderActive) {
+      return;
+    }
+    this.bitmap.draw(ctx, canvas.width, canvas.height, geom, this.color, this.lineWidth, this.gridBorder);
   }
   static {
     this.\u0275fac = function GridComponent_Factory(__ngFactoryType__) {
@@ -36588,8 +36670,8 @@ var Design = class {
     if (g("Border") !== void 0) {
       this.Border.FromJson(g("Border"));
     }
-    if (g("CornerRadius", "CornerRadius") !== void 0)
-      this.CornerRadius = Number(g("CornerRadius", "CornerRadius"));
+    if (g("CornerRadius", "cornerRadius") !== void 0)
+      this.CornerRadius = Number(g("CornerRadius", "cornerRadius"));
     if (g("Image", "image") !== void 0)
       this.Image = g("Image", "image");
     if (g("Opacity", "opacity") !== void 0)
@@ -36656,6 +36738,10 @@ var PhysicsConfiguration = class {
       this.mass = Number(g("mass", "Mass"));
     if (g("damping", "Damping") !== void 0)
       this.damping = Number(g("damping", "Damping"));
+    if (g("angularDamping", "AngularDamping") !== void 0)
+      this.angularDamping = Number(g("angularDamping", "AngularDamping"));
+    if (g("friction", "Friction") !== void 0)
+      this.friction = Number(g("friction", "Friction"));
     if (g("restitution", "Restitution") !== void 0)
       this.restitution = Number(g("restitution", "Restitution"));
     if (g("hasCollision", "HasCollision") !== void 0)
@@ -36675,6 +36761,8 @@ var PhysicsConfiguration = class {
     return {
       mass: this.mass,
       damping: this.damping,
+      angularDamping: this.angularDamping,
+      friction: this.friction,
       restitution: this.restitution,
       hasCollision: this.hasCollision,
       canMove: this.canMove,
@@ -36969,6 +37057,9 @@ var Map2 = class {
         this.zoomLevels = zoomLevels.map((z) => Number(z));
       }
     }
+    const gravity = g("gravity", "Gravity");
+    if (gravity !== void 0)
+      this.gravity = Number(gravity);
     return this;
   }
 };
@@ -36998,7 +37089,7 @@ var StartupService = class _StartupService {
     this.persistence = persistence;
   }
   // Triggers after load; fetches map and hands it to the target's loadMap
-  main(target, url = "assets/maps/example.json") {
+  main(target, url = "assets/maps/adventure.json") {
     this.persistence.getMap(url).subscribe({
       next: (map2) => target.loadMap(map2),
       error: (err) => console.error("StartupService: Failed to load map", err)
@@ -37014,354 +37105,181 @@ var StartupService = class _StartupService {
   }
 };
 
-// src/app/core/rendering/stage-item-renderer.ts
-var StageItemRenderer = class {
-  constructor(imageCache = new ImageCache()) {
-    this.imageCache = imageCache;
-  }
-  // Draws a StageItem using provided canvas context and grid geometry
-  draw(item, ctx, geom) {
-    if (!item)
-      return;
-    const posX = item.Pose?.Position?.x ?? 0;
-    const posY = item.Pose?.Position?.y ?? 0;
-    const wCells = item.Pose?.Size?.x ?? 1;
-    const hCells = item.Pose?.Size?.y ?? 1;
-    const fill = item.Design?.Color ?? "rgba(200,0,0,0.6)";
-    const bwCells = Math.max(0, Number(item.Design?.Border?.Width ?? 0));
-    const bw = bwCells * Math.min(geom.cellW, geom.cellH);
-    const borderStyle = (item.Design?.Border?.Style ?? "").toLowerCase();
-    const borderColor = item.Design?.Border?.Color ?? "#000000";
-    const radiusCells = Math.max(0, Number(item.Design?.CornerRadius ?? 0));
-    const radius = radiusCells * Math.min(geom.cellW, geom.cellH);
-    const imageUrl = item.Design?.Image ?? "";
-    const opacity = Math.max(0, Math.min(1, Number(item.Design?.Opacity ?? 1)));
-    const base = geom.rectForCells(posX, posY, wCells, hCells, 0);
-    const canvas = ctx.canvas;
-    const margin = 10;
-    if (base.x + base.w < -margin || base.x > canvas.width + margin || base.y + base.h < -margin || base.y > canvas.height + margin) {
-      return;
-    }
-    const effectiveBw = borderStyle === "none" ? 0 : Math.min(bw, base.w, base.h);
-    const padX = effectiveBw / 2;
-    const padY = effectiveBw / 2;
-    const x = base.x + padX;
-    const y = base.y + padY;
-    const w = Math.max(0, base.w - effectiveBw);
-    const h = Math.max(0, base.h - effectiveBw);
-    ctx.save();
-    ctx.globalAlpha = opacity;
-    pathRoundedRect(ctx, x, y, w, h, radius);
-    ctx.fillStyle = fill;
-    ctx.fill();
-    if (imageUrl && w > 0 && h > 0) {
-      const img = this.imageCache.get(imageUrl);
-      if (img && (img.complete && img.naturalWidth > 0)) {
-        pathRoundedRect(ctx, x, y, w, h, radius);
-        ctx.save();
-        ctx.clip();
-        const iw = img.naturalWidth;
-        const ih = img.naturalHeight;
-        const scale = Math.max(w / iw, h / ih);
-        const dw = iw * scale;
-        const dh = ih * scale;
-        const dx = x + (w - dw) / 2;
-        const dy = y + (h - dh) / 2;
-        ctx.drawImage(img, dx, dy, dw, dh);
-        ctx.restore();
-      }
-    }
-    if (effectiveBw > 0) {
-      ctx.lineWidth = effectiveBw;
-      ctx.strokeStyle = borderColor;
-      ctx.lineJoin = "round";
-      ctx.lineCap = "round";
-      applyDashStyle(ctx, borderStyle, effectiveBw);
-      pathRoundedRect(ctx, x, y, w, h, radius);
-      ctx.stroke();
-    }
-    ctx.restore();
-  }
-};
-
-// src/app/core/rendering/stage-item-bitmap.ts
-var StageItemBitmap = class {
-  constructor(item, renderer = new StageItemRenderer(), supersample = 2) {
-    this.item = item;
-    this.renderer = renderer;
-    this.supersample = supersample;
-    this.offscreenCanvas = null;
-    this.offscreenCtx = null;
-    this.imageBitmap = null;
-    this.currentKey = "";
-    this.redrawHandler = () => this.invalidate();
-    try {
-      window.addEventListener("app-canvas-redraw", this.redrawHandler);
-    } catch {
-    }
-  }
-  // Call to clean up event listeners if the instance is not needed anymore
-  destroy() {
-    if (this.redrawHandler) {
-      try {
-        window.removeEventListener("app-canvas-redraw", this.redrawHandler);
-      } catch {
-      }
-      this.redrawHandler = void 0;
-    }
-  }
-  updateItem(item) {
-    this.item = item;
-    this.invalidate();
-  }
-  setSupersample(factor) {
-    const f = Math.max(1, Math.floor(factor || 1));
-    if (f !== this.supersample) {
-      this.supersample = f;
-      this.invalidate();
-    }
-  }
-  invalidate() {
-    this.currentKey = "";
-    this.imageBitmap?.close?.();
-    this.imageBitmap = null;
-    this.offscreenCtx = null;
-    this.offscreenCanvas = null;
-  }
-  // Draw the cached bitmap to the target context using the given pose and geometry.
-  draw(targetCtx, pose, geom) {
-    if (!this.item || !pose || !geom)
-      return;
-    const wCells = Math.max(0.01, pose?.Size?.x ?? this.item.Pose?.Size?.x ?? 1);
-    const hCells = Math.max(0.01, pose?.Size?.y ?? this.item.Pose?.Size?.y ?? 1);
-    const { x, y, w, h } = geom.rectForCells(pose?.Position?.x ?? 0, pose?.Position?.y ?? 0, wCells, hCells, 0);
-    const canvas = targetCtx.canvas;
-    const margin = 10;
-    if (x + w < -margin || x > canvas.width + margin || y + h < -margin || y > canvas.height + margin) {
-      return;
-    }
-    this.ensurePrerender(pose, geom);
-    if (!this.offscreenCanvas)
-      return;
-    const cx = x + w / 2;
-    const cy = y + h / 2;
-    const rotation = Number(pose?.Rotation ?? 0) * Math.PI / 180;
-    targetCtx.save();
-    if (rotation !== 0) {
-      targetCtx.translate(cx, cy);
-      targetCtx.rotate(rotation);
-      if (this.imageBitmap) {
-        targetCtx.drawImage(this.imageBitmap, -w / 2, -h / 2, w, h);
-      } else {
-        targetCtx.drawImage(this.offscreenCanvas, -w / 2, -h / 2, w, h);
-      }
-    } else {
-      if (this.imageBitmap) {
-        targetCtx.drawImage(this.imageBitmap, x, y, w, h);
-      } else {
-        targetCtx.drawImage(this.offscreenCanvas, x, y, w, h);
-      }
-    }
-    targetCtx.restore();
-  }
-  ensurePrerender(pose, geom) {
-    const wCells = pose?.Size?.x ?? this.item.Pose?.Size?.x ?? 1;
-    const hCells = pose?.Size?.y ?? this.item.Pose?.Size?.y ?? 1;
-    const pxW = Math.max(1, Math.ceil(wCells * geom.cellW));
-    const pxH = Math.max(1, Math.ceil(hCells * geom.cellH));
-    const d = this.item?.Design ?? {};
-    const key = [
-      pxW,
-      pxH,
-      this.supersample,
-      d.Color,
-      d.Border,
-      d.BorderColor,
-      d.BorderWidth,
-      d.CornerRadius,
-      d.Image,
-      d.Opacity
-    ].join("|");
-    if (key === this.currentKey && this.offscreenCanvas)
-      return;
-    const ss = Math.max(1, this.supersample);
-    const canvasW = pxW * ss;
-    const canvasH = pxH * ss;
-    const isFirefox = typeof navigator !== "undefined" && /Firefox/i.test(navigator.userAgent);
-    let c;
-    let ctx = null;
-    if (!isFirefox && typeof OffscreenCanvas !== "undefined") {
-      c = new OffscreenCanvas(canvasW, canvasH);
-      ctx = c.getContext("2d");
-    } else {
-      const el = document.createElement("canvas");
-      el.width = canvasW;
-      el.height = canvasH;
-      c = el;
-      ctx = el.getContext("2d");
-    }
-    if (!ctx)
-      return;
-    ctx.clearRect(0, 0, canvasW, canvasH);
-    if (ss !== 1) {
-      ctx.save?.();
-      ctx.scale?.(ss, ss);
-    }
-    const design = this.item.Design;
-    const localGeom = {
-      cols: geom.cols,
-      rows: geom.rows,
-      cellW: geom.cellW,
-      cellH: geom.cellH,
-      rectForCells: (col, row, wCells2 = 1, hCells2 = 1, padRatio = 0) => {
-        const minSide = geom.cellW < geom.cellH ? geom.cellW : geom.cellH;
-        const pad = padRatio > 0 ? minSide * (padRatio > 0.5 ? 0.5 : padRatio) : 0;
-        const w = wCells2 * geom.cellW - 2 * pad;
-        const h = hCells2 * geom.cellH - 2 * pad;
-        return {
-          x: col * geom.cellW + pad,
-          y: row * geom.cellH + pad,
-          w: w < 0 ? 0 : w,
-          h: h < 0 ? 0 : h
-        };
-      }
-    };
-    const drawItem = {
-      Pose: {
-        Position: { x: 0, y: 0 },
-        Size: { x: wCells, y: hCells },
-        Rotation: 0
-      },
-      Design: design
-    };
-    this.renderer.draw(drawItem, ctx, localGeom);
-    if (ss !== 1) {
-      ctx.restore?.();
-    }
-    this.offscreenCanvas = c;
-    this.offscreenCtx = ctx;
-    this.imageBitmap?.close?.();
-    this.imageBitmap = null;
-    const anyWindow = globalThis;
-    if (!isFirefox && anyWindow && typeof anyWindow.createImageBitmap === "function") {
-      anyWindow.createImageBitmap(c).then((bmp) => {
-        if (this.currentKey === key) {
-          this.imageBitmap?.close?.();
-          this.imageBitmap = bmp;
-        }
-      }).catch(() => {
-      });
-    }
-    this.currentKey = key;
-  }
-};
-
-// src/app/core/rendering/animator.service.ts
-var AnimatorService = class _AnimatorService {
+// src/app/core/services/map-configuration.service.ts
+var MapConfigurationService = class _MapConfigurationService {
   constructor() {
-    this.bitmaps = [];
-    this.supersample = 2;
+    this.defaultConfig = {
+      gridColor: "#cccccc",
+      gridLineWidth: 0.01,
+      gridSize: new Point(10, 10),
+      gridBorder: "solid",
+      gridBorderActive: true,
+      gridBackgroundColor: "transparent",
+      gridBackgroundImage: "",
+      gridBackgroundRepeat: null
+    };
+    this.configSubject = new BehaviorSubject(this.defaultConfig);
+    this.config$ = this.configSubject.asObservable();
   }
-  setMap(map2) {
-    this.map = map2;
-    this.rebuildBitmaps();
+  get config() {
+    return this.configSubject.value;
+  }
+  loadMap(map2) {
+    if (!map2)
+      return;
+    const newConfig = __spreadValues({}, this.config);
+    if (map2.size) {
+      newConfig.gridSize = new Point(map2.size.x, map2.size.y);
+    }
+    if (map2.design) {
+      const { Border: Border2, Color, Image: Image2, BackgroundRepeat: BackgroundRepeat2 } = map2.design;
+      if (Border2.Width !== void 0)
+        newConfig.gridLineWidth = Border2.Width;
+      if (Border2.Color)
+        newConfig.gridColor = Border2.Color;
+      if (Border2.Style)
+        newConfig.gridBorder = Border2.Style;
+      if (Border2.Active !== void 0)
+        newConfig.gridBorderActive = Border2.Active;
+      if (Color)
+        newConfig.gridBackgroundColor = Color;
+      if (Image2)
+        newConfig.gridBackgroundImage = Image2;
+      if (BackgroundRepeat2 && BackgroundRepeat2.Mode) {
+        newConfig.gridBackgroundRepeat = {
+          Mode: BackgroundRepeat2.Mode,
+          TileSize: {
+            X: BackgroundRepeat2.TileSize?.X ?? 1,
+            Y: BackgroundRepeat2.TileSize?.Y ?? 1
+          }
+        };
+      } else {
+        newConfig.gridBackgroundRepeat = null;
+      }
+    }
+    this.configSubject.next(newConfig);
+  }
+  reset() {
+    this.configSubject.next(__spreadValues({}, this.defaultConfig));
+  }
+  static {
+    this.\u0275fac = function MapConfigurationService_Factory(__ngFactoryType__) {
+      return new (__ngFactoryType__ || _MapConfigurationService)();
+    };
+  }
+  static {
+    this.\u0275prov = /* @__PURE__ */ \u0275\u0275defineInjectable({ token: _MapConfigurationService, factory: _MapConfigurationService.\u0275fac, providedIn: "root" });
+  }
+};
+
+// src/app/core/services/zoom.service.ts
+var ZoomService = class _ZoomService {
+  constructor() {
+    this.zoomLevels = [1, 2, 3, 4, 5];
+    this.currentZoomIndex = 0;
+    this.currentZoom = 1;
+    this.zoomSubject = new BehaviorSubject({
+      zoom: this.currentZoom,
+      index: this.currentZoomIndex
+    });
+    this.zoom$ = this.zoomSubject.asObservable();
   }
   setCamera(camera) {
     this.camera = camera;
   }
-  setSupersample(factor) {
-    const f = Math.max(1, Math.floor(factor || 1));
-    if (f === this.supersample)
+  getZoomLevels() {
+    return [...this.zoomLevels];
+  }
+  getCurrentZoom() {
+    return this.currentZoom;
+  }
+  getCurrentZoomIndex() {
+    return this.currentZoomIndex;
+  }
+  loadZoomLevelsFromMap(map2) {
+    if (map2.zoomLevels && map2.zoomLevels.length > 0) {
+      this.zoomLevels = map2.zoomLevels;
+      const currentZoomValue = map2.camera?.getZoom() ?? this.camera?.getZoom() ?? 1;
+      const index = this.zoomLevels.findIndex((z) => Math.abs(z - currentZoomValue) < 0.01);
+      this.currentZoomIndex = index >= 0 ? index : 0;
+      this.currentZoom = this.zoomLevels[this.currentZoomIndex];
+      this.zoomSubject.next({ zoom: this.currentZoom, index: this.currentZoomIndex });
+    }
+  }
+  toggleZoom() {
+    if (!this.camera)
       return;
-    this.supersample = f;
-    for (const e of this.bitmaps)
-      e.bmp.setSupersample(f);
-    if (this.adhocBitmaps) {
-      this.adhocBitmaps.forEach?.((bmp) => bmp.setSupersample(f));
-    }
+    this.currentZoomIndex = (this.currentZoomIndex + 1) % this.zoomLevels.length;
+    this.currentZoom = this.zoomLevels[this.currentZoomIndex];
+    const targetCenter = this.camera.getTargetCenter();
+    this.camera.setTarget(targetCenter, this.currentZoom);
+    this.zoomSubject.next({ zoom: this.currentZoom, index: this.currentZoomIndex });
   }
-  // Check if an item is within the viewport bounds
-  // Uses current item positions, so it's always accurate even when items move
-  isItemInViewport(item, viewportBounds) {
-    if (!viewportBounds)
-      return true;
-    const posX = item.Pose?.Position?.x ?? 0;
-    const posY = item.Pose?.Position?.y ?? 0;
-    const wCells = item.Pose?.Size?.x ?? 1;
-    const hCells = item.Pose?.Size?.y ?? 1;
-    const itemMinX = posX - wCells / 2;
-    const itemMaxX = posX + wCells / 2;
-    const itemMinY = posY - hCells / 2;
-    const itemMaxY = posY + hCells / 2;
-    const margin = Math.max(2, Math.max(wCells, hCells) * 0.5);
-    return !(itemMaxX < viewportBounds.minX - margin || itemMinX > viewportBounds.maxX + margin || itemMaxY < viewportBounds.minY - margin || itemMinY > viewportBounds.maxY + margin);
-  }
-  // Draw current frame into given context using grid geometry
-  draw(ctx, geom) {
-    if (!this.map || !geom)
-      return;
-    let viewportBounds = null;
-    if (this.camera) {
-      viewportBounds = this.camera.getViewportBounds(geom.cols, geom.rows);
-    }
-    for (const { item, bmp } of this.bitmaps) {
-      if (!this.isItemInViewport(item, viewportBounds)) {
-        continue;
-      }
-      try {
-        bmp.draw(ctx, item.Pose, geom);
-      } catch (e) {
-        console.warn("Animator draw failed for item", e, item);
-      }
-    }
-  }
-  // Draw a provided list of items using the same bitmap pipeline (separate layer)
-  drawItems(items, ctx, geom) {
-    if (!items || !geom)
-      return;
-    if (!this.adhocBitmaps)
-      this.adhocBitmaps = /* @__PURE__ */ new Map();
-    for (const item of items) {
-      if (!item)
-        continue;
-      let bmp = this.adhocBitmaps.get(item);
-      if (!bmp) {
-        bmp = new StageItemBitmap(item, void 0, this.supersample);
-        this.adhocBitmaps.set(item, bmp);
-      }
-      try {
-        bmp.draw(ctx, item.Pose, geom);
-      } catch (e) {
-        console.warn("Animator drawItems failed for item", e, item);
-      }
-    }
-  }
-  destroy() {
-    for (const e of this.bitmaps)
-      e.bmp.destroy();
-    this.bitmaps = [];
-    if (this.adhocBitmaps) {
-      this.adhocBitmaps.forEach?.((bmp) => bmp.destroy());
-      this.adhocBitmaps = void 0;
-    }
-  }
-  rebuildBitmaps() {
-    for (const e of this.bitmaps)
-      e.bmp.destroy();
-    this.bitmaps = [];
-    const obstacles = this.map?.obstacles ?? [];
-    for (const item of obstacles) {
-      const entry = { item, bmp: new StageItemBitmap(item, void 0, this.supersample) };
-      this.bitmaps.push(entry);
-    }
+  reset() {
+    this.zoomLevels = [1, 2, 3, 4, 5];
+    this.currentZoomIndex = 0;
+    this.currentZoom = 1;
+    this.camera = void 0;
+    this.zoomSubject.next({ zoom: this.currentZoom, index: this.currentZoomIndex });
   }
   static {
-    this.\u0275fac = function AnimatorService_Factory(__ngFactoryType__) {
-      return new (__ngFactoryType__ || _AnimatorService)();
+    this.\u0275fac = function ZoomService_Factory(__ngFactoryType__) {
+      return new (__ngFactoryType__ || _ZoomService)();
     };
   }
   static {
-    this.\u0275prov = /* @__PURE__ */ \u0275\u0275defineInjectable({ token: _AnimatorService, factory: _AnimatorService.\u0275fac, providedIn: "root" });
+    this.\u0275prov = /* @__PURE__ */ \u0275\u0275defineInjectable({ token: _ZoomService, factory: _ZoomService.\u0275fac, providedIn: "root" });
+  }
+};
+
+// src/app/core/services/fullscreen.service.ts
+var FullscreenService = class _FullscreenService {
+  constructor() {
+    this.DOUBLE_TAP_DELAY = 300;
+    this.DOUBLE_TAP_DISTANCE = 50;
+    this.lastTapTime = 0;
+    this.lastTapPosition = null;
+  }
+  handleTouchStart(event) {
+    if (event.touches.length !== 1)
+      return false;
+    const touch = event.touches[0];
+    const currentTime = Date.now();
+    const currentPosition = { x: touch.clientX, y: touch.clientY };
+    if (this.lastTapTime > 0 && currentTime - this.lastTapTime < this.DOUBLE_TAP_DELAY && this.lastTapPosition && Math.hypot(currentPosition.x - this.lastTapPosition.x, currentPosition.y - this.lastTapPosition.y) < this.DOUBLE_TAP_DISTANCE) {
+      this.toggleFullscreen();
+      this.lastTapTime = 0;
+      this.lastTapPosition = null;
+      return true;
+    } else {
+      this.lastTapTime = currentTime;
+      this.lastTapPosition = currentPosition;
+      return false;
+    }
+  }
+  toggleFullscreen() {
+    if (!document.fullscreenElement) {
+      const element = document.documentElement;
+      if (element.requestFullscreen) {
+        element.requestFullscreen().catch((err) => {
+          console.error("Error attempting to enable fullscreen:", err);
+        });
+      }
+    } else {
+      if (document.exitFullscreen) {
+        document.exitFullscreen().catch((err) => {
+          console.error("Error attempting to exit fullscreen:", err);
+        });
+      }
+    }
+  }
+  static {
+    this.\u0275fac = function FullscreenService_Factory(__ngFactoryType__) {
+      return new (__ngFactoryType__ || _FullscreenService)();
+    };
+  }
+  static {
+    this.\u0275prov = /* @__PURE__ */ \u0275\u0275defineInjectable({ token: _FullscreenService, factory: _FullscreenService.\u0275fac, providedIn: "root" });
   }
 };
 
@@ -37460,6 +37378,12 @@ var WorldContext = class {
   }
   getAvatar() {
     return this.avatar;
+  }
+  setMapGravity(gravity) {
+    this.mapGravity = gravity;
+  }
+  getMapGravity() {
+    return this.mapGravity;
   }
   updateCamera() {
     if (this.camera && this.avatar) {
@@ -37728,6 +37652,7 @@ var DEFAULT_STATE = {
   omega: 0,
   mass: 1,
   restitution: 0.85,
+  friction: 0.8,
   linearDamping: 0,
   angularDamping: 0.1
 };
@@ -37762,8 +37687,9 @@ var StageItemPhysics = class _StageItemPhysics {
     this.state = __spreadProps(__spreadValues({}, DEFAULT_STATE), {
       mass: massFromItem(item),
       restitution: p?.restitution ?? DEFAULT_STATE.restitution,
+      friction: p?.friction ?? DEFAULT_STATE.friction,
       linearDamping: p?.damping ?? DEFAULT_STATE.linearDamping,
-      angularDamping: p?.damping ?? DEFAULT_STATE.angularDamping
+      angularDamping: p?.angularDamping ?? p?.damping ?? DEFAULT_STATE.angularDamping
     });
   }
   // Static factory method to get or create physics instance for an item
@@ -37779,6 +37705,7 @@ var StageItemPhysics = class _StageItemPhysics {
     Object.assign(this.state, partial);
     this.state.mass = Math.max(1e-6, Number(this.state.mass) ?? 1);
     this.state.restitution = Math.min(1, Math.max(0, this.state.restitution ?? 0.85));
+    this.state.friction = Math.max(0, Number(this.state.friction) ?? DEFAULT_STATE.friction);
     return this;
   }
   getVelocity() {
@@ -38011,6 +37938,103 @@ function resolveItemItemCollision(a, b, physA, physB, aObb, bObb, normal, params
   physA.set({ vx: vax, vy: vay, omega: omegaA });
   physB.set({ vx: vbx, vy: vby, omega: omegaB });
 }
+function resolveRestingContactConstraint(a, b, physA, physB, aObb, bObb, normal, penetrationDepth, gravityY = 9.81) {
+  const sa = physA.State;
+  const sb = physB.State;
+  const mu = Math.min(sa.friction, sb.friction);
+  const invMassA = sa.mass >= 1e6 ? 0 : 1 / Math.max(1e-6, sa.mass);
+  const invMassB = sb.mass >= 1e6 ? 0 : 1 / Math.max(1e-6, sb.mass);
+  const IA = physA.momentOfInertia(a);
+  const IB = physB.momentOfInertia(b);
+  const invIA = sa.mass >= 1e6 ? 0 : 1 / IA;
+  const invIB = sb.mass >= 1e6 ? 0 : 1 / IB;
+  const c = estimateContactPoint(aObb, bObb, normal);
+  const ra = { x: c.x - aObb.center.x, y: c.y - aObb.center.y };
+  const rb = { x: c.x - bObb.center.x, y: c.y - bObb.center.y };
+  const omegaAr = StageItemPhysics.omegaDegToRadPerSec(sa.omega);
+  const omegaBr = StageItemPhysics.omegaDegToRadPerSec(sb.omega);
+  const va = { x: sa.vx, y: sa.vy };
+  const vb = { x: sb.vx, y: sb.vy };
+  const vAatC = { x: va.x + -omegaAr * ra.y, y: va.y + omegaAr * ra.x };
+  const vBatC = { x: vb.x + -omegaBr * rb.y, y: vb.y + omegaBr * rb.x };
+  const vRel = { x: vBatC.x - vAatC.x, y: vBatC.y - vAatC.y };
+  const vRelN = dot(vRel.x, vRel.y, normal.x, normal.y);
+  const gravityForceA = { x: 0, y: sa.mass * gravityY };
+  const gravityForceB = { x: 0, y: sb.mass * gravityY };
+  const isAStatic = invMassA === 0;
+  const isBStatic = invMassB === 0;
+  const gravityDotNormalA = dot(gravityForceA.x, gravityForceA.y, normal.x, normal.y);
+  const gravityDotNormalB = dot(gravityForceB.x, gravityForceB.y, -normal.x, -normal.y);
+  const dampingFactor = 50;
+  const targetVRelN = 0;
+  const velocityError = vRelN - targetVRelN;
+  const dampingForce = -velocityError * dampingFactor;
+  const slop = 0.01;
+  const penetration = Math.max(0, penetrationDepth - slop);
+  const positionCorrectionFactor = 20;
+  const positionCorrectionForce = penetration * positionCorrectionFactor;
+  const raXn = cross2(ra, normal);
+  const rbXn = cross2(rb, normal);
+  const kN = invMassA + invMassB + raXn * raXn * invIA + rbXn * rbXn * invIB;
+  const gravityComponent = (isAStatic ? 0 : gravityDotNormalA) + (isBStatic ? 0 : gravityDotNormalB);
+  const normalForceMagnitude = (gravityComponent + positionCorrectionForce + dampingForce) / (kN || 1);
+  const maxForce = 500;
+  const clampedNormalForce = Math.max(-maxForce, Math.min(maxForce, normalForceMagnitude));
+  const dt = 0.016;
+  const jn = clampedNormalForce * dt;
+  const Jn = { x: jn * normal.x, y: jn * normal.y };
+  let vax = isAStatic ? sa.vx : sa.vx - Jn.x * invMassA;
+  let vay = isAStatic ? sa.vy : sa.vy - Jn.y * invMassA;
+  let vbx = isBStatic ? sb.vx : sb.vx + Jn.x * invMassB;
+  let vby = isBStatic ? sb.vy : sb.vy + Jn.y * invMassB;
+  let newOmegaAr = omegaAr;
+  let newOmegaBr = omegaBr;
+  if (!isAStatic || !isBStatic) {
+    const tauA = isAStatic ? 0 : cross2(ra, Jn);
+    const tauB = isBStatic ? 0 : cross2(rb, Jn);
+    newOmegaAr = omegaAr - tauA * invIA;
+    newOmegaBr = omegaBr + tauB * invIB;
+  }
+  let omegaA = StageItemPhysics.omegaRadToDegPerSec(newOmegaAr);
+  let omegaB = StageItemPhysics.omegaRadToDegPerSec(newOmegaBr);
+  const tangent0 = { x: vRel.x - vRelN * normal.x, y: vRel.y - vRelN * normal.y };
+  const tLen = len(tangent0.x, tangent0.y);
+  if (tLen > 1e-6 && mu > 0) {
+    const t = { x: tangent0.x / tLen, y: tangent0.y / tLen };
+    const vRelT = dot(vRel.x, vRel.y, t.x, t.y);
+    const microVelocityThreshold = 0.1;
+    let frictionForce = 0;
+    if (Math.abs(vRelT) < microVelocityThreshold) {
+      const frictionDamping = 1;
+      frictionForce = -vRelT * frictionDamping;
+    }
+    const maxFrictionForce = mu * Math.abs(clampedNormalForce);
+    const clampedFrictionForce = Math.max(-maxFrictionForce, Math.min(maxFrictionForce, frictionForce));
+    const raXt = cross2(ra, t);
+    const rbXt = cross2(rb, t);
+    const kT = invMassA + invMassB + raXt * raXt * invIA + rbXt * rbXt * invIB;
+    const jt = clampedFrictionForce * dt / (kT || 1);
+    const Jt = { x: jt * t.x, y: jt * t.y };
+    if (!isAStatic) {
+      vax -= Jt.x * invMassA;
+      vay -= Jt.y * invMassA;
+    }
+    if (!isBStatic) {
+      vbx += Jt.x * invMassB;
+      vby += Jt.y * invMassB;
+    }
+    if (!isAStatic || !isBStatic) {
+      const tauAf = isAStatic ? 0 : cross2(ra, Jt);
+      const tauBf = isBStatic ? 0 : cross2(rb, Jt);
+      newOmegaAr = newOmegaAr - tauAf * invIA;
+      newOmegaBr = newOmegaBr + tauBf * invIB;
+      omegaA = StageItemPhysics.omegaRadToDegPerSec(newOmegaAr);
+      omegaB = StageItemPhysics.omegaRadToDegPerSec(newOmegaBr);
+    }
+  }
+  physA.set({ vx: vax, vy: vay, omega: omegaA });
+  physB.set({ vx: vbx, vy: vby, omega: omegaB });
+}
 
 // src/app/core/rendering/collision-handler.ts
 var CollisionHandler = class {
@@ -38024,6 +38048,15 @@ var CollisionHandler = class {
     this.obbCache = [];
     this.physicsCache = [];
     this.contacts = [];
+    this.restingContacts = /* @__PURE__ */ new Map();
+    this.RESTING_VELOCITY_THRESHOLD = 0.3;
+    this.RESTING_FRAMES_THRESHOLD = 3;
+    this.DEFAULT_GRAVITY = 9.81;
+    this.PENETRATION_SLOP = 0.01;
+    this.POSITION_CORRECTION_PERCENT_IMPACTING = 0.4;
+    this.POSITION_CORRECTION_PERCENT_RESTING = 0.8;
+    this.MAX_CORRECTION_IMPACTING = 0.5;
+    this.MAX_CORRECTION_RESTING = 1;
     this.collisionEvent = {
       a: null,
       b: null,
@@ -38054,6 +38087,134 @@ var CollisionHandler = class {
   }
   clear() {
     this.items = [];
+    this.restingContacts.clear();
+  }
+  /**
+   * Generate a consistent key for tracking contacts between two items
+   */
+  contactKey(a, b) {
+    const idA = a.Id ?? String(a);
+    const idB = b.Id ?? String(b);
+    return idA < idB ? `${idA}-${idB}` : `${idB}-${idA}`;
+  }
+  /**
+   * Calculate relative velocity at contact point between two items
+   */
+  calculateRelativeVelocityAtContact(c) {
+    const stateA = c.physA.State;
+    const stateB = c.physB.State;
+    const omegaAr = StageItemPhysics.omegaDegToRadPerSec(stateA.omega);
+    const omegaBr = StageItemPhysics.omegaDegToRadPerSec(stateB.omega);
+    const cpx = (c.aobb.center.x + c.bobb.center.x) * 0.5;
+    const cpy = (c.aobb.center.y + c.bobb.center.y) * 0.5;
+    const ra = { x: cpx - c.aobb.center.x, y: cpy - c.aobb.center.y };
+    const rb = { x: cpx - c.bobb.center.x, y: cpy - c.bobb.center.y };
+    const vAatC = {
+      x: stateA.vx + -omegaAr * ra.y,
+      y: stateA.vy + omegaAr * ra.x
+    };
+    const vBatC = {
+      x: stateB.vx + -omegaBr * rb.y,
+      y: stateB.vy + omegaBr * rb.x
+    };
+    const vRel = {
+      x: vBatC.x - vAatC.x,
+      y: vBatC.y - vAatC.y
+    };
+    const vRelN = vRel.x * c.normal.x + vRel.y * c.normal.y;
+    const tangent = { x: vRel.x - vRelN * c.normal.x, y: vRel.y - vRelN * c.normal.y };
+    const vRelT = Math.hypot(tangent.x, tangent.y);
+    return { vRelN, vRelT, vRel };
+  }
+  /**
+   * Update resting contact tracking for all active contacts
+   */
+  updateRestingContactTracking(contacts) {
+    const activeContactKeys = /* @__PURE__ */ new Set();
+    for (const c of contacts) {
+      const key = this.contactKey(c.a, c.b);
+      activeContactKeys.add(key);
+      const mtvMagnitude = Math.hypot(c.mtv.x, c.mtv.y);
+      const { vRelN } = this.calculateRelativeVelocityAtContact(c);
+      const existing = this.restingContacts.get(key);
+      if (existing) {
+        existing.framesActive++;
+        existing.avgPenetration = existing.avgPenetration * 0.7 + mtvMagnitude * 0.3;
+        existing.normal = { x: c.normal.x, y: c.normal.y };
+      } else {
+        this.restingContacts.set(key, {
+          itemA: c.a,
+          itemB: c.b,
+          normal: { x: c.normal.x, y: c.normal.y },
+          framesActive: 1,
+          avgPenetration: mtvMagnitude
+        });
+      }
+    }
+    for (const key of this.restingContacts.keys()) {
+      if (!activeContactKeys.has(key)) {
+        this.restingContacts.delete(key);
+      }
+    }
+    return activeContactKeys;
+  }
+  /**
+   * Separate contacts into resting vs impacting based on tracking and velocity
+   * A contact is "resting" only if both normal AND tangential velocities are low
+   */
+  separateRestingFromImpacting(contacts) {
+    const restingContacts = [];
+    const impactingContacts = [];
+    for (const c of contacts) {
+      const key = this.contactKey(c.a, c.b);
+      const resting = this.restingContacts.get(key);
+      if (resting && resting.framesActive >= this.RESTING_FRAMES_THRESHOLD) {
+        const { vRelN, vRelT } = this.calculateRelativeVelocityAtContact(c);
+        const absVRelN = Math.abs(vRelN);
+        if (absVRelN < this.RESTING_VELOCITY_THRESHOLD && vRelT < this.RESTING_VELOCITY_THRESHOLD) {
+          restingContacts.push(c);
+          continue;
+        }
+      }
+      impactingContacts.push(c);
+    }
+    return { resting: restingContacts, impacting: impactingContacts };
+  }
+  /**
+   * Apply position correction using Baumgarte stabilization
+   */
+  applyPositionCorrection(contacts) {
+    for (const c of contacts) {
+      if (c.isCCD)
+        continue;
+      const stateA = c.physA.State;
+      const stateB = c.physB.State;
+      const invMassA = stateA.mass >= 1e6 ? 0 : 1 / Math.max(1e-6, stateA.mass);
+      const invMassB = stateB.mass >= 1e6 ? 0 : 1 / Math.max(1e-6, stateB.mass);
+      const sum = invMassA + invMassB;
+      if (sum <= 0)
+        continue;
+      const key = this.contactKey(c.a, c.b);
+      const resting = this.restingContacts.get(key);
+      const isResting = resting && resting.framesActive >= this.RESTING_FRAMES_THRESHOLD;
+      const mtvMagnitude = Math.hypot(c.mtv.x, c.mtv.y);
+      const penetrationDepth = isResting && resting ? resting.avgPenetration : mtvMagnitude;
+      const percent = isResting ? this.POSITION_CORRECTION_PERCENT_RESTING : this.POSITION_CORRECTION_PERCENT_IMPACTING;
+      const maxCorrection = isResting ? this.MAX_CORRECTION_RESTING : this.MAX_CORRECTION_IMPACTING;
+      const correctionMagnitude = Math.min(maxCorrection, Math.max(penetrationDepth - this.PENETRATION_SLOP, 0)) / sum * percent;
+      const correctionX = c.normal.x * correctionMagnitude;
+      const correctionY = c.normal.y * correctionMagnitude;
+      const aPose = c.a.Pose;
+      const bPose = c.b.Pose;
+      if (aPose.Position) {
+        aPose.Position.x -= correctionX * invMassA;
+        aPose.Position.y -= correctionY * invMassA;
+      }
+      if (bPose.Position) {
+        bPose.Position.x += correctionX * invMassB;
+        bPose.Position.y += correctionY * invMassB;
+      }
+    }
   }
   /**
    * Checks if a given pose would collide with any items in the collision handler
@@ -38198,44 +38359,30 @@ var CollisionHandler = class {
         }
       }
     }
-    if (contacts.length === 0)
+    if (contacts.length === 0) {
+      this.restingContacts.clear();
       return;
+    }
+    this.updateRestingContactTracking(contacts);
+    const { resting: restingContacts, impacting: impactingContacts } = this.separateRestingFromImpacting(contacts);
+    for (const c of restingContacts) {
+      const key = this.contactKey(c.a, c.b);
+      const resting = this.restingContacts.get(key);
+      if (resting) {
+        const mtvMagnitude = Math.hypot(c.mtv.x, c.mtv.y);
+        resolveRestingContactConstraint(c.a, c.b, c.physA, c.physB, c.aobb, c.bobb, c.normal, mtvMagnitude, this.DEFAULT_GRAVITY);
+      }
+    }
     for (let iter = 0; iter < this._iterations; iter++) {
-      for (const c of contacts) {
+      for (const c of impactingContacts) {
         const stateA = c.physA.State;
         const stateB = c.physB.State;
         const e = Math.min(stateA.restitution, stateB.restitution);
-        resolveItemItemCollision(c.a, c.b, c.physA, c.physB, c.aobb, c.bobb, c.normal, { restitution: e, friction: this._frictionDefault });
+        const mu = Math.min(stateA.friction, stateB.friction);
+        resolveItemItemCollision(c.a, c.b, c.physA, c.physB, c.aobb, c.bobb, c.normal, { restitution: e, friction: mu });
       }
     }
-    const slop = 0.01;
-    const percent = 0.4;
-    for (const c of contacts) {
-      if (c.isCCD)
-        continue;
-      const stateA = c.physA.State;
-      const stateB = c.physB.State;
-      const invMassA = stateA.mass >= 1e6 ? 0 : 1 / Math.max(1e-6, stateA.mass);
-      const invMassB = stateB.mass >= 1e6 ? 0 : 1 / Math.max(1e-6, stateB.mass);
-      const sum = invMassA + invMassB;
-      if (sum <= 0)
-        continue;
-      const mtvMagnitude = Math.hypot(c.mtv.x, c.mtv.y);
-      const maxCorrection = 0.5;
-      const correctionMagnitude = Math.min(maxCorrection, Math.max(mtvMagnitude - slop, 0)) / sum * percent;
-      const correctionX = c.normal.x * correctionMagnitude;
-      const correctionY = c.normal.y * correctionMagnitude;
-      const aPose = c.a.Pose;
-      const bPose = c.b.Pose;
-      if (aPose.Position) {
-        aPose.Position.x -= correctionX * invMassA;
-        aPose.Position.y -= correctionY * invMassA;
-      }
-      if (bPose.Position) {
-        bPose.Position.x += correctionX * invMassB;
-        bPose.Position.y += correctionY * invMassB;
-      }
-    }
+    this.applyPositionCorrection(contacts);
   }
 };
 
@@ -38253,6 +38400,9 @@ var PhysicsIntegrator = class {
     this.items = [];
     this.bounce = true;
     this.testPose = { Position: { x: 0, y: 0 }, Size: { x: 0, y: 0 }, Rotation: 0 };
+    this.boundaryRestingContacts = /* @__PURE__ */ new Map();
+    this.RESTING_VELOCITY_THRESHOLD = 0.3;
+    this.RESTING_FRAMES_THRESHOLD = 3;
   }
   setBoundary(boundary, bounce = true) {
     this.boundary = boundary;
@@ -38273,6 +38423,7 @@ var PhysicsIntegrator = class {
   }
   clear() {
     this.items = [];
+    this.boundaryRestingContacts.clear();
   }
   start() {
     if (this.sub)
@@ -38329,26 +38480,62 @@ var PhysicsIntegrator = class {
           x += mtvX * scale;
           y += mtvY * scale;
           if (this.bounce) {
-            const obb = orientedBoundingBoxFromPose(pose, it.Physics.collisionBox);
-            resolveBoundaryCollision(
-              it,
-              phys,
-              obb,
-              this.boundary,
-              res.normal,
-              { restitution: state.restitution ?? 0.85, friction: 0.8 }
-              // Default friction
-            );
-            x += res.normal.x * TINY_NUDGE;
-            y += res.normal.y * TINY_NUDGE;
-            const updatedState = phys.State;
-            vx = updatedState.vx;
-            vy = updatedState.vy;
-            omega = updatedState.omega;
+            const isFloorContact = res.normal.y < -0.5;
+            const velocityTowardBoundary = vx * res.normal.x + vy * res.normal.y;
+            let restingContact = this.boundaryRestingContacts.get(it);
+            if (restingContact) {
+              const normalDot = restingContact.normal.x * res.normal.x + restingContact.normal.y * res.normal.y;
+              if (normalDot > 0.7) {
+                restingContact.framesActive++;
+                restingContact.lastVelocityY = vy;
+                restingContact.normal = { x: res.normal.x, y: res.normal.y };
+              } else {
+                restingContact = {
+                  item: it,
+                  normal: { x: res.normal.x, y: res.normal.y },
+                  framesActive: 1,
+                  lastVelocityY: vy
+                };
+                this.boundaryRestingContacts.set(it, restingContact);
+              }
+            } else {
+              restingContact = {
+                item: it,
+                normal: { x: res.normal.x, y: res.normal.y },
+                framesActive: 1,
+                lastVelocityY: vy
+              };
+              this.boundaryRestingContacts.set(it, restingContact);
+            }
+            const isResting = isFloorContact && restingContact.framesActive >= this.RESTING_FRAMES_THRESHOLD && Math.abs(velocityTowardBoundary) < this.RESTING_VELOCITY_THRESHOLD && Math.abs(vy) < this.RESTING_VELOCITY_THRESHOLD;
+            if (isResting) {
+              vy = 0;
+              vx *= 0.9;
+              phys.setVelocity(vx, vy);
+              const slop = 0.01;
+              const penetration = Math.max(0, dist - slop);
+              const correctionPercent = 0.8;
+              const correctionX = res.normal.x * penetration * correctionPercent;
+              const correctionY = res.normal.y * penetration * correctionPercent;
+              x += correctionX;
+              y += correctionY;
+            } else {
+              const obb = orientedBoundingBoxFromPose(pose, it.Physics.collisionBox);
+              resolveBoundaryCollision(it, phys, obb, this.boundary, res.normal, { restitution: state.restitution ?? 0.85, friction: state.friction ?? 0.8 });
+              x += res.normal.x * TINY_NUDGE;
+              y += res.normal.y * TINY_NUDGE;
+              const updatedState = phys.State;
+              vx = updatedState.vx;
+              vy = updatedState.vy;
+              omega = updatedState.omega;
+            }
           } else {
             x = Math.max(this.boundary.minX, Math.min(this.boundary.maxX, x));
             y = Math.max(this.boundary.minY, Math.min(this.boundary.maxY, y));
+            this.boundaryRestingContacts.delete(it);
           }
+        } else {
+          this.boundaryRestingContacts.delete(it);
         }
       }
       const maxVel = 200;
@@ -39112,8 +39299,8 @@ var StayUpright = class {
   }
 };
 
-// src/app/core/rendering/transformers/keyboard-controller.ts
-var KeyboardController = class {
+// src/app/core/rendering/transformers/flight-keyboard-controller.ts
+var FlightKeyboardController = class {
   constructor(ticker, item, params) {
     this.ticker = ticker;
     this.keys = /* @__PURE__ */ new Set();
@@ -39243,8 +39430,8 @@ function normalizeKey(e) {
   }
 }
 
-// src/app/core/rendering/transformers/touch-controller.ts
-var TouchController = class {
+// src/app/core/rendering/transformers/flight-touch-controller.ts
+var FlightTouchController = class {
   constructor(ticker, item, params) {
     this.ticker = ticker;
     this.touchStart = null;
@@ -39410,6 +39597,239 @@ var TouchController = class {
   }
 };
 
+// src/app/core/rendering/transformers/walking-input.ts
+var store3 = /* @__PURE__ */ new WeakMap();
+function getWalkingInputState(item) {
+  let state = store3.get(item);
+  if (!state) {
+    state = { moveAxis: 0, jumpQueued: false, jumpHeld: false };
+    store3.set(item, state);
+  }
+  return state;
+}
+
+// src/app/core/rendering/transformers/walking-controller.ts
+var WalkingController = class {
+  constructor(item, params) {
+    this.keys = /* @__PURE__ */ new Set();
+    this.started = false;
+    this.onKeyDown = (e) => {
+      const k = normalizeKey2(e);
+      if (k != null)
+        e.preventDefault();
+      if (!k)
+        return;
+      if (this.keys.has(k))
+        return;
+      this.keys.add(k);
+      this.updateMoveAxis();
+      if (isJumpKey(k)) {
+        const state = this.getInputState();
+        if (!state.jumpHeld) {
+          state.jumpQueued = true;
+        }
+        state.jumpHeld = true;
+      }
+    };
+    this.onKeyUp = (e) => {
+      const k = normalizeKey2(e);
+      if (!k)
+        return;
+      this.keys.delete(k);
+      this.updateMoveAxis();
+      if (isJumpKey(k)) {
+        const state = this.getInputState();
+        state.jumpHeld = false;
+        state.jumpQueued = false;
+      }
+    };
+    this._item = item;
+    this.params = params;
+  }
+  setItem(item) {
+    this._item = item;
+    this.applyPhysicsParams();
+  }
+  start() {
+    if (this.started)
+      return;
+    this.started = true;
+    this.applyPhysicsParams();
+    window.addEventListener("keydown", this.onKeyDown, { passive: false });
+    window.addEventListener("keyup", this.onKeyUp, { passive: false });
+  }
+  stop() {
+    if (!this.started)
+      return;
+    this.started = false;
+    window.removeEventListener("keydown", this.onKeyDown);
+    window.removeEventListener("keyup", this.onKeyUp);
+  }
+  updateMoveAxis() {
+    const state = this.getInputState();
+    const leftHeld = this.keys.has("ArrowLeft") || this.keys.has("KeyA");
+    const rightHeld = this.keys.has("ArrowRight") || this.keys.has("KeyD");
+    state.moveAxis = leftHeld === rightHeld ? 0 : leftHeld ? -1 : 1;
+  }
+  applyPhysicsParams() {
+    if (!this._item || !this.params)
+      return;
+    const { restitution, angularDamping } = this.params;
+    if (restitution !== void 0) {
+      this._item.Physics.restitution = Number(restitution);
+    }
+    if (angularDamping !== void 0) {
+      this._item.Physics.angularDamping = Number(angularDamping);
+    }
+    if (restitution !== void 0 || angularDamping !== void 0) {
+      const physics = StageItemPhysics.for(this._item);
+      physics.set({
+        restitution: restitution ?? physics.State.restitution,
+        angularDamping: angularDamping ?? physics.State.angularDamping
+      });
+    }
+  }
+  getInputState() {
+    if (!this._item) {
+      return { moveAxis: 0, jumpQueued: false, jumpHeld: false };
+    }
+    return getWalkingInputState(this._item);
+  }
+};
+function normalizeKey2(e) {
+  const code = e.code;
+  switch (code) {
+    case "ArrowUp":
+    case "ArrowDown":
+    case "ArrowLeft":
+    case "ArrowRight":
+    case "KeyW":
+    case "KeyA":
+    case "KeyS":
+    case "KeyD":
+      return code;
+    default:
+      return null;
+  }
+}
+function isJumpKey(code) {
+  return code === "ArrowUp" || code === "KeyW";
+}
+
+// src/app/core/rendering/transformers/walking-transformer.ts
+var WalkingTransformer = class {
+  constructor(ticker, collisions, boundary, item, params) {
+    this.ticker = ticker;
+    this.collisions = collisions;
+    this.boundary = boundary;
+    this.groundedFromCollision = false;
+    this._item = item;
+    if (item) {
+      this._phys = StageItemPhysics.for(item);
+    }
+    this.opts = {
+      moveAccel: params?.moveAccel ?? 15,
+      maxSpeed: params?.maxSpeed ?? 6,
+      jumpImpulse: params?.jumpImpulse ?? 6,
+      airControl: params?.airControl ?? 0.5,
+      uprightForce: params?.uprightForce ?? 6,
+      groundedEpsilon: params?.groundedEpsilon ?? 0.05
+    };
+  }
+  setItem(item) {
+    this._item = item;
+    this._phys = item ? StageItemPhysics.for(item) : void 0;
+  }
+  start() {
+    if (this.sub)
+      return;
+    this.sub = this.ticker.ticks$.subscribe(({ dtSec }) => this.onTick(dtSec));
+    if (this.collisions) {
+      this.collisionSub = this.collisions.events$.subscribe((event) => this.onCollision(event));
+    }
+  }
+  stop() {
+    this.sub?.unsubscribe();
+    this.sub = void 0;
+    this.collisionSub?.unsubscribe();
+    this.collisionSub = void 0;
+  }
+  onCollision(event) {
+    if (!this._item)
+      return;
+    const epsilon = this.opts.groundedEpsilon;
+    if (event.a === this._item) {
+      if (event.normal.y > epsilon) {
+        this.groundedFromCollision = true;
+      }
+    } else if (event.b === this._item) {
+      if (event.normal.y < -epsilon) {
+        this.groundedFromCollision = true;
+      }
+    }
+  }
+  onTick(dt) {
+    if (!this._item || !this._phys || dt === 0)
+      return;
+    const groundedFromCollision = this.groundedFromCollision;
+    this.groundedFromCollision = false;
+    const groundedFromBoundary = this.isGroundedOnBoundary();
+    const grounded = groundedFromCollision || groundedFromBoundary;
+    const input2 = getWalkingInputState(this._item);
+    const velocity = this._phys.getVelocity();
+    let vx = toNumber(velocity.vx, 0);
+    let vy = toNumber(velocity.vy, 0);
+    if (grounded) {
+      const accel = this.opts.moveAccel;
+      if (input2.moveAxis < 0) {
+        vx -= accel * dt;
+      } else if (input2.moveAxis > 0) {
+        vx += accel * dt;
+      } else {
+        const decel = this.opts.moveAccel * dt;
+        if (Math.abs(vx) <= decel) {
+          vx = 0;
+        } else {
+          vx -= Math.sign(vx) * decel;
+        }
+      }
+      const maxSpeed = this.opts.maxSpeed;
+      if (Math.abs(vx) > maxSpeed) {
+        vx = Math.sign(vx) * maxSpeed;
+      }
+    }
+    if (input2.jumpQueued && grounded) {
+      vy = -this.opts.jumpImpulse;
+      input2.jumpQueued = false;
+    } else if (!input2.jumpHeld) {
+      input2.jumpQueued = false;
+    }
+    this._phys.setVelocity(vx, vy);
+    this.applyUprightForce(dt);
+  }
+  isGroundedOnBoundary() {
+    if (!this.boundary || !this._item?.Pose?.Position || !this._item?.Pose?.Size)
+      return false;
+    const y = toNumber(this._item.Pose.Position.y, 0);
+    const height = toNumber(this._item.Pose.Size.y, 0);
+    const bottom = y + height;
+    return bottom >= this.boundary.maxY - this.opts.groundedEpsilon;
+  }
+  applyUprightForce(dt) {
+    if (!this._item || !this._phys)
+      return;
+    let rotation = toNumber(this._item.Pose?.Rotation, 0);
+    while (rotation > 180)
+      rotation -= 360;
+    while (rotation < -180)
+      rotation += 360;
+    const omega = toNumber(this._phys.getAngularVelocity(), 0);
+    const correction = -rotation * this.opts.uprightForce;
+    const newOmega = omega + correction * dt;
+    this._phys.setAngularVelocity(newOmega);
+  }
+};
+
 // src/app/core/rendering/transformers/glider2.ts
 var Glider2 = class {
   constructor(tickerService, item, params) {
@@ -39555,8 +39975,10 @@ var WorldAssemblerService = class _WorldAssemblerService {
   constructor(ticker) {
     this.ticker = ticker;
     this.transformerHandlers = {
-      UserController: (item, context2, params) => context2.addTransformer(new KeyboardController(this.ticker, item, params)),
-      TouchController: (item, context2, params) => context2.addTransformer(new TouchController(this.ticker, item, params)),
+      FlightKeyboardController: (item, context2, params) => context2.addTransformer(new FlightKeyboardController(this.ticker, item, params)),
+      FlightTouchController: (item, context2, params) => context2.addTransformer(new FlightTouchController(this.ticker, item, params)),
+      WalkingController: (item, context2, params) => context2.addTransformer(new WalkingController(item, params)),
+      WalkingTransformer: (item, context2, params, boundary) => context2.addTransformer(new WalkingTransformer(this.ticker, context2.getCollisionHandler(), boundary, item, params)),
       FollowItem: (item, context2, params) => {
         const target = params?.TargetId === "Avatar" ? context2.getAvatar() : void 0;
         if (target) {
@@ -39573,6 +39995,7 @@ var WorldAssemblerService = class _WorldAssemblerService {
   }
   buildWorld(map2, config2) {
     const context2 = new WorldContext();
+    context2.setMapGravity(map2.gravity);
     const boundary = this.createBoundary(map2.size);
     context2.setIntegrator(this.createPhysicsIntegrator(boundary));
     if (config2.enableCollisions) {
@@ -39601,7 +40024,9 @@ var WorldAssemblerService = class _WorldAssemblerService {
       }
     });
     if (physics.hasGravity) {
-      context2.addTransformer(new Gravity(this.ticker, item));
+      const gravityAcceleration = context2.getMapGravity();
+      const params = gravityAcceleration !== void 0 ? { acceleration: gravityAcceleration } : void 0;
+      context2.addTransformer(new Gravity(this.ticker, item, params));
     }
     if (physics.canMove || physics.canRotate) {
       context2.getIntegrator()?.add(item);
@@ -39640,173 +40065,587 @@ var WorldAssemblerService = class _WorldAssemblerService {
   }
 };
 
-// src/app/features/stage/components/map/map.component.ts
-var _c04 = ["avatarsCanvas"];
-var MapComponent = class _MapComponent {
-  // Camera accessor for template
-  get camera() {
+// src/app/core/services/world-context.service.ts
+var WorldContextService = class _WorldContextService {
+  constructor(worldAssembler) {
+    this.worldAssembler = worldAssembler;
+    this.config = { enableCollisions: true };
+    this.contextSubject = new BehaviorSubject(void 0);
+    this.context$ = this.contextSubject.asObservable();
+  }
+  getContext() {
+    return this.worldContext;
+  }
+  getCamera() {
     return this.worldContext?.getCamera();
   }
-  constructor(startup, animator, ticker, worldAssembler) {
-    this.startup = startup;
-    this.animator = animator;
+  setConfig(config2) {
+    this.config = __spreadValues(__spreadValues({}, this.config), config2);
+  }
+  buildWorld(map2) {
+    this.cleanup();
+    this.worldContext = this.worldAssembler.buildWorld(map2, this.config);
+    this.worldContext.start();
+    this.contextSubject.next(this.worldContext);
+  }
+  updateCamera() {
+    this.worldContext?.updateCamera();
+  }
+  isCameraDirty() {
+    return this.worldContext?.isCameraDirty() ?? false;
+  }
+  clearCameraDirty() {
+    this.worldContext?.clearCameraDirty();
+  }
+  cleanup() {
+    if (this.worldContext) {
+      this.worldContext.cleanup();
+      this.worldContext = void 0;
+      this.contextSubject.next(void 0);
+    }
+  }
+  static {
+    this.\u0275fac = function WorldContextService_Factory(__ngFactoryType__) {
+      return new (__ngFactoryType__ || _WorldContextService)(\u0275\u0275inject(WorldAssemblerService));
+    };
+  }
+  static {
+    this.\u0275prov = /* @__PURE__ */ \u0275\u0275defineInjectable({ token: _WorldContextService, factory: _WorldContextService.\u0275fac, providedIn: "root" });
+  }
+};
+
+// src/app/core/rendering/stage-item-renderer.ts
+var StageItemRenderer = class {
+  constructor(imageCache = new ImageCache()) {
+    this.imageCache = imageCache;
+  }
+  // Draws a StageItem using provided canvas context and grid geometry
+  draw(item, ctx, geom) {
+    if (!item)
+      return;
+    const posX = item.Pose?.Position?.x ?? 0;
+    const posY = item.Pose?.Position?.y ?? 0;
+    const wCells = item.Pose?.Size?.x ?? 1;
+    const hCells = item.Pose?.Size?.y ?? 1;
+    const fill = item.Design?.Color ?? "rgba(200,0,0,0.6)";
+    const bwCells = Math.max(0, Number(item.Design?.Border?.Width ?? 0));
+    const bw = bwCells * Math.min(geom.cellW, geom.cellH);
+    const borderStyle = (item.Design?.Border?.Style ?? "").toLowerCase();
+    const borderColor = item.Design?.Border?.Color ?? "#000000";
+    const radiusCells = Math.max(0, Number(item.Design?.CornerRadius ?? 0));
+    const radius = radiusCells * Math.min(geom.cellW, geom.cellH);
+    const imageUrl = item.Design?.Image ?? "";
+    const opacity = Math.max(0, Math.min(1, Number(item.Design?.Opacity ?? 1)));
+    const base = geom.rectForCells(posX, posY, wCells, hCells, 0);
+    const canvas = ctx.canvas;
+    const margin = 10;
+    if (base.x + base.w < -margin || base.x > canvas.width + margin || base.y + base.h < -margin || base.y > canvas.height + margin) {
+      return;
+    }
+    const effectiveBw = borderStyle === "none" ? 0 : Math.min(bw, base.w, base.h);
+    const padX = effectiveBw / 2;
+    const padY = effectiveBw / 2;
+    const x = base.x + padX;
+    const y = base.y + padY;
+    const w = Math.max(0, base.w - effectiveBw);
+    const h = Math.max(0, base.h - effectiveBw);
+    ctx.save();
+    ctx.globalAlpha = opacity;
+    pathRoundedRect(ctx, x, y, w, h, radius);
+    ctx.fillStyle = fill;
+    ctx.fill();
+    if (imageUrl && w > 0 && h > 0) {
+      const img = this.imageCache.get(imageUrl);
+      if (img && (img.complete && img.naturalWidth > 0)) {
+        pathRoundedRect(ctx, x, y, w, h, radius);
+        ctx.save();
+        ctx.clip();
+        const iw = img.naturalWidth;
+        const ih = img.naturalHeight;
+        const scale = Math.max(w / iw, h / ih);
+        const dw = iw * scale;
+        const dh = ih * scale;
+        const dx = x + (w - dw) / 2;
+        const dy = y + (h - dh) / 2;
+        ctx.drawImage(img, dx, dy, dw, dh);
+        ctx.restore();
+      }
+    }
+    if (effectiveBw > 0) {
+      ctx.lineWidth = effectiveBw;
+      ctx.strokeStyle = borderColor;
+      ctx.lineJoin = "round";
+      ctx.lineCap = "round";
+      applyDashStyle(ctx, borderStyle, effectiveBw);
+      pathRoundedRect(ctx, x, y, w, h, radius);
+      ctx.stroke();
+    }
+    ctx.restore();
+  }
+};
+
+// src/app/core/rendering/stage-item-bitmap.ts
+var StageItemBitmap = class {
+  constructor(item, renderer = new StageItemRenderer(), supersample = 2) {
+    this.item = item;
+    this.renderer = renderer;
+    this.supersample = supersample;
+    this.offscreenCanvas = null;
+    this.offscreenCtx = null;
+    this.imageBitmap = null;
+    this.currentKey = "";
+    this.redrawHandler = () => this.invalidate();
+    try {
+      window.addEventListener("app-canvas-redraw", this.redrawHandler);
+    } catch {
+    }
+  }
+  // Call to clean up event listeners if the instance is not needed anymore
+  destroy() {
+    if (this.redrawHandler) {
+      try {
+        window.removeEventListener("app-canvas-redraw", this.redrawHandler);
+      } catch {
+      }
+      this.redrawHandler = void 0;
+    }
+  }
+  updateItem(item) {
+    this.item = item;
+    this.invalidate();
+  }
+  setSupersample(factor) {
+    const f = Math.max(1, Math.floor(factor || 1));
+    if (f !== this.supersample) {
+      this.supersample = f;
+      this.invalidate();
+    }
+  }
+  invalidate() {
+    this.currentKey = "";
+    this.imageBitmap?.close?.();
+    this.imageBitmap = null;
+    this.offscreenCtx = null;
+    this.offscreenCanvas = null;
+  }
+  // Draw the cached bitmap to the target context using the given pose and geometry.
+  draw(targetCtx, pose, geom) {
+    if (!this.item || !pose || !geom)
+      return;
+    const wCells = Math.max(0.01, pose?.Size?.x ?? this.item.Pose?.Size?.x ?? 1);
+    const hCells = Math.max(0.01, pose?.Size?.y ?? this.item.Pose?.Size?.y ?? 1);
+    const { x, y, w, h } = geom.rectForCells(pose?.Position?.x ?? 0, pose?.Position?.y ?? 0, wCells, hCells, 0);
+    const canvas = targetCtx.canvas;
+    const margin = 10;
+    if (x + w < -margin || x > canvas.width + margin || y + h < -margin || y > canvas.height + margin) {
+      return;
+    }
+    this.ensurePrerender(pose, geom);
+    if (!this.offscreenCanvas)
+      return;
+    const cx = x + w / 2;
+    const cy = y + h / 2;
+    const rotation = Number(pose?.Rotation ?? 0) * Math.PI / 180;
+    targetCtx.save();
+    if (rotation !== 0) {
+      targetCtx.translate(cx, cy);
+      targetCtx.rotate(rotation);
+      if (this.imageBitmap) {
+        targetCtx.drawImage(this.imageBitmap, -w / 2, -h / 2, w, h);
+      } else {
+        targetCtx.drawImage(this.offscreenCanvas, -w / 2, -h / 2, w, h);
+      }
+    } else {
+      if (this.imageBitmap) {
+        targetCtx.drawImage(this.imageBitmap, x, y, w, h);
+      } else {
+        targetCtx.drawImage(this.offscreenCanvas, x, y, w, h);
+      }
+    }
+    targetCtx.restore();
+  }
+  ensurePrerender(pose, geom) {
+    const wCells = pose?.Size?.x ?? this.item.Pose?.Size?.x ?? 1;
+    const hCells = pose?.Size?.y ?? this.item.Pose?.Size?.y ?? 1;
+    const pxW = Math.max(1, Math.ceil(wCells * geom.cellW));
+    const pxH = Math.max(1, Math.ceil(hCells * geom.cellH));
+    const d = this.item?.Design ?? {};
+    const key = [
+      pxW,
+      pxH,
+      this.supersample,
+      d.Color,
+      d.Border,
+      d.BorderColor,
+      d.BorderWidth,
+      d.CornerRadius,
+      d.Image,
+      d.Opacity
+    ].join("|");
+    if (key === this.currentKey && this.offscreenCanvas)
+      return;
+    const ss = Math.max(1, this.supersample);
+    const canvasW = pxW * ss;
+    const canvasH = pxH * ss;
+    const isFirefox = typeof navigator !== "undefined" && /Firefox/i.test(navigator.userAgent);
+    let c;
+    let ctx = null;
+    if (!isFirefox && typeof OffscreenCanvas !== "undefined") {
+      c = new OffscreenCanvas(canvasW, canvasH);
+      ctx = c.getContext("2d");
+    } else {
+      const el = document.createElement("canvas");
+      el.width = canvasW;
+      el.height = canvasH;
+      c = el;
+      ctx = el.getContext("2d");
+    }
+    if (!ctx)
+      return;
+    ctx.clearRect(0, 0, canvasW, canvasH);
+    if (ss !== 1) {
+      ctx.save?.();
+      ctx.scale?.(ss, ss);
+    }
+    const design = this.item.Design;
+    const localGeom = {
+      cols: geom.cols,
+      rows: geom.rows,
+      cellW: geom.cellW,
+      cellH: geom.cellH,
+      rectForCells: (col, row, wCells2 = 1, hCells2 = 1, padRatio = 0) => {
+        const minSide = geom.cellW < geom.cellH ? geom.cellW : geom.cellH;
+        const pad = padRatio > 0 ? minSide * (padRatio > 0.5 ? 0.5 : padRatio) : 0;
+        const w = wCells2 * geom.cellW - 2 * pad;
+        const h = hCells2 * geom.cellH - 2 * pad;
+        return {
+          x: col * geom.cellW + pad,
+          y: row * geom.cellH + pad,
+          w: w < 0 ? 0 : w,
+          h: h < 0 ? 0 : h
+        };
+      }
+    };
+    const drawItem = {
+      Pose: {
+        Position: { x: 0, y: 0 },
+        Size: { x: wCells, y: hCells },
+        Rotation: 0
+      },
+      Design: design
+    };
+    this.renderer.draw(drawItem, ctx, localGeom);
+    if (ss !== 1) {
+      ctx.restore?.();
+    }
+    this.offscreenCanvas = c;
+    this.offscreenCtx = ctx;
+    this.imageBitmap?.close?.();
+    this.imageBitmap = null;
+    const anyWindow = globalThis;
+    if (!isFirefox && anyWindow && typeof anyWindow.createImageBitmap === "function") {
+      anyWindow.createImageBitmap(c).then((bmp) => {
+        if (this.currentKey === key) {
+          this.imageBitmap?.close?.();
+          this.imageBitmap = bmp;
+        }
+      }).catch(() => {
+      });
+    }
+    this.currentKey = key;
+  }
+};
+
+// src/app/core/rendering/animator.service.ts
+var AnimatorService = class _AnimatorService {
+  constructor() {
+    this.bitmaps = [];
+    this.supersample = 2;
+  }
+  setMap(map2) {
+    this.map = map2;
+    this.rebuildBitmaps();
+  }
+  setCamera(camera) {
+    this.camera = camera;
+  }
+  setSupersample(factor) {
+    const f = Math.max(1, Math.floor(factor || 1));
+    if (f === this.supersample)
+      return;
+    this.supersample = f;
+    for (const e of this.bitmaps)
+      e.bmp.setSupersample(f);
+    if (this.adhocBitmaps) {
+      this.adhocBitmaps.forEach?.((bmp) => bmp.setSupersample(f));
+    }
+  }
+  // Check if an item is within the viewport bounds
+  // Uses current item positions, so it's always accurate even when items move
+  isItemInViewport(item, viewportBounds) {
+    if (!viewportBounds)
+      return true;
+    const posX = item.Pose?.Position?.x ?? 0;
+    const posY = item.Pose?.Position?.y ?? 0;
+    const wCells = item.Pose?.Size?.x ?? 1;
+    const hCells = item.Pose?.Size?.y ?? 1;
+    const itemMinX = posX - wCells / 2;
+    const itemMaxX = posX + wCells / 2;
+    const itemMinY = posY - hCells / 2;
+    const itemMaxY = posY + hCells / 2;
+    const margin = Math.max(2, Math.max(wCells, hCells) * 0.5);
+    return !(itemMaxX < viewportBounds.minX - margin || itemMinX > viewportBounds.maxX + margin || itemMaxY < viewportBounds.minY - margin || itemMinY > viewportBounds.maxY + margin);
+  }
+  // Draw current frame into given context using grid geometry
+  draw(ctx, geom) {
+    if (!this.map || !geom)
+      return;
+    let viewportBounds = null;
+    if (this.camera) {
+      viewportBounds = this.camera.getViewportBounds(geom.cols, geom.rows);
+    }
+    for (const { item, bmp } of this.bitmaps) {
+      if (!this.isItemInViewport(item, viewportBounds)) {
+        continue;
+      }
+      try {
+        bmp.draw(ctx, item.Pose, geom);
+      } catch (e) {
+        console.warn("Animator draw failed for item", e, item);
+      }
+    }
+  }
+  // Draw a provided list of items using the same bitmap pipeline (separate layer)
+  drawItems(items, ctx, geom) {
+    if (!items || !geom)
+      return;
+    if (!this.adhocBitmaps)
+      this.adhocBitmaps = /* @__PURE__ */ new Map();
+    for (const item of items) {
+      if (!item)
+        continue;
+      let bmp = this.adhocBitmaps.get(item);
+      if (!bmp) {
+        bmp = new StageItemBitmap(item, void 0, this.supersample);
+        this.adhocBitmaps.set(item, bmp);
+      }
+      try {
+        bmp.draw(ctx, item.Pose, geom);
+      } catch (e) {
+        console.warn("Animator drawItems failed for item", e, item);
+      }
+    }
+  }
+  destroy() {
+    for (const e of this.bitmaps)
+      e.bmp.destroy();
+    this.bitmaps = [];
+    if (this.adhocBitmaps) {
+      this.adhocBitmaps.forEach?.((bmp) => bmp.destroy());
+      this.adhocBitmaps = void 0;
+    }
+  }
+  rebuildBitmaps() {
+    for (const e of this.bitmaps)
+      e.bmp.destroy();
+    this.bitmaps = [];
+    const obstacles = this.map?.obstacles ?? [];
+    for (const item of obstacles) {
+      const entry = { item, bmp: new StageItemBitmap(item, void 0, this.supersample) };
+      this.bitmaps.push(entry);
+    }
+  }
+  static {
+    this.\u0275fac = function AnimatorService_Factory(__ngFactoryType__) {
+      return new (__ngFactoryType__ || _AnimatorService)();
+    };
+  }
+  static {
+    this.\u0275prov = /* @__PURE__ */ \u0275\u0275defineInjectable({ token: _AnimatorService, factory: _AnimatorService.\u0275fac, providedIn: "root" });
+  }
+};
+
+// src/app/core/services/rendering-coordinator.service.ts
+var RenderingCoordinatorService = class _RenderingCoordinatorService {
+  constructor(ticker, worldContextService, animator) {
     this.ticker = ticker;
-    this.worldAssembler = worldAssembler;
-    this.gridColor = "#cccccc";
-    this.gridLineWidth = 0.01;
-    this.gridSize = new Point(10, 10);
-    this.gridBorder = "solid";
-    this.gridBorderActive = true;
-    this.currentZoomIndex = 0;
-    this.drawFrame = (ctx, _canvas, geom) => {
+    this.worldContextService = worldContextService;
+    this.animator = animator;
+    this.layers = /* @__PURE__ */ new Set();
+  }
+  registerGridLayer(layer) {
+    this.gridLayer = layer;
+    this.layers.add(layer);
+  }
+  registerObstaclesLayer(layer) {
+    this.obstaclesLayer = layer;
+    this.layers.add(layer);
+  }
+  registerAvatarsLayer(layer) {
+    this.avatarsLayer = layer;
+    this.layers.add(layer);
+  }
+  unregisterLayer(layer) {
+    this.layers.delete(layer);
+    if (this.gridLayer === layer)
+      this.gridLayer = void 0;
+    if (this.obstaclesLayer === layer)
+      this.obstaclesLayer = void 0;
+    if (this.avatarsLayer === layer)
+      this.avatarsLayer = void 0;
+  }
+  setMap(map2) {
+    this.currentMap = map2;
+    this.animator.setMap(map2);
+  }
+  setCamera(camera) {
+    this.animator.setCamera(camera);
+  }
+  createObstaclesDrawCallback() {
+    return (ctx, _canvas, geom) => {
       if (!geom)
         return;
       this.animator.draw(ctx, geom);
     };
-    this.drawAvatarFrame = (ctx, _canvas, geom) => {
+  }
+  createAvatarsDrawCallback() {
+    return (ctx, _canvas, geom) => {
       if (!geom || !this.currentMap?.avatar)
         return;
       this.animator.drawItems([this.currentMap.avatar], ctx, geom);
     };
-    this.enableItemCollisions = true;
-    this.gridBackgroundColor = "transparent";
-    this.gridBackgroundImage = "";
-    this.gridBackgroundRepeat = null;
-    this.currentZoom = 1;
-    this.zoomLevels = [1, 2, 3, 4, 5];
-    this.lastTapTime = 0;
-    this.lastTapPosition = null;
-    this.DOUBLE_TAP_DELAY = 300;
-    this.DOUBLE_TAP_DISTANCE = 50;
   }
-  ngAfterViewInit() {
-    this.startup.main(this);
+  start() {
+    if (this.tickSub)
+      return;
     this.ticker.start();
     this.tickSub = this.ticker.ticks$.subscribe(() => this.onTick());
   }
-  ngOnDestroy() {
-    this.tickSub?.unsubscribe?.();
+  stop() {
+    this.tickSub?.unsubscribe();
+    this.tickSub = void 0;
     this.ticker.stop();
-    this.worldContext?.cleanup();
+  }
+  onTick() {
+    const camera = this.worldContextService.getCamera();
+    if (camera) {
+      this.animator.setCamera(camera);
+    }
+    this.worldContextService.updateCamera();
+    const cameraDirty = this.worldContextService.isCameraDirty();
+    if (cameraDirty) {
+      this.gridLayer?.requestRedraw();
+      this.obstaclesLayer?.requestRedraw();
+      this.avatarsLayer?.requestRedraw();
+      this.worldContextService.clearCameraDirty();
+    } else {
+      this.obstaclesLayer?.requestRedraw();
+      this.avatarsLayer?.requestRedraw();
+    }
+  }
+  ngOnDestroy() {
+    this.stop();
+    this.layers.clear();
+    this.gridLayer = void 0;
+    this.obstaclesLayer = void 0;
+    this.avatarsLayer = void 0;
+  }
+  static {
+    this.\u0275fac = function RenderingCoordinatorService_Factory(__ngFactoryType__) {
+      return new (__ngFactoryType__ || _RenderingCoordinatorService)(\u0275\u0275inject(TickService), \u0275\u0275inject(WorldContextService), \u0275\u0275inject(AnimatorService));
+    };
+  }
+  static {
+    this.\u0275prov = /* @__PURE__ */ \u0275\u0275defineInjectable({ token: _RenderingCoordinatorService, factory: _RenderingCoordinatorService.\u0275fac, providedIn: "root" });
+  }
+};
+
+// src/app/features/stage/components/map/map.component.ts
+var _c04 = ["avatarsCanvas"];
+var MapComponent = class _MapComponent {
+  // Grid configuration from service
+  get gridConfig() {
+    return this.mapConfig.config;
+  }
+  // Camera accessor for template
+  get camera() {
+    return this.worldContextService.getCamera();
+  }
+  // Zoom state accessors for template
+  get currentZoom() {
+    return this.zoomService.getCurrentZoom();
+  }
+  get currentZoomIndex() {
+    return this.zoomService.getCurrentZoomIndex();
+  }
+  get drawFrame() {
+    if (!this._drawFrame) {
+      this._drawFrame = this.renderingCoordinator.createObstaclesDrawCallback();
+    }
+    return this._drawFrame;
+  }
+  get drawAvatarFrame() {
+    if (!this._drawAvatarFrame) {
+      this._drawAvatarFrame = this.renderingCoordinator.createAvatarsDrawCallback();
+    }
+    return this._drawAvatarFrame;
+  }
+  constructor(startup, mapConfig, zoomService, fullscreenService, renderingCoordinator, worldContextService, animator, cdr) {
+    this.startup = startup;
+    this.mapConfig = mapConfig;
+    this.zoomService = zoomService;
+    this.fullscreenService = fullscreenService;
+    this.renderingCoordinator = renderingCoordinator;
+    this.worldContextService = worldContextService;
+    this.animator = animator;
+    this.cdr = cdr;
+    this.enableItemCollisions = true;
+  }
+  ngAfterViewInit() {
+    this.renderingCoordinator.registerGridLayer(this.grid);
+    this.renderingCoordinator.registerObstaclesLayer(this.animLayer);
+    this.renderingCoordinator.registerAvatarsLayer(this.avatarsCanvas);
+    this.configSub = this.mapConfig.config$.subscribe(() => {
+      this.cdr.markForCheck();
+    });
+    this.renderingCoordinator.start();
+    this.startup.main(this);
+  }
+  ngOnDestroy() {
+    this.configSub?.unsubscribe?.();
+    this.renderingCoordinator.stop();
+    this.renderingCoordinator.unregisterLayer(this.grid);
+    this.renderingCoordinator.unregisterLayer(this.animLayer);
+    this.renderingCoordinator.unregisterLayer(this.avatarsCanvas);
+    this.worldContextService.cleanup();
     this.animator.destroy();
   }
   loadMap(map2) {
     if (!map2)
       return;
-    this.currentMap = map2;
-    this.updateGridFromMap(map2);
-    this.applyDesignConfiguration(map2);
-    this.updateZoomLevelsFromMap(map2);
-    this.animator.setMap(map2);
-    this.animator.setCamera(this.camera);
-    this.rebuildWorld(map2);
-  }
-  onTick() {
-    this.worldContext?.updateCamera();
-    const cameraDirty = this.worldContext?.isCameraDirty() ?? false;
-    if (this.camera) {
-      this.animator.setCamera(this.camera);
+    this.mapConfig.loadMap(map2);
+    this.zoomService.loadZoomLevelsFromMap(map2);
+    this.renderingCoordinator.setMap(map2);
+    this.worldContextService.setConfig({ enableCollisions: this.enableItemCollisions });
+    this.worldContextService.buildWorld(map2);
+    const camera = this.worldContextService.getCamera();
+    if (camera) {
+      this.zoomService.setCamera(camera);
+      this.renderingCoordinator.setCamera(camera);
     }
-    if (cameraDirty) {
-      this.grid?.requestRedraw();
-      this.animLayer?.requestRedraw();
-      this.avatarsCanvas?.requestRedraw();
-      this.worldContext?.clearCameraDirty();
-    } else {
-      this.animLayer?.requestRedraw();
-      this.avatarsCanvas?.requestRedraw();
-    }
-  }
-  updateGridFromMap(map2) {
-    if (map2.size) {
-      this.gridSize = new Point(map2.size.x, map2.size.y);
-    }
-  }
-  rebuildWorld(map2) {
-    this.worldContext?.cleanup();
-    this.worldContext = this.worldAssembler.buildWorld(map2, {
-      enableCollisions: this.enableItemCollisions
-    });
-    this.worldContext.start();
   }
   toggleZoom() {
-    this.currentZoom = this.zoomLevels[this.currentZoomIndex];
-    this.currentZoomIndex = (this.currentZoomIndex + 1) % this.zoomLevels.length;
-    this.camera.setTarget(this.camera.getTargetCenter(), this.currentZoom);
-    console.log("currentZoom", this.currentZoom, this.currentZoomIndex);
+    this.zoomService.toggleZoom();
   }
   onTouchStart(event) {
-    if (event.touches.length !== 1)
-      return;
-    const touch = event.touches[0];
-    const currentTime = Date.now();
-    const currentPosition = { x: touch.clientX, y: touch.clientY };
-    if (this.lastTapTime > 0 && currentTime - this.lastTapTime < this.DOUBLE_TAP_DELAY && this.lastTapPosition && Math.hypot(currentPosition.x - this.lastTapPosition.x, currentPosition.y - this.lastTapPosition.y) < this.DOUBLE_TAP_DISTANCE) {
-      this.toggleFullscreen();
+    const fullscreenToggled = this.fullscreenService.handleTouchStart(event);
+    if (fullscreenToggled) {
       event.preventDefault();
-      this.lastTapTime = 0;
-      this.lastTapPosition = null;
-    } else {
-      this.lastTapTime = currentTime;
-      this.lastTapPosition = currentPosition;
-    }
-  }
-  toggleFullscreen() {
-    if (!document.fullscreenElement) {
-      const element = document.documentElement;
-      if (element.requestFullscreen) {
-        element.requestFullscreen().catch((err) => {
-          console.error("Error attempting to enable fullscreen:", err);
-        });
-      }
-    } else {
-      if (document.exitFullscreen) {
-        document.exitFullscreen().catch((err) => {
-          console.error("Error attempting to exit fullscreen:", err);
-        });
-      }
-    }
-  }
-  updateZoomLevelsFromMap(map2) {
-    if (map2.zoomLevels && map2.zoomLevels.length > 0) {
-      this.zoomLevels = map2.zoomLevels;
-      const currentZoomValue = map2.camera?.getZoom() ?? this.camera?.getZoom() ?? 1;
-      const index = this.zoomLevels.findIndex((z) => Math.abs(z - currentZoomValue) < 0.01);
-      this.currentZoomIndex = index >= 0 ? index : 0;
-      this.currentZoom = this.zoomLevels[this.currentZoomIndex];
-    }
-  }
-  applyDesignConfiguration(map2) {
-    if (!map2.design)
-      return;
-    const { Border: Border2, Color, Image: Image2, BackgroundRepeat: BackgroundRepeat2 } = map2.design;
-    if (Border2.Width !== void 0)
-      this.gridLineWidth = Border2.Width;
-    if (Border2.Color)
-      this.gridColor = Border2.Color;
-    if (Border2.Style)
-      this.gridBorder = Border2.Style;
-    if (Border2.Active !== void 0)
-      this.gridBorderActive = Border2.Active;
-    if (Color)
-      this.gridBackgroundColor = Color;
-    if (Image2)
-      this.gridBackgroundImage = Image2;
-    if (BackgroundRepeat2 && BackgroundRepeat2.Mode) {
-      this.gridBackgroundRepeat = {
-        Mode: BackgroundRepeat2.Mode,
-        TileSize: {
-          X: BackgroundRepeat2.TileSize?.X ?? 1,
-          Y: BackgroundRepeat2.TileSize?.Y ?? 1
-        }
-      };
-    } else {
-      this.gridBackgroundRepeat = null;
     }
   }
   static {
     this.\u0275fac = function MapComponent_Factory(__ngFactoryType__) {
-      return new (__ngFactoryType__ || _MapComponent)(\u0275\u0275directiveInject(StartupService), \u0275\u0275directiveInject(AnimatorService), \u0275\u0275directiveInject(TickService), \u0275\u0275directiveInject(WorldAssemblerService));
+      return new (__ngFactoryType__ || _MapComponent)(\u0275\u0275directiveInject(StartupService), \u0275\u0275directiveInject(MapConfigurationService), \u0275\u0275directiveInject(ZoomService), \u0275\u0275directiveInject(FullscreenService), \u0275\u0275directiveInject(RenderingCoordinatorService), \u0275\u0275directiveInject(WorldContextService), \u0275\u0275directiveInject(AnimatorService), \u0275\u0275directiveInject(ChangeDetectorRef));
     };
   }
   static {
@@ -39845,17 +40684,17 @@ var MapComponent = class _MapComponent {
       }
       if (rf & 2) {
         \u0275\u0275advance(2);
-        \u0275\u0275property("gridSize", ctx.gridSize)("backgroundColor", ctx.gridBackgroundColor)("backgroundImage", ctx.gridBackgroundImage)("backgroundRepeat", ctx.gridBackgroundRepeat)("color", ctx.gridColor)("gridBorder", ctx.gridBorder)("gridBorderActive", ctx.gridBorderActive)("lineWidth", ctx.gridLineWidth)("camera", ctx.camera);
+        \u0275\u0275property("gridSize", ctx.gridConfig.gridSize)("backgroundColor", ctx.gridConfig.gridBackgroundColor)("backgroundImage", ctx.gridConfig.gridBackgroundImage)("backgroundRepeat", ctx.gridConfig.gridBackgroundRepeat)("color", ctx.gridConfig.gridColor)("gridBorder", ctx.gridConfig.gridBorder)("gridBorderActive", ctx.gridConfig.gridBorderActive)("lineWidth", ctx.gridConfig.gridLineWidth)("camera", ctx.camera);
         \u0275\u0275advance(2);
-        \u0275\u0275property("gridSize", ctx.gridSize)("draw", ctx.drawFrame)("camera", ctx.camera);
+        \u0275\u0275property("gridSize", ctx.gridConfig.gridSize)("draw", ctx.drawFrame)("camera", ctx.camera);
         \u0275\u0275advance(2);
-        \u0275\u0275property("gridSize", ctx.gridSize)("draw", ctx.drawAvatarFrame)("camera", ctx.camera);
+        \u0275\u0275property("gridSize", ctx.gridConfig.gridSize)("draw", ctx.drawAvatarFrame)("camera", ctx.camera);
       }
     }, dependencies: [GridComponent, CanvasLayerComponent], styles: ["\n\n[_nghost-%COMP%] {\n  display: flex;\n  flex-direction: column;\n  flex: 1;\n  width: 100%;\n  height: 100%;\n}\n.container[_ngcontent-%COMP%] {\n  position: relative;\n  flex: 1;\n  width: 100%;\n  height: 100%;\n  padding: 0;\n  overflow: hidden;\n}\n.layer[_ngcontent-%COMP%] {\n  position: absolute;\n  inset: 0;\n}\n.layer.obstacles[_ngcontent-%COMP%] {\n  z-index: 2;\n}\n.layer.targets[_ngcontent-%COMP%] {\n  z-index: 3;\n}\n.layer.avatars[_ngcontent-%COMP%] {\n  z-index: 4;\n}\n/*# sourceMappingURL=map.component.css.map */"] });
   }
 };
 (() => {
-  (typeof ngDevMode === "undefined" || ngDevMode) && \u0275setClassDebugInfo(MapComponent, { className: "MapComponent", filePath: "src/app/features/stage/components/map/map.component.ts", lineNumber: 20 });
+  (typeof ngDevMode === "undefined" || ngDevMode) && \u0275setClassDebugInfo(MapComponent, { className: "MapComponent", filePath: "src/app/features/stage/components/map/map.component.ts", lineNumber: 21 });
 })();
 
 // src/app/features/game/game.component.ts
