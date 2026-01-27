@@ -85,7 +85,8 @@
         "canRotate": false,
         "hasCollision": true,
         "hasGravity": false,
-        "mass": 1000
+        "mass": 1000,
+        "restitution": 0.5      
       }
     },
     {
@@ -115,7 +116,8 @@
         "canRotate": false,
         "hasCollision": true,
         "hasGravity": false,
-        "mass": 1000
+        "mass": 1000,
+        "restitution": 0.5
       }
     },
     {
@@ -438,8 +440,8 @@
     "Id": "Avatar",
     "Pose": {
       "Position": {
-        "X": 2,
-        "Y": 11.64
+        "X": 17,
+        "Y": 7
       },
       "Size": {
         "X": 0.26,
@@ -459,7 +461,7 @@
       "canMove": true,
       "canRotate": true,
       "hasGravity": true,
-      "restitution": 0.2,
+      "restitution": 0.5,
       "damping": 0.6,
       "friction": 0.01
     },
@@ -474,11 +476,11 @@
       {
         "Type": "WalkingTransformer",
         "Params": {
-          "moveAccel": 5,
+          "moveAccel": 15,
           "maxSpeed": 20,
-          "jumpImpulse": 8,
+          "jumpImpulse": 11,
           "airControl": 0.5,
-          "uprightForce": 200,
+          "uprightForce": 20,
           "groundedEpsilon": 0.05
         }
       }

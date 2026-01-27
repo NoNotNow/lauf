@@ -337,66 +337,87 @@ export function resolveRestingContactConstraint(
   const gravityForceA = { x: 0, y: sa.mass * gravityY };
   const gravityForceB = { x: 0, y: sb.mass * gravityY };
 
-  // Calculate required normal force to:
-  // 1. Counter gravity component along normal
-  // 2. Prevent penetration (position constraint)
-  // 3. Damp relative velocity along normal
+  // For truly resting contacts, we want to:
+  // 1. Zero out relative velocity along normal (prevent bouncing)
+  // 2. Counter gravity to maintain contact
+  // 3. Use gentle position correction (position correction is handled separately)
+  
+  // Check if either object is static (infinite mass)
+  const isAStatic = invMassA === 0;
+  const isBStatic = invMassB === 0;
+  
+  // Calculate gravity component along normal
   const gravityDotNormalA = dot(gravityForceA.x, gravityForceA.y, normal.x, normal.y);
   const gravityDotNormalB = dot(gravityForceB.x, gravityForceB.y, -normal.x, -normal.y);
   
-  // Position correction force (Baumgarte stabilization)
+  // For resting contacts, use strong damping to zero out normal velocity
+  // This prevents oscillations and bouncing
+  const dampingFactor = 50; // Increased damping for stability
+  const targetVRelN = 0; // Target is zero relative velocity along normal
+  const velocityError = vRelN - targetVRelN;
+  const dampingForce = -velocityError * dampingFactor;
+  
+  // Gentle position correction (position correction is mainly handled in applyPositionCorrection)
   const slop = 0.01;
   const penetration = Math.max(0, penetrationDepth - slop);
-  const positionCorrectionFactor = 100; // Force per unit penetration
+  const positionCorrectionFactor = 20; // Reduced from 100 to prevent overshoot
   const positionCorrectionForce = penetration * positionCorrectionFactor;
-  
-  // Velocity damping along normal
-  const dampingFactor = 10; // Damping coefficient
-  const dampingForce = -vRelN * dampingFactor;
   
   // Total normal force needed
   const raXn = cross2(ra, normal);
   const rbXn = cross2(rb, normal);
   const kN = invMassA + invMassB + (raXn * raXn) * invIA + (rbXn * rbXn) * invIB;
   
-  // Normal force magnitude (positive means pushing objects apart)
-  const normalForceMagnitude = (gravityDotNormalA + gravityDotNormalB + positionCorrectionForce + dampingForce) / (kN || 1);
+  // Normal force magnitude
+  // For static objects, only apply force to the moving object
+  const gravityComponent = (isAStatic ? 0 : gravityDotNormalA) + (isBStatic ? 0 : gravityDotNormalB);
+  const normalForceMagnitude = (gravityComponent + positionCorrectionForce + dampingForce) / (kN || 1);
   
   // Clamp to prevent excessive forces
-  const maxForce = 1000;
+  const maxForce = 500; // Reduced from 1000
   const clampedNormalForce = Math.max(-maxForce, Math.min(maxForce, normalForceMagnitude));
   
-  // Apply normal force as impulse (force * dt, but we're in a constraint solver context)
-  // For constraint forces, we apply them directly as velocity changes
-  // In practice, we'll apply this as an impulse scaled by a time step
-  const dt = 0.016; // Approximate frame time for force-to-impulse conversion
+  // Apply normal force as impulse
+  const dt = 0.016; // Approximate frame time
   const jn = clampedNormalForce * dt;
   
   // Apply normal constraint impulse
   const Jn = { x: jn * normal.x, y: jn * normal.y };
-  let vax = sa.vx - Jn.x * invMassA;
-  let vay = sa.vy - Jn.y * invMassA;
-  let vbx = sb.vx + Jn.x * invMassB;
-  let vby = sb.vy + Jn.y * invMassB;
+  // Only apply velocity changes to moving objects
+  let vax = isAStatic ? sa.vx : sa.vx - Jn.x * invMassA;
+  let vay = isAStatic ? sa.vy : sa.vy - Jn.y * invMassA;
+  let vbx = isBStatic ? sb.vx : sb.vx + Jn.x * invMassB;
+  let vby = isBStatic ? sb.vy : sb.vy + Jn.y * invMassB;
 
-  // Angular impulses
-  const tauA = cross2(ra, Jn);
-  const tauB = cross2(rb, Jn);
-  const newOmegaAr = omegaAr - tauA * invIA;
-  const newOmegaBr = omegaBr + tauB * invIB;
+  // Angular impulses (only for moving objects)
+  let newOmegaAr = omegaAr;
+  let newOmegaBr = omegaBr;
+  if (!isAStatic || !isBStatic) {
+    const tauA = isAStatic ? 0 : cross2(ra, Jn);
+    const tauB = isBStatic ? 0 : cross2(rb, Jn);
+    newOmegaAr = omegaAr - tauA * invIA;
+    newOmegaBr = omegaBr + tauB * invIB;
+  }
   let omegaA = StageItemPhysics.omegaRadToDegPerSec(newOmegaAr);
   let omegaB = StageItemPhysics.omegaRadToDegPerSec(newOmegaBr);
 
   // Friction constraint for tangential motion
+  // Only applies Coulomb friction to prevent sliding, not to oppose intentional movement
   const tangent0 = { x: vRel.x - vRelN * normal.x, y: vRel.y - vRelN * normal.y };
   const tLen = len(tangent0.x, tangent0.y);
   if (tLen > 1e-6 && mu > 0) {
     const t = { x: tangent0.x / tLen, y: tangent0.y / tLen };
     const vRelT = dot(vRel.x, vRel.y, t.x, t.y);
     
-    // Friction force to stop tangential motion
-    const frictionDamping = 5; // Damping coefficient for friction
-    const frictionForce = -vRelT * frictionDamping;
+    // Apply minimal damping only for very small velocities (micro-slippage)
+    // For resting contacts, we don't want to oppose intentional movement
+    const microVelocityThreshold = 0.1; // cells/s
+    let frictionForce = 0;
+    if (Math.abs(vRelT) < microVelocityThreshold) {
+      // Light damping to eliminate micro-slippage
+      const frictionDamping = 1; // Reduced from 5 to avoid opposing intentional movement
+      frictionForce = -vRelT * frictionDamping;
+    }
     
     // Clamp by Coulomb friction limit
     const maxFrictionForce = mu * Math.abs(clampedNormalForce);
@@ -408,16 +429,26 @@ export function resolveRestingContactConstraint(
     const jt = (clampedFrictionForce * dt) / (kT || 1);
     
     const Jt = { x: jt * t.x, y: jt * t.y };
-    vax -= Jt.x * invMassA;
-    vay -= Jt.y * invMassA;
-    vbx += Jt.x * invMassB;
-    vby += Jt.y * invMassB;
+    // Only apply friction to moving objects
+    if (!isAStatic) {
+      vax -= Jt.x * invMassA;
+      vay -= Jt.y * invMassA;
+    }
+    if (!isBStatic) {
+      vbx += Jt.x * invMassB;
+      vby += Jt.y * invMassB;
+    }
 
-    // Angular due to friction
-    const tauAf = cross2(ra, Jt);
-    const tauBf = cross2(rb, Jt);
-    omegaA = StageItemPhysics.omegaRadToDegPerSec(newOmegaAr - tauAf * invIA);
-    omegaB = StageItemPhysics.omegaRadToDegPerSec(newOmegaBr + tauBf * invIB);
+    // Angular due to friction (only for moving objects)
+    // Use the already-updated angular velocities from normal impulse
+    if (!isAStatic || !isBStatic) {
+      const tauAf = isAStatic ? 0 : cross2(ra, Jt);
+      const tauBf = isBStatic ? 0 : cross2(rb, Jt);
+      newOmegaAr = newOmegaAr - tauAf * invIA;
+      newOmegaBr = newOmegaBr + tauBf * invIB;
+      omegaA = StageItemPhysics.omegaRadToDegPerSec(newOmegaAr);
+      omegaB = StageItemPhysics.omegaRadToDegPerSec(newOmegaBr);
+    }
   }
 
   // Persist using in-place updates

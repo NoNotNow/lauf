@@ -109,7 +109,7 @@ export class CollisionHandler {
   /**
    * Calculate relative velocity at contact point between two items
    */
-  private calculateRelativeVelocityAtContact(c: Contact): { vRelN: number; vRel: { x: number; y: number } } {
+  private calculateRelativeVelocityAtContact(c: Contact): { vRelN: number; vRelT: number; vRel: { x: number; y: number } } {
     const stateA = c.physA.State;
     const stateB = c.physB.State;
     
@@ -139,7 +139,11 @@ export class CollisionHandler {
     // Relative velocity along normal
     const vRelN = vRel.x * c.normal.x + vRel.y * c.normal.y;
     
-    return { vRelN, vRel };
+    // Relative velocity tangential (perpendicular to normal)
+    const tangent = { x: vRel.x - vRelN * c.normal.x, y: vRel.y - vRelN * c.normal.y };
+    const vRelT = Math.hypot(tangent.x, tangent.y);
+    
+    return { vRelN, vRelT, vRel };
   }
 
   /**
@@ -186,6 +190,7 @@ export class CollisionHandler {
 
   /**
    * Separate contacts into resting vs impacting based on tracking and velocity
+   * A contact is "resting" only if both normal AND tangential velocities are low
    */
   private separateRestingFromImpacting(contacts: Contact[]): { resting: Contact[]; impacting: Contact[] } {
     const restingContacts: Contact[] = [];
@@ -196,10 +201,12 @@ export class CollisionHandler {
       const resting = this.restingContacts.get(key);
       
       if (resting && resting.framesActive >= this.RESTING_FRAMES_THRESHOLD) {
-        const { vRelN } = this.calculateRelativeVelocityAtContact(c);
+        const { vRelN, vRelT } = this.calculateRelativeVelocityAtContact(c);
         const absVRelN = Math.abs(vRelN);
         
-        if (absVRelN < this.RESTING_VELOCITY_THRESHOLD) {
+        // For resting contact, both normal AND tangential velocities must be low
+        // This prevents walking/moving objects from being treated as resting
+        if (absVRelN < this.RESTING_VELOCITY_THRESHOLD && vRelT < this.RESTING_VELOCITY_THRESHOLD) {
           restingContacts.push(c);
           continue;
         }
